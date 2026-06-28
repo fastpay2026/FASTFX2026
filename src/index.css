@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Cairo", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+/* Custom Sophisticated Glow & Glass Effects */
+.glow-orange {
+  box-shadow: 0 0 30px -5px rgba(249, 115, 22, 0.15), 0 0 15px -5px rgba(249, 115, 22, 0.05);
+}
+
+.glow-orange-strong {
+  box-shadow: 0 0 40px -2px rgba(249, 115, 22, 0.3);
+}
+
+.premium-border {
+  border: 1px solid rgba(63, 63, 70, 0.4);
+}
+
+.premium-border:hover {
+  border-color: rgba(249, 115, 22, 0.4);
+}
+
+/* RTL Support override for direction-aware visual components */
+.rtl-grid {
+  direction: rtl;
+}
+
+/* Smooth custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #050505;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #f97316;
+}
+

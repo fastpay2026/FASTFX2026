@@ -1,0 +1,6 @@
+{
+  "name": "Fast Fx",
+  "description": "منصة تداول متطورة - قريباً من مجموعة Fast Flow Group LTD",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
