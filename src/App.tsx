@@ -279,7 +279,7 @@ export default function App() {
             <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl blur-md opacity-40" />
             
             <img
-              src="/src/assets/images/fast_fx_minimalist_logo_1782671294907.jpg"
+              src="/src/assets/images/fast_fx_luxury_emblem_1783197785440.jpg"
               alt="FAST FX Logo"
               className="relative w-28 h-28 sm:w-36 sm:h-36 lg:w-44 lg:h-44 rounded-2xl object-cover border-2 border-zinc-800/80 shadow-[0_0_45px_rgba(249,115,22,0.3)] transition-all duration-500 group-hover:scale-105 group-hover:border-orange-500/50"
               referrerPolicy="no-referrer"
@@ -822,7 +822,7 @@ export default function App() {
                 <div className="relative shrink-0">
                   <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-red-600 rounded-sm blur-sm opacity-50" />
                   <img
-                    src="/src/assets/images/fast_fx_minimalist_logo_1782671294907.jpg"
+                    src="/src/assets/images/fast_fx_luxury_emblem_1783197785440.jpg"
                     alt="FAST FX Logo"
                     className="relative w-8 h-8 rounded-sm object-cover border border-zinc-900"
                     referrerPolicy="no-referrer"
