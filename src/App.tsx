@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, useMemo, FormEvent } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import logoUrl from "./assets/images/fast_fx_luxury_emblem_1783197785440.jpg";
 import { translations, Language } from "./translations";
@@ -39,6 +39,55 @@ const initialTickers: TickerItem[] = [
   { symbol: "Crude Oil", price: 78.45, change: 1.12, isUp: true, type: "commodities" },
 ];
 
+// 15-day Countdown Logic (15 days starting from today)
+const COUNTDOWN_STORAGE_KEY = "fast_fx_countdown_target_15d";
+const FIFTEEN_DAYS_MS = 15 * 24 * 60 * 60 * 1000;
+
+function getLaunchTargetDate(): number {
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem(COUNTDOWN_STORAGE_KEY);
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        const now = Date.now();
+        // If parsed is a valid future timestamp within 16 days
+        if (!isNaN(parsed) && parsed > now && parsed <= now + FIFTEEN_DAYS_MS + 3600000) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to read countdown target from localStorage", e);
+    }
+  }
+
+  // Calculate 15 days ending from right now
+  const newTarget = Date.now() + FIFTEEN_DAYS_MS;
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(COUNTDOWN_STORAGE_KEY, newTarget.toString());
+    } catch (e) {
+      console.error("Failed to save countdown target to localStorage", e);
+    }
+  }
+  return newTarget;
+}
+
+function calculateTimeLeftValues(target: number) {
+  const now = Date.now();
+  const difference = target - now;
+
+  if (difference <= 0) {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+  }
+
+  return {
+    days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+    minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+    seconds: Math.floor((difference % (1000 * 60)) / 1000),
+  };
+}
+
 export default function App() {
   // Language State - Persistent in localStorage
   const [lang, setLang] = useState<Language>(() => {
@@ -78,14 +127,26 @@ export default function App() {
   // Chart state for dynamic drawing
   const [chartData, setChartData] = useState<number[]>(Array.from({ length: 22 }, () => 40 + Math.random() * 30));
 
-  // Time Countdown state (Target: August 15, 2026)
-  const targetDate = new Date("2026-08-15T00:00:00").getTime();
-  const [timeLeft, setTimeLeft] = useState({
-    days: 0,
-    hours: 0,
-    minutes: 0,
-    seconds: 0,
-  });
+  // 15-day Countdown state (Target: 15 days from today)
+  const [targetTimestamp] = useState<number>(() => getLaunchTargetDate());
+  const [timeLeft, setTimeLeft] = useState(() => calculateTimeLeftValues(getLaunchTargetDate()));
+
+  // Formatted target date based on selected language
+  const targetDateFormatted = useMemo(() => {
+    try {
+      const d = new Date(targetTimestamp);
+      return new Intl.DateTimeFormat(lang === "ar" ? "ar-EG" : "en-US", {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(d);
+    } catch {
+      return new Date(targetTimestamp).toLocaleDateString();
+    }
+  }, [targetTimestamp, lang]);
 
   // Load subscribers from localStorage on mount
   useEffect(() => {
@@ -98,11 +159,11 @@ export default function App() {
       }
     }
 
-    // Set initial countdown
-    calculateTimeLeft();
-
-    // Intervals
-    const countdownInterval = setInterval(calculateTimeLeft, 1000);
+    // Set initial countdown and interval
+    setTimeLeft(calculateTimeLeftValues(targetTimestamp));
+    const countdownInterval = setInterval(() => {
+      setTimeLeft(calculateTimeLeftValues(targetTimestamp));
+    }, 1000);
 
     // Simulate live ticker changes
     const tickerInterval = setInterval(() => {
@@ -183,23 +244,6 @@ export default function App() {
       return () => clearTimeout(timer);
     }
   }, [simStatus, currentSimPrice, entryPrice, simDirection, simPair, executionTime]);
-
-  const calculateTimeLeft = () => {
-    const now = new Date().getTime();
-    const difference = targetDate - now;
-
-    if (difference <= 0) {
-      setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-      return;
-    }
-
-    setTimeLeft({
-      days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-      hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-      minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
-      seconds: Math.floor((difference % (1000 * 60)) / 1000),
-    });
-  };
 
   const handleSubscribe = (e: FormEvent) => {
     e.preventDefault();
@@ -414,41 +458,60 @@ export default function App() {
               </motion.div>
             </div>
 
-            {/* Countdown visual widget - Sophisticated Dark style */}
+            {/* Countdown visual widget - Sophisticated Dark style (15 Days from today) */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.6 }}
-              className="bg-[#111111] border border-zinc-800 p-6 rounded-none glow-orange"
+              className="bg-[#111111] border border-zinc-800 p-6 rounded-none glow-orange relative overflow-hidden"
             >
-              <h3 className="text-xs sm:text-sm font-semibold text-zinc-400 mb-4 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-orange-500" />
-                {t.countdownTitle}
-              </h3>
+              <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+                <h3 className="text-xs sm:text-sm font-semibold text-zinc-300 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-orange-500 animate-pulse" />
+                  {t.countdownTitle}
+                </h3>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-mono font-medium rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-ping" />
+                  {t.countdownBadge}
+                </span>
+              </div>
               
               <div className="grid grid-cols-4 gap-3 sm:gap-4 text-center font-mono" id="countdown-widget">
-                <div className="bg-[#090909] rounded-none p-4 border border-zinc-850">
-                  <div className="text-2xl sm:text-4xl font-light text-white">{timeLeft.days}</div>
+                <div className="bg-[#090909] rounded-none p-4 border border-zinc-850 hover:border-orange-500/40 transition-colors">
+                  <div className="text-2xl sm:text-4xl font-light text-white">
+                    {String(timeLeft.days).padStart(2, "0")}
+                  </div>
                   <div className="text-[10px] uppercase text-zinc-500 mt-1.5 font-bold">{t.days}</div>
                 </div>
-                <div className="bg-[#090909] rounded-none p-4 border border-zinc-850">
+                <div className="bg-[#090909] rounded-none p-4 border border-zinc-850 hover:border-orange-500/40 transition-colors">
                   <div className="text-2xl sm:text-4xl font-light text-white">
                     {String(timeLeft.hours).padStart(2, "0")}
                   </div>
                   <div className="text-[10px] uppercase text-zinc-500 mt-1.5 font-bold">{t.hours}</div>
                 </div>
-                <div className="bg-[#090909] rounded-none p-4 border border-zinc-850">
+                <div className="bg-[#090909] rounded-none p-4 border border-zinc-850 hover:border-orange-500/40 transition-colors">
                   <div className="text-2xl sm:text-4xl font-light text-white">
                     {String(timeLeft.minutes).padStart(2, "0")}
                   </div>
                   <div className="text-[10px] uppercase text-zinc-500 mt-1.5 font-bold">{t.minutes}</div>
                 </div>
-                <div className="bg-[#090909] rounded-none p-4 border border-zinc-850">
+                <div className="bg-[#090909] rounded-none p-4 border border-zinc-850 hover:border-orange-500/40 transition-colors">
                   <div className="text-2xl sm:text-4xl font-light text-orange-500">
                     {String(timeLeft.seconds).padStart(2, "0")}
                   </div>
                   <div className="text-[10px] uppercase text-orange-500/80 mt-1.5 font-bold">{t.seconds}</div>
                 </div>
+              </div>
+
+              {/* Target date indicator */}
+              <div className="mt-4 pt-3.5 border-t border-zinc-900/90 flex items-center justify-between text-[11px] text-zinc-500 flex-wrap gap-2">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500/70" />
+                  {t.countdownEndDateLabel}
+                </span>
+                <span className="font-mono text-zinc-300 font-medium">
+                  {targetDateFormatted}
+                </span>
               </div>
             </motion.div>
 

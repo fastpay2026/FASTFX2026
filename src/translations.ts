@@ -28,6 +28,8 @@ export interface Translations {
 
   // Countdown
   countdownTitle: string;
+  countdownBadge: string;
+  countdownEndDateLabel: string;
   days: string;
   hours: string;
   minutes: string;
@@ -141,6 +143,8 @@ export const translations: Record<Language, Translations> = {
       "الرحلة تبدأ قريباً. انضم إلينا وكن جزءاً من النخبة التي تتداول بذكاء وسرعة البرق.",
 
     countdownTitle: "العد التنازلي للإنطلاق الرسمي:",
+    countdownBadge: "15 يوماً متبقية",
+    countdownEndDateLabel: "تاريخ الإنطلاق المستهدف:",
     days: "يوم",
     hours: "ساعة",
     minutes: "دقيقة",
@@ -257,6 +261,8 @@ export const translations: Record<Language, Translations> = {
       "The launch begins soon. Join the vanguard of institutional traders executing at lightning speed.",
 
     countdownTitle: "Official Launch Countdown:",
+    countdownBadge: "15 Days Remaining",
+    countdownEndDateLabel: "Target Launch Date:",
     days: "Days",
     hours: "Hours",
     minutes: "Mins",
