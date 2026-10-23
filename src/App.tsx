@@ -1,6 +1,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import logoUrl from "./assets/images/fast_fx_luxury_emblem_1783197785440.jpg";
+import { translations, Language } from "./translations";
 import {
   TrendingUp,
   TrendingDown,
@@ -14,8 +15,6 @@ import {
   Globe,
   Clock,
   ArrowUpRight,
-  Database,
-  Lock,
   Sparkles,
   Info
 } from "lucide-react";
@@ -41,6 +40,22 @@ const initialTickers: TickerItem[] = [
 ];
 
 export default function App() {
+  // Language State - Persistent in localStorage
+  const [lang, setLang] = useState<Language>(() => {
+    const saved = localStorage.getItem("fast_fx_lang");
+    return saved === "en" ? "en" : "ar";
+  });
+
+  const t = translations[lang];
+
+  // Sync HTML document direction and title
+  useEffect(() => {
+    localStorage.setItem("fast_fx_lang", lang);
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+    document.title = t.pageTitle;
+  }, [lang, t.pageTitle]);
+
   const [tickers, setTickers] = useState<TickerItem[]>(initialTickers);
   const [email, setEmail] = useState("");
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -190,24 +205,24 @@ export default function App() {
     e.preventDefault();
     setErrorMsg("");
 
-    if (!email) {
-      setErrorMsg("الرجاء إدخال البريد الإلكتروني");
+    if (!email.trim()) {
+      setErrorMsg(t.errorEmpty);
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setErrorMsg("الرجاء إدخال بريد إلكتروني صالح");
+    if (!emailRegex.test(email.trim())) {
+      setErrorMsg(t.errorInvalid);
       return;
     }
 
     // Check if duplicate
-    if (subscribers.includes(email)) {
-      setErrorMsg("هذا البريد الإلكتروني مسجل بالفعل لدينا!");
+    if (subscribers.includes(email.trim())) {
+      setErrorMsg(t.errorDuplicate);
       return;
     }
 
-    const updated = [...subscribers, email];
+    const updated = [...subscribers, email.trim()];
     setSubscribers(updated);
     localStorage.setItem("fast_fx_subscribers", JSON.stringify(updated));
     setIsSubscribed(true);
@@ -221,8 +236,8 @@ export default function App() {
     setSimStatus("sending");
     setSimProfit(null);
 
-    // Simulate precise ultra-fast micro-execution speed (from Sophisticated Dark specs - 3ms delay!)
-    const speed = Number((2 + Math.random() * 3).toFixed(0)); // 2ms - 5ms delay!
+    // Simulate precise ultra-fast micro-execution speed (2ms - 5ms delay)
+    const speed = Number((2 + Math.random() * 3).toFixed(0));
 
     setTimeout(() => {
       setEntryPrice(currentSimPrice);
@@ -236,9 +251,11 @@ export default function App() {
     localStorage.removeItem("fast_fx_subscribers");
   };
 
+  const isRTL = lang === "ar";
+
   return (
     <div
-      dir="rtl"
+      dir={isRTL ? "rtl" : "ltr"}
       className="min-h-screen bg-[#050505] text-zinc-100 font-sans selection:bg-orange-500 selection:text-black overflow-x-hidden relative"
     >
       {/* Background glow effects - Sophisticated Dark theme */}
@@ -247,7 +264,7 @@ export default function App() {
       <div className="absolute top-[350px] -left-[100px] w-[500px] h-[500px] bg-zinc-800/10 rounded-full blur-[140px] pointer-events-none" />
 
       {/* 1. Real-Time Ticker Bar with sophisticated borders */}
-      <div className="bg-[#090909] border-b border-zinc-900 overflow-hidden py-3 z-50 relative">
+      <div className="bg-[#090909] border-b border-zinc-900 overflow-hidden py-3 z-50 relative" dir="ltr">
         <div className="flex whitespace-nowrap items-center animate-[marquee_35s_linear_infinite] hover:[animation-play-state:paused] gap-12">
           {/* Duplicate for infinite ticker */}
           {[...tickers, ...tickers].map((ticker, index) => (
@@ -271,11 +288,11 @@ export default function App() {
       {/* App Content Frame */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pb-20">
         
-        {/* Navigation / Header - Sophisticated Dark Layout */}
-        <header className="flex flex-col sm:flex-row-reverse items-center justify-between py-8 border-b border-zinc-900 gap-6 mb-12 md:mb-16">
+        {/* Navigation / Header - Sophisticated Dark Layout with Language Toggle */}
+        <header className="flex flex-col sm:flex-row items-center justify-between py-6 sm:py-8 border-b border-zinc-900 gap-6 mb-12 md:mb-16">
           {/* Real custom-designed image logo with glowing hover effect */}
           <div className="relative group shrink-0">
-            {/* Super premium large double glow ring for extra prestige/presence */}
+            {/* Large double glow ring */}
             <div className="absolute -inset-1.5 bg-gradient-to-tr from-orange-600 via-amber-500 to-yellow-400 rounded-2xl blur-xl opacity-60 group-hover:opacity-90 group-hover:blur-2xl transition-all duration-500" />
             <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl blur-md opacity-40" />
             
@@ -287,17 +304,56 @@ export default function App() {
             />
           </div>
 
-          <div className="flex items-center gap-5">
-            <div className="flex items-center gap-2">
+          {/* Action Zone: Status + Language Toggle Switch + Waitlist Button */}
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-3 sm:gap-4">
+            
+            {/* Status Indicator */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-none bg-[#0e0e10] border border-zinc-850">
               <div className="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_#f97316]"></div>
-              <span className="text-xs uppercase tracking-widest text-zinc-400 font-bold font-mono">قريباً جداً</span>
+              <span className="text-xs uppercase tracking-widest text-zinc-300 font-bold font-mono">
+                {t.comingSoon}
+              </span>
+            </div>
+
+            {/* Language Toggle Switch (العربية | English) */}
+            <div
+              role="group"
+              aria-label="Language selection toggle"
+              className="flex items-center p-0.5 bg-[#0e0e10] border border-zinc-800 rounded-none shadow-inner"
+            >
+              <button
+                type="button"
+                onClick={() => setLang("ar")}
+                aria-pressed={lang === "ar"}
+                className={`px-3 py-1.5 text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${
+                  lang === "ar"
+                    ? "bg-orange-500 text-black shadow-[0_0_15px_rgba(249,115,22,0.4)]"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <span>العربية</span>
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setLang("en")}
+                aria-pressed={lang === "en"}
+                className={`px-3 py-1.5 text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${
+                  lang === "en"
+                    ? "bg-orange-500 text-black shadow-[0_0_15px_rgba(249,115,22,0.4)]"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <span>English</span>
+              </button>
             </div>
             
+            {/* Waitlist Anchor Button */}
             <a 
               href="#registration-container"
-              className="px-5 py-2.5 bg-transparent border border-zinc-800 text-xs font-semibold text-zinc-300 hover:bg-white hover:text-black hover:border-white transition-all duration-300 cursor-pointer"
+              className="px-5 py-2.5 bg-transparent border border-zinc-800 text-xs font-semibold text-zinc-300 hover:bg-white hover:text-black hover:border-white transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0"
             >
-              قائمة الانتظار
+              {t.waitlistBtn}
             </a>
           </div>
         </header>
@@ -318,38 +374,42 @@ export default function App() {
               >
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-sm bg-[#111] border border-zinc-800 text-[11px] text-zinc-400">
                   <Sparkles className="w-3.5 h-3.5 text-orange-500 animate-pulse" />
-                  أحدث تكنولوجيا في الأسواق العالمية
+                  {t.kicker}
                 </div>
                 
                 <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif text-white tracking-tight leading-[1.12] sm:leading-[1.15] bg-gradient-to-b from-white to-zinc-500 bg-clip-text text-transparent">
-                  سرعة فائقة. <br />
-                  <span className="text-orange-500 font-sans font-extrabold">دقة متناهية.</span> <br />
-                  تداول بلا حدود.
+                  {t.heroLine1} <br />
+                  <span className="text-orange-500 font-sans font-extrabold">{t.heroLine2}</span> <br />
+                  {t.heroLine3}
                 </h1>
               </motion.div>
 
-              {/* Epic Arabic Copy about the company */}
+              {/* Epic Narrative Copy about the company */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2, duration: 0.8 }}
-                className="text-base sm:text-lg text-zinc-300 leading-relaxed space-y-5 border-r border-zinc-800 pr-5 sm:pr-6 md:max-w-2xl"
+                className={`text-base sm:text-lg text-zinc-300 leading-relaxed space-y-5 border-zinc-800 md:max-w-2xl ${
+                  isRTL ? "border-r pr-5 sm:pr-6 text-right" : "border-l pl-5 sm:pl-6 text-left"
+                }`}
               >
                 <p className="font-semibold text-white">
-                  في عالم يتحرك بأجزاء من الثانية، نحن لا نواكب المستقبل فحسب، بل نصنعه.
+                  {t.narrativeP1}
                 </p>
                 <p>
-                  منصة <span className="text-orange-500 font-bold">Fast Fx</span> ليست مجرد بوابة تقليدية للأسواق المالية؛ إنها بوابتك الذكية المجهزة بأحدث تقنيات المعالجة اللحظية، لتصل بك إلى الأسواق العالمية بقوة تكنولوجية لا مثيل لها.
+                  {t.narrativeP2.before}
+                  <span className="text-orange-500 font-bold">{t.narrativeP2.brand}</span>
+                  {t.narrativeP2.after}
                 </p>
                 <p>
-                  لقد صممنا بيئة التداول الخاصة بنا لتمنحك الأفضلية المطلقة على الدوام: تنفيذ صفقات فائق السرعة يتم في أجزاء من الملي ثانية، تحليلات متطورة ترسم لك خارطة الفرص المتاحة، وواجهة تداول سلسة ومرنة تلائم طموحك الاستثماري وتطلعاتك.
+                  {t.narrativeP3}
                 </p>
                 <p>
-                  سواء كنت تتداول في العملات الأجنبية (Forex)، الأسهم، المؤشرات، أو السلع الاستراتيجية، استعد لتجربة تداول استثنائية تعيد بالكامل تعريف مفهوم الكفاءة، السرعة، والسيطرة الكاملة على محفظتك المالية.
+                  {t.narrativeP4}
                 </p>
                 <p className="text-orange-400 font-bold text-sm sm:text-base flex items-center gap-2">
-                  <span className="inline-block w-4 h-0.5 bg-orange-500"></span>
-                  الرحلة تبدأ قريباً. انضم إلينا وكن جزءاً من النخبة التي تتداول بذكاء وسرعة البرق.
+                  <span className="inline-block w-4 h-0.5 bg-orange-500 shrink-0"></span>
+                  {t.narrativeP5}
                 </p>
               </motion.div>
             </div>
@@ -363,31 +423,31 @@ export default function App() {
             >
               <h3 className="text-xs sm:text-sm font-semibold text-zinc-400 mb-4 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-orange-500" />
-                العد التنازلي للإنطلاق الرسمي:
+                {t.countdownTitle}
               </h3>
               
               <div className="grid grid-cols-4 gap-3 sm:gap-4 text-center font-mono" id="countdown-widget">
                 <div className="bg-[#090909] rounded-none p-4 border border-zinc-850">
                   <div className="text-2xl sm:text-4xl font-light text-white">{timeLeft.days}</div>
-                  <div className="text-[10px] uppercase text-zinc-500 mt-1.5 font-bold">يوم</div>
+                  <div className="text-[10px] uppercase text-zinc-500 mt-1.5 font-bold">{t.days}</div>
                 </div>
                 <div className="bg-[#090909] rounded-none p-4 border border-zinc-850">
                   <div className="text-2xl sm:text-4xl font-light text-white">
                     {String(timeLeft.hours).padStart(2, "0")}
                   </div>
-                  <div className="text-[10px] uppercase text-zinc-500 mt-1.5 font-bold">ساعة</div>
+                  <div className="text-[10px] uppercase text-zinc-500 mt-1.5 font-bold">{t.hours}</div>
                 </div>
                 <div className="bg-[#090909] rounded-none p-4 border border-zinc-850">
                   <div className="text-2xl sm:text-4xl font-light text-white">
                     {String(timeLeft.minutes).padStart(2, "0")}
                   </div>
-                  <div className="text-[10px] uppercase text-zinc-500 mt-1.5 font-bold">دقيقة</div>
+                  <div className="text-[10px] uppercase text-zinc-500 mt-1.5 font-bold">{t.minutes}</div>
                 </div>
                 <div className="bg-[#090909] rounded-none p-4 border border-zinc-850">
                   <div className="text-2xl sm:text-4xl font-light text-orange-500">
                     {String(timeLeft.seconds).padStart(2, "0")}
                   </div>
-                  <div className="text-[10px] uppercase text-orange-500/80 mt-1.5 font-bold">ثانية</div>
+                  <div className="text-[10px] uppercase text-orange-500/80 mt-1.5 font-bold">{t.seconds}</div>
                 </div>
               </div>
             </motion.div>
@@ -413,10 +473,10 @@ export default function App() {
                   >
                     <div>
                       <h3 className="text-lg sm:text-xl font-bold text-white mb-2">
-                        كن من أوائل المستثمرين المنضمين
+                        {t.formTitle}
                       </h3>
                       <p className="text-sm text-zinc-400 leading-relaxed">
-                        سجل اهتمامك الآن لتلقي دعوة حصرية لتجربة المنصة قبل الإطلاق الرسمي والاستفادة من رسوم تداول تبلغ 0% للشهر الأول.
+                        {t.formDesc}
                       </p>
                     </div>
 
@@ -427,19 +487,23 @@ export default function App() {
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="أدخل بريدك الإلكتروني هنا"
-                            className="w-full bg-[#0a0a0a] border border-zinc-850 rounded-none py-4 px-4 pr-11 text-zinc-200 placeholder-zinc-650 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 text-right text-sm"
+                            placeholder={t.emailPlaceholder}
+                            className={`w-full bg-[#0a0a0a] border border-zinc-850 rounded-none py-4 px-4 ${
+                              isRTL ? "pr-11 pl-4 text-right" : "pl-11 pr-4 text-left"
+                            } text-zinc-200 placeholder-zinc-650 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 text-sm`}
                             id="email-input-field"
                           />
-                          <Mail className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-650" />
+                          <Mail className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-650 ${
+                            isRTL ? "right-4" : "left-4"
+                          }`} />
                         </div>
                         <button
                           type="submit"
                           className="bg-orange-500 hover:bg-orange-600 text-black font-extrabold px-8 py-4 rounded-none transition-all duration-300 text-sm hover:shadow-[0_0_25px_rgba(249,115,22,0.45)] shrink-0 flex items-center justify-center gap-2 cursor-pointer"
                           id="submit-register-btn"
                         >
-                          سجل اهتمامك الآن
-                          <ArrowUpRight className="w-4 h-4 text-black" />
+                          {t.submitButton}
+                          <ArrowUpRight className={`w-4 h-4 text-black ${!isRTL ? "rotate-45" : ""}`} />
                         </button>
                       </div>
 
@@ -462,16 +526,18 @@ export default function App() {
                     <div className="inline-flex items-center justify-center bg-orange-500/10 border border-orange-500/30 p-3.5 rounded-none mb-2">
                       <CheckCircle2 className="w-10 h-10 text-orange-500" />
                     </div>
-                    <h3 className="text-xl sm:text-2xl font-bold text-white">تم تسجيل اهتمامك بنجاح!</h3>
+                    <h3 className="text-xl sm:text-2xl font-bold text-white">{t.successTitle}</h3>
                     <p className="text-sm text-zinc-300 max-w-md mx-auto leading-relaxed">
-                      شكراً لاهتمامك بـ <span className="text-orange-500 font-bold">Fast Fx</span>. لقد أضفنا بريدك الإلكتروني إلى قائمة المدعوين الأوائل الحصريين. سنرسل لك رمز تفعيل الحساب فور بدء المرحلة التجريبية المغلقة.
+                      {t.successDesc.before}
+                      <span className="text-orange-500 font-bold">{t.successDesc.brand}</span>
+                      {t.successDesc.after}
                     </p>
                     <button
                       onClick={() => setIsSubscribed(false)}
                       className="text-xs text-orange-500 underline hover:text-orange-400 cursor-pointer mt-2"
                       id="register-another-btn"
                     >
-                      تسجيل بريد إلكتروني آخر
+                      {t.registerAnother}
                     </button>
                   </motion.div>
                 )}
@@ -491,11 +557,11 @@ export default function App() {
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
                   <span className="text-xs font-bold text-zinc-300 font-mono tracking-wider uppercase">
-                    MATCHING ENGINE SPEED SIMULATOR
+                    {t.simulatorHeader}
                   </span>
                 </div>
                 <span className="text-[9px] bg-orange-500/10 text-orange-500 border border-orange-500/20 px-2 py-0.5 rounded-none font-mono">
-                  REAL-TIME
+                  {t.realtimeBadge}
                 </span>
               </div>
 
@@ -504,7 +570,7 @@ export default function App() {
                 
                 {/* Selector */}
                 <div className="space-y-2">
-                  <label className="text-xs text-zinc-400">اختر الأداة المالية لتجربة سرعة المنصة:</label>
+                  <label className="text-xs text-zinc-400">{t.selectPairLabel}</label>
                   <div className="grid grid-cols-3 gap-1 bg-[#090909] p-1 rounded-none border border-zinc-850">
                     {["EUR/USD", "BTC/USD", "Gold (XAU)"].map((pair) => (
                       <button
@@ -529,16 +595,22 @@ export default function App() {
                 {/* Display Current Live Price */}
                 <div className="bg-[#090909] border border-zinc-850 rounded-none p-4 flex items-center justify-between relative overflow-hidden">
                   <div>
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">سعر السوق المباشر</div>
+                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
+                      {t.marketPriceLabel}
+                    </div>
                     <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-1 tracking-tight">
                       {currentSimPrice}
                     </div>
                   </div>
                   
-                  {/* Neon flashing speed rate indicator */}
-                  <div className="text-left font-mono">
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">معدل التأخير المتوقع</div>
-                    <div className="text-orange-500 font-bold text-sm sm:text-base flex items-center gap-1 mt-0.5 justify-end">
+                  {/* Flashing speed rate indicator */}
+                  <div className={`${isRTL ? "text-left" : "text-right"} font-mono`}>
+                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
+                      {t.expectedLatencyLabel}
+                    </div>
+                    <div className={`text-orange-500 font-bold text-sm sm:text-base flex items-center gap-1 mt-0.5 ${
+                      isRTL ? "justify-end" : "justify-end"
+                    }`}>
                       <Zap className="w-3.5 h-3.5 text-orange-500 fill-orange-500/10" />
                       &lt; 0.003s
                     </div>
@@ -563,9 +635,9 @@ export default function App() {
                     );
                   })}
                   
-                  <div className="absolute top-2 right-2 text-[10px] font-mono text-zinc-500 flex items-center gap-1.5 bg-[#0e0e0e] border border-zinc-850 px-2 py-0.5">
+                  <div className={`absolute top-2 ${isRTL ? "right-2" : "left-2"} text-[10px] font-mono text-zinc-500 flex items-center gap-1.5 bg-[#0e0e0e] border border-zinc-850 px-2 py-0.5`}>
                     <Activity className="w-3 h-3 text-orange-500 animate-pulse" />
-                    مؤشر تدفق البيانات التجريبي
+                    {t.chartIndicatorLabel}
                   </div>
                 </div>
 
@@ -576,9 +648,9 @@ export default function App() {
                     disabled={simStatus === "sending" || simStatus === "filled"}
                     className="bg-emerald-500/5 hover:bg-emerald-500/15 border border-emerald-500/30 hover:border-emerald-500 text-emerald-400 font-bold py-3.5 rounded-none transition-all duration-150 flex flex-col items-center justify-center gap-1 cursor-pointer disabled:opacity-45"
                   >
-                    <span className="text-[10px] uppercase opacity-75">تنفيذ سريع</span>
+                    <span className="text-[10px] uppercase opacity-75">{t.instantExecLabel}</span>
                     <span className="text-sm font-extrabold flex items-center gap-1">
-                      شراء (BUY) <TrendingUp className="w-4 h-4" />
+                      {t.buyAction} <TrendingUp className="w-4 h-4" />
                     </span>
                   </button>
 
@@ -587,9 +659,9 @@ export default function App() {
                     disabled={simStatus === "sending" || simStatus === "filled"}
                     className="bg-rose-500/5 hover:bg-rose-500/15 border border-rose-500/30 hover:border-rose-500 text-rose-400 font-bold py-3.5 rounded-none transition-all duration-150 flex flex-col items-center justify-center gap-1 cursor-pointer disabled:opacity-45"
                   >
-                    <span className="text-[10px] uppercase opacity-75">تنفيذ سريع</span>
+                    <span className="text-[10px] uppercase opacity-75">{t.instantExecLabel}</span>
                     <span className="text-sm font-extrabold flex items-center gap-1">
-                      بيع (SELL) <TrendingDown className="w-4 h-4" />
+                      {t.sellAction} <TrendingDown className="w-4 h-4" />
                     </span>
                   </button>
                 </div>
@@ -608,41 +680,41 @@ export default function App() {
                       {simStatus === "sending" && (
                         <div className="flex items-center gap-3 py-1 text-xs text-zinc-400">
                           <div className="w-4 h-4 rounded-full border border-orange-500 border-t-transparent animate-spin shrink-0" />
-                          <span>يرتبط الآن مع محرك المطابقة فائق السرعة...</span>
+                          <span>{t.connectingEngine}</span>
                         </div>
                       )}
 
                       {(simStatus === "filled" || simStatus === "settled") && (
                         <div className="space-y-2 text-xs font-mono">
                           <div className="flex justify-between items-center text-[10px] text-zinc-550 pb-2 border-b border-zinc-850">
-                            <span>سرعة الاستجابة الفعلية</span>
+                            <span>{t.actualLatencyLabel}</span>
                             <span className="text-orange-500 font-bold flex items-center gap-0.5">
-                              ⚡ {executionTime}ms (جزء من الثانية)
+                              ⚡ {executionTime}ms {t.subsecondLabel}
                             </span>
                           </div>
                           
                           <div className="flex justify-between">
-                            <span className="text-zinc-500">سعر الدخول:</span>
+                            <span className="text-zinc-500">{t.entryPriceLabel}</span>
                             <span className="text-white font-semibold">{entryPrice}</span>
                           </div>
 
                           <div className="flex justify-between">
-                            <span className="text-zinc-500">نوع العملية:</span>
+                            <span className="text-zinc-500">{t.orderTypeLabel}</span>
                             <span
                               className={`font-bold px-1.5 py-0.5 rounded-none ${
                                 simDirection === "buy" ? "bg-emerald-950/30 text-emerald-400" : "bg-rose-950/30 text-rose-400"
                               }`}
                             >
-                              {simDirection === "buy" ? "شراء مالي (BUY)" : "بيع على المكشوف (SELL)"}
+                              {simDirection === "buy" ? t.buyOrderType : t.sellOrderType}
                             </span>
                           </div>
 
                           <div className="flex justify-between items-center">
-                            <span className="text-zinc-500 font-sans">النتيجة التجريبية:</span>
+                            <span className="text-zinc-500 font-sans">{t.simResultLabel}</span>
                             {simStatus === "filled" ? (
                               <span className="text-zinc-550 animate-pulse flex items-center gap-1 font-sans">
                                 <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-ping"></span>
-                                جاري الاحتساب اللحظي...
+                                {t.calculatingResult}
                               </span>
                             ) : (
                               <span
@@ -665,7 +737,7 @@ export default function App() {
                 {simHistory.length > 0 && (
                   <div className="space-y-2 pt-2">
                     <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
-                      آخر صفقاتك التجريبية:
+                      {t.recentTradesTitle}
                     </div>
                     <div className="space-y-1.5">
                       {simHistory.map((item) => (
@@ -680,7 +752,9 @@ export default function App() {
                             </span>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="text-zinc-600 text-[10px] font-sans">التأخير: {item.speed}ms</span>
+                            <span className="text-zinc-600 text-[10px] font-sans">
+                              {t.latencyPrefix} {item.speed}ms
+                            </span>
                             <span className={`font-bold ${(item.profit ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                               {item.profit >= 0 ? "+" : ""}
                               {item.profit}$
@@ -696,22 +770,26 @@ export default function App() {
 
             </div>
 
-            {/* Quick Trust Badges - Styled exactly like the design guidelines */}
+            {/* Quick Trust Badges */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-[#111111] border border-zinc-800 p-5 rounded-none text-right">
+              <div className={`bg-[#111111] border border-zinc-800 p-5 rounded-none ${
+                isRTL ? "text-right" : "text-left"
+              }`}>
                 <div className="inline-flex p-2 bg-orange-500/10 rounded-none text-orange-500 mb-3">
                   <Shield className="w-5 h-5" />
                 </div>
-                <div className="text-sm font-bold text-white">ترخيص دولي معتمد</div>
-                <div className="text-xs text-zinc-500 mt-1 leading-relaxed">تداول ببيئة آمنة ومنظمة بالكامل</div>
+                <div className="text-sm font-bold text-white">{t.badge1Title}</div>
+                <div className="text-xs text-zinc-500 mt-1 leading-relaxed">{t.badge1Desc}</div>
               </div>
 
-              <div className="bg-[#111111] border border-zinc-800 p-5 rounded-none text-right">
+              <div className={`bg-[#111111] border border-zinc-800 p-5 rounded-none ${
+                isRTL ? "text-right" : "text-left"
+              }`}>
                 <div className="inline-flex p-2 bg-orange-500/10 rounded-none text-orange-500 mb-3">
                   <Globe className="w-5 h-5" />
                 </div>
-                <div className="text-sm font-bold text-white">سيرفرات فائقة القرب</div>
-                <div className="text-xs text-zinc-500 mt-1 leading-relaxed">في لندن وميونيخ لضمان سرعة فائقة</div>
+                <div className="text-sm font-bold text-white">{t.badge2Title}</div>
+                <div className="text-xs text-zinc-500 mt-1 leading-relaxed">{t.badge2Desc}</div>
               </div>
             </div>
 
@@ -719,53 +797,82 @@ export default function App() {
 
         </main>
 
-        {/* Brand Core Pillars / Why Us Section - Styled exactly like "Market Stats Mockup" from Design instructions */}
+        {/* Brand Core Pillars / Why Us Section with Orange Hover Glow */}
         <section className="mt-24 md:mt-32 space-y-12">
           
           <div className="text-center space-y-3">
-            <div className="text-xs uppercase tracking-widest text-orange-500 font-bold font-mono">CORE ADVANTAGES</div>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-white">لماذا منصة Fast Fx هي خيارك القادم؟</h2>
+            <div className="text-xs uppercase tracking-widest text-orange-500 font-bold font-mono">
+              {t.coreAdvantagesKicker}
+            </div>
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-white">
+              {t.whyUsTitle}
+            </h2>
             <p className="text-zinc-400 max-w-2xl mx-auto text-sm sm:text-base leading-relaxed">
-              تكامل فريد بين قوة البنية التحتية البرمجية وسهولة الواجهة لتقديم أفضل بيئة استثمارية للمتداول العربي والعالمي.
+              {t.whyUsSubtitle}
             </p>
           </div>
 
+          {/* 3 Core Pillars with subtle orange hover glow */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border-y border-zinc-800 bg-[#111111]" id="market-stats-pillar-section">
             
             {/* Pillar 1 */}
-            <div className="border-x-0 md:border-l border-zinc-800 p-8 sm:p-10 text-right space-y-4">
-              <div className="text-orange-500 text-xs uppercase tracking-widest font-bold font-mono">سرعة التنفيذ</div>
-              <div className="text-4xl font-light text-white italic font-mono flex items-baseline gap-1">
-                0.003ms
-                <span className="text-xs text-zinc-500 not-italic font-sans font-bold">/صفقة</span>
+            <div className={`card-hover-glow border-x-0 ${
+              isRTL ? "md:border-l" : "md:border-r"
+            } border-zinc-800 p-8 sm:p-10 ${
+              isRTL ? "text-right" : "text-left"
+            } space-y-4`}>
+              <div className="text-orange-500 text-xs uppercase tracking-widest font-bold font-mono">
+                {t.pillar1Kicker}
               </div>
-              <h4 className="text-white font-bold text-base mt-2">بنية تحتية برمجية متطورة</h4>
-              <p className="text-zinc-500 text-sm leading-relaxed">
-                نقوم بتوجيه صفقاتك مباشرة عبر شبكة ألياف ضوئية فائقة السرعة ومتصلة بأكبر مزودي السيولة العالميين لضمان التنفيذ الفوري وبدون أي انزلاق سعري.
+              <div className="text-4xl font-light text-white italic font-mono flex items-baseline gap-1">
+                {t.pillar1Value}
+                <span className="text-xs text-zinc-500 not-italic font-sans font-bold">
+                  {t.pillar1Unit}
+                </span>
+              </div>
+              <h4 className="text-white font-bold text-base mt-2">
+                {t.pillar1Title}
+              </h4>
+              <p className="text-zinc-400 text-sm leading-relaxed">
+                {t.pillar1Desc}
               </p>
             </div>
 
             {/* Pillar 2 */}
-            <div className="border-y border-zinc-800 md:border-y-0 md:border-l border-zinc-800 p-8 sm:p-10 text-right space-y-4">
-              <div className="text-orange-500 text-xs uppercase tracking-widest font-bold font-mono">فروقات الأسعار</div>
-              <div className="text-4xl font-light text-white italic font-mono">
-                0.0 Pips
+            <div className={`card-hover-glow border-y md:border-y-0 ${
+              isRTL ? "md:border-l" : "md:border-r"
+            } border-zinc-800 p-8 sm:p-10 ${
+              isRTL ? "text-right" : "text-left"
+            } space-y-4`}>
+              <div className="text-orange-500 text-xs uppercase tracking-widest font-bold font-mono">
+                {t.pillar2Kicker}
               </div>
-              <h4 className="text-white font-bold text-base mt-2">سيولة مؤسسية عميقة</h4>
-              <p className="text-zinc-500 text-sm leading-relaxed">
-                استفد من سبريد (Spread) يبدأ من 0.0 نقطة على العملات الرئيسية، وسيولة عميقة تضمن لك بيع وشراء كميات تداول ضخمة بسلاسة تامة ومثالية.
+              <div className="text-4xl font-light text-white italic font-mono">
+                {t.pillar2Value}
+              </div>
+              <h4 className="text-white font-bold text-base mt-2">
+                {t.pillar2Title}
+              </h4>
+              <p className="text-zinc-400 text-sm leading-relaxed">
+                {t.pillar2Desc}
               </p>
             </div>
 
             {/* Pillar 3 */}
-            <div className="p-8 sm:p-10 text-right space-y-4">
-              <div className="text-orange-500 text-xs uppercase tracking-widest font-bold font-mono">الأمان المتكامل</div>
-              <div className="text-4xl font-light text-white italic font-mono">
-                SSL+ 256
+            <div className={`card-hover-glow p-8 sm:p-10 ${
+              isRTL ? "text-right" : "text-left"
+            } space-y-4`}>
+              <div className="text-orange-500 text-xs uppercase tracking-widest font-bold font-mono">
+                {t.pillar3Kicker}
               </div>
-              <h4 className="text-white font-bold text-base mt-2">حماية عسكرية لأصولك</h4>
-              <p className="text-zinc-500 text-sm leading-relaxed">
-                حماية أصولك هي أولويتنا القصوى. نستخدم بروتوكولات حماية متطورة وتشفير عالي المستوى، بالإضافة إلى فصل كامل لحسابات العملاء في بنوك عالمية رائدة.
+              <div className="text-4xl font-light text-white italic font-mono">
+                {t.pillar3Value}
+              </div>
+              <h4 className="text-white font-bold text-base mt-2">
+                {t.pillar3Title}
+              </h4>
+              <p className="text-zinc-400 text-sm leading-relaxed">
+                {t.pillar3Desc}
               </p>
             </div>
 
@@ -780,22 +887,26 @@ export default function App() {
               className="inline-flex items-center gap-2 bg-[#111111] border border-zinc-800 text-zinc-400 hover:text-white px-4 py-2 rounded-none text-xs font-mono transition-all duration-200 cursor-pointer"
             >
               <Info className="w-3.5 h-3.5 text-orange-500" />
-              {showSubscribers ? "إخفاء قائمة المشتركين التجريبية" : "إظهار قائمة المشتركين التجريبية (مخزن محلياً)"}
+              {showSubscribers ? t.hideSubscribersBtn : t.showSubscribersBtn}
             </button>
 
             {showSubscribers && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-4 max-w-md mx-auto bg-[#111] border border-zinc-800 rounded-none p-4 text-right"
+                className={`mt-4 max-w-md mx-auto bg-[#111] border border-zinc-800 rounded-none p-4 ${
+                  isRTL ? "text-right" : "text-left"
+                }`}
               >
                 <div className="flex justify-between items-center mb-3">
-                  <span className="text-xs font-bold text-orange-500 font-mono">إجمالي المسجلين: {subscribers.length}</span>
+                  <span className="text-xs font-bold text-orange-500 font-mono">
+                    {t.totalSubscribersLabel} {subscribers.length}
+                  </span>
                   <button
                     onClick={handleClearSubscribers}
                     className="text-[10px] text-rose-400 hover:underline cursor-pointer"
                   >
-                    حذف الكل
+                    {t.clearAllSubscribersBtn}
                   </button>
                 </div>
                 <ul className="text-xs font-mono text-zinc-300 space-y-1.5 divide-y divide-zinc-900 max-h-40 overflow-y-auto">
@@ -817,8 +928,10 @@ export default function App() {
         <div className="max-w-7xl mx-auto space-y-12">
           
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center border-b border-zinc-900 pb-12">
-            {/* Right side (RTL start): Logo & Brand info */}
-            <div className="md:col-span-5 flex flex-col items-center md:items-start gap-4">
+            {/* Logo & Brand Info */}
+            <div className={`md:col-span-5 flex flex-col items-center ${
+              isRTL ? "md:items-start" : "md:items-start"
+            } gap-4`}>
               <div className="flex items-center gap-4">
                 <div className="relative shrink-0">
                   <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-red-600 rounded-sm blur-sm opacity-50" />
@@ -831,42 +944,46 @@ export default function App() {
                 </div>
                 <span className="text-xl font-bold text-white font-mono tracking-wider">FAST FX</span>
               </div>
-              <p className="text-xs text-zinc-500 text-center md:text-right max-w-sm leading-relaxed">
-                منصة تداول متطورة تقدم أقصى درجات السرعة والكفاءة في تنفيذ الصفقات بالأسواق المالية العالمية برعاية مجموعة Fast Flow Group LTD.
+              <p className={`text-xs text-zinc-500 text-center ${
+                isRTL ? "md:text-right" : "md:text-left"
+              } max-w-sm leading-relaxed`}>
+                {t.footerDescription}
               </p>
             </div>
 
-            {/* Middle: Brief message/stats spacer */}
+            {/* Middle: Stats / Infrastructure note */}
             <div className="md:col-span-3 text-center text-xs text-zinc-500 space-y-2 leading-relaxed">
-              <p className="font-semibold text-zinc-400">البنية التحتية العالمية</p>
+              <p className="font-semibold text-zinc-400">{t.globalInfraTitle}</p>
               <div className="h-[1px] w-12 bg-zinc-800 mx-auto"></div>
-              <p className="text-[11px]">اتصال فوري ومباشر مع كبرى مراكز التداول</p>
+              <p className="text-[11px]">{t.globalInfraSubtitle}</p>
             </div>
 
-            {/* Left side (RTL end / Aligned to absolute Left of page): LONDON */}
-            <div className="md:col-span-4 flex flex-col items-center md:items-end gap-1.5 text-center md:text-left">
-              <span className="text-[10px] text-orange-550 uppercase tracking-[0.25em] font-extrabold font-mono">
-                HEADQUARTERS
+            {/* London Headquarters */}
+            <div className={`md:col-span-4 flex flex-col items-center ${
+              isRTL ? "md:items-end" : "md:items-end"
+            } gap-1.5 text-center`}>
+              <span className="text-[10px] text-orange-500 uppercase tracking-[0.25em] font-extrabold font-mono">
+                {t.headquartersLabel}
               </span>
               <span className="text-3xl sm:text-4xl font-black tracking-widest text-white hover:text-orange-500 transition-colors duration-300 font-mono">
-                LONDON
+                {t.headquartersCity}
               </span>
             </div>
           </div>
 
           <div className="text-center text-xs text-zinc-500 max-w-3xl mx-auto space-y-3.5 leading-relaxed">
             <p>
-              تحذير المخاطر: إن تداول العملات الأجنبية (الفوركس) وعقود الفروقات (CFDs) ينطوي على مخاطر عالية وخسائر قد تفوق رأسمالك المستثمر. تأكد تماماً من فهمك للمخاطر المرتبطة وتلقي التدريب الكافي قبل البدء.
+              {t.riskWarningText}
             </p>
             <p className="text-zinc-400 font-semibold">
-              تخضع جميع العمليات والخدمات للشروط والتعليمات التنظيمية بموجب ترخيص الشركة الأم.
+              {t.regulatoryText}
             </p>
           </div>
 
-          {/* Explicit User Requirement: By Fast Flow Group LTD */}
+          {/* Fast Flow Group LTD credit */}
           <div className="border-t border-zinc-900/60 w-full pt-8 flex flex-col items-center justify-center text-xs text-zinc-500 text-center gap-3">
             <div>
-              &copy; {new Date().getFullYear()} Fast Fx. جميع الحقوق محفوظة لمجموعة Fast Flow Group LTD.
+              &copy; {new Date().getFullYear()} {t.copyrightText}
             </div>
           </div>
 
