@@ -1,89 +1,68 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Cairo", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Cairo", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 }
 
-/* OKX Signature Design Tokens */
+/* Institutional Design System Tokens */
 :root {
-  --okx-bg-black: #000000;
-  --okx-bg-primary: #08090b;
-  --okx-bg-secondary: #0f1216;
-  --okx-bg-card: #14171d;
-  --okx-border: #1e2329;
-  --okx-border-light: #282f38;
-  --okx-green: #00c087;
-  --okx-red: #f6465d;
-  --okx-green-bg: rgba(0, 192, 135, 0.12);
-  --okx-red-bg: rgba(246, 70, 93, 0.12);
+  --canvas-bg: #070b14;
+  --surface-primary: #0b1120;
+  --surface-secondary: #0f172a;
+  --surface-card: #131c31;
+  --surface-card-hover: #18233c;
+  --border-subtle: #1e293b;
+  --border-medium: #2a3a55;
+  --brand-blue: #0284c7;
+  --brand-cyan: #06b6d4;
+  --profit-emerald: #10b981;
+  --loss-rose: #f43f5e;
 }
 
-/* OKX Color utilities */
-.text-okx-green {
-  color: #00c087;
-}
-
-.text-okx-red {
-  color: #f6465d;
-}
-
-.bg-okx-green {
-  background-color: #00c087;
-}
-
-.bg-okx-red {
-  background-color: #f6465d;
-}
-
-.bg-okx-green-subtle {
-  background-color: rgba(0, 192, 135, 0.12);
-}
-
-.bg-okx-red-subtle {
-  background-color: rgba(246, 70, 93, 0.12);
-}
-
-.border-okx-green {
-  border-color: rgba(0, 192, 135, 0.35);
-}
-
-.border-okx-red {
-  border-color: rgba(246, 70, 93, 0.35);
-}
-
-/* OKX Monospace and Tabular Numbers */
-.font-tabular {
+/* Tabular figures for financial numbers & alignment */
+.tabular-nums {
   font-variant-numeric: tabular-nums;
 }
 
-/* OKX Card Hover Glow with high contrast border */
-.okx-card-hover {
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+/* Feature Cards Orange Hover Glow (preserving user requirement from prompt 1) */
+.card-hover-glow {
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
 }
 
-.okx-card-hover:hover {
-  border-color: #ffffff !important;
-  box-shadow: 0 0 35px -8px rgba(255, 255, 255, 0.12);
+.card-hover-glow:hover {
+  border-color: rgba(249, 115, 22, 0.6) !important;
+  box-shadow: 0 0 35px -5px rgba(249, 115, 22, 0.22);
   transform: translateY(-2px);
 }
 
-/* Smooth custom scrollbars */
+/* Modern Institutional Card hover */
+.inst-card-hover {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.inst-card-hover:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 0 0 30px -8px rgba(14, 165, 233, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Custom Sleek Scrollbars */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #000000;
+  background: #070b14;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e2329;
-  border-radius: 2px;
+  background: #1e293b;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #374151;
+  background: #334155;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -93,4 +72,3 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-

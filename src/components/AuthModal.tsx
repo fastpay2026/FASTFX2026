@@ -1,14 +1,15 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { BrandLogo } from "./BrandLogo";
 import {
   X,
   Lock,
   Mail,
   User as UserIcon,
   ArrowRight,
-  Sparkles,
   Eye,
-  EyeOff
+  EyeOff,
+  ShieldCheck
 } from "lucide-react";
 
 interface AuthModalProps {
@@ -67,52 +68,49 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-[#0b0e11] border border-[#1e2329] rounded-2xl shadow-2xl overflow-hidden">
-        {/* Top subtle border highlight */}
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#00c087] to-transparent" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-md bg-[#0c1322] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+        {/* Top subtle highlight */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-500 via-cyan-400 to-emerald-400" />
 
         {/* Close button */}
         <button
           onClick={closeAuthModal}
-          className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-[#161a22] transition-colors cursor-pointer"
+          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="p-6 sm:p-8">
-          {/* Brand Badge */}
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-semibold bg-[#161a22] text-zinc-300 border border-[#222832]">
-              <Sparkles className="w-3.5 h-3.5 text-[#00c087]" />
-              FAST FX SECURE ACCESS
-            </span>
+          {/* Brand Logo in Modal Header */}
+          <div className="mb-4">
+            <BrandLogo size="md" showSubtitle={false} />
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-1.5 font-mono">
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-1.5 font-sans">
             {activeAuthTab === "login"
               ? isAr
-                ? "تسجيل الدخول إلى المنصة"
-                : "Sign In to Exchange"
+                ? "تسجيل الدخول إلى حساب التداول"
+                : "Sign In to Account"
               : isAr
-              ? "فتح حساب تداول جديد"
-              : "Open Trading Account"}
+              ? "فتح حساب تداول مؤسسي جديد"
+              : "Open Institutional Account"}
           </h2>
-          <p className="text-xs text-zinc-400 mb-5">
+          <p className="text-xs text-slate-400 mb-5 font-sans">
             {isAr
-              ? "بيانات الحساب والصفقات تخزن وتدار بأمان في قاعدة بيانات SQL"
-              : "Account credentials and transactions secured with SQL ledger"}
+              ? "بيانات الحساب والصفقات محمية بسجلات التدقيق في قاعدة بيانات SQL"
+              : "Credentials and positions secured with audited SQL relational ledger"}
           </p>
 
-          {/* Tab selector (OKX Style) */}
-          <div className="flex border-b border-[#1e2329] mb-5">
+          {/* Segmented Tab selector */}
+          <div className="flex p-1 bg-slate-900 rounded-xl border border-slate-800 mb-5 text-xs font-semibold">
             <button
               type="button"
               onClick={() => openAuthModal("login")}
-              className={`flex-1 pb-2.5 text-xs font-bold transition-colors border-b-2 cursor-pointer ${
+              className={`flex-1 py-2 rounded-lg transition-colors cursor-pointer text-center ${
                 activeAuthTab === "login"
-                  ? "border-white text-white"
-                  : "border-transparent text-zinc-500 hover:text-zinc-300"
+                  ? "bg-slate-800 text-white font-bold shadow-sm"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               {isAr ? "تسجيل الدخول" : "Sign In"}
@@ -120,28 +118,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
             <button
               type="button"
               onClick={() => openAuthModal("register")}
-              className={`flex-1 pb-2.5 text-xs font-bold transition-colors border-b-2 cursor-pointer ${
+              className={`flex-1 py-2 rounded-lg transition-colors cursor-pointer text-center ${
                 activeAuthTab === "register"
-                  ? "border-white text-white"
-                  : "border-transparent text-zinc-500 hover:text-zinc-300"
+                  ? "bg-slate-800 text-white font-bold shadow-sm"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
-              {isAr ? "حساب جديد" : "Sign Up"}
+              {isAr ? "فتح حساب جديد" : "Sign Up"}
             </button>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-[#f6465d]/10 border border-[#f6465d]/30 text-[#f6465d] text-xs rounded-lg flex items-start gap-2 font-mono">
+            <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs rounded-lg flex items-start gap-2 font-mono">
               <span className="font-bold">!</span>
               <span>{error}</span>
             </div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 font-sans">
             {activeAuthTab === "register" && (
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">
                   {isAr ? "الاسم الكامل للمتداول" : "Full Name"}
                 </label>
                 <div className="relative">
@@ -150,15 +148,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder={isAr ? "مثال: طارق المنصوري" : "e.g. Alex Mercer"}
-                    className="w-full bg-[#12161c] border border-[#1e2329] focus:border-zinc-400 text-white rounded-xl px-4 py-2.5 pl-10 text-xs sm:text-sm focus:outline-none transition-colors"
+                    className="w-full bg-slate-900 border border-slate-700 focus:border-sky-400 text-white rounded-xl px-4 py-2.5 pl-10 text-xs sm:text-sm focus:outline-none transition-colors"
                   />
-                  <UserIcon className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
+                  <UserIcon className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
                 </div>
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">
                 {isAr ? "اسم المستخدم أو البريد الإلكتروني" : "Username or Email Address"}
               </label>
               <div className="relative">
@@ -174,14 +172,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
                       ? "اسم المستخدم أو البريد الإلكتروني"
                       : "Username or email address"
                   }
-                  className="w-full bg-[#12161c] border border-[#1e2329] focus:border-zinc-400 text-white rounded-xl px-4 py-2.5 pl-10 text-xs sm:text-sm focus:outline-none transition-colors font-mono"
+                  className="w-full bg-slate-900 border border-slate-700 focus:border-sky-400 text-white rounded-xl px-4 py-2.5 pl-10 text-xs sm:text-sm focus:outline-none transition-colors font-mono"
                 />
-                <Mail className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
+                <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">
                 {isAr ? "كلمة المرور" : "Password"}
               </label>
               <div className="relative">
@@ -193,23 +191,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
                     setError("");
                   }}
                   placeholder="••••••••"
-                  className="w-full bg-[#12161c] border border-[#1e2329] focus:border-zinc-400 text-white rounded-xl px-4 py-2.5 pl-10 pr-10 text-xs sm:text-sm focus:outline-none transition-colors font-mono"
+                  className="w-full bg-slate-900 border border-slate-700 focus:border-sky-400 text-white rounded-xl px-4 py-2.5 pl-10 pr-10 text-xs sm:text-sm focus:outline-none transition-colors font-mono"
                 />
-                <Lock className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
+                <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="text-zinc-500 hover:text-zinc-300 absolute right-3 top-3 cursor-pointer"
+                  className="text-slate-400 hover:text-white absolute right-3 top-3 cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            {/* OKX Solid White Action Button */}
+            {/* Primary Action Button */}
             <button
               type="submit"
-              className="w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer mt-3 bg-white text-black hover:bg-zinc-200 shadow-sm"
+              className="w-full py-3 px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer mt-3 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white shadow-md shadow-sky-500/20"
             >
               <span>
                 {activeAuthTab === "login"
@@ -225,8 +223,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
           </form>
 
           {/* Security footnote */}
-          <div className="mt-5 pt-4 border-t border-[#1e2329] text-center">
-            <p className="text-[11px] text-zinc-500 font-mono">
+          <div className="mt-5 pt-4 border-t border-slate-800 text-center">
+            <p className="text-[11px] text-slate-500 font-mono">
               {isAr
                 ? "تشفير بيانات الحساب متوافق مع معايير SQL Relational Security"
                 : "Encrypted institutional security with SQL relational audit compliance"}

@@ -3,25 +3,24 @@ import { translations, Language } from "../translations";
 import { sqlDb } from "../db/sqlEngine";
 import { useAuth } from "../context/AuthContext";
 import { MarketPair } from "../types";
+import { BrandLogo } from "./BrandLogo";
 import {
   TrendingUp,
   TrendingDown,
   Zap,
   Shield,
   Activity,
-  Mail,
   CheckCircle2,
-  Globe,
   Clock,
   ArrowUpRight,
-  Sparkles,
   CandlestickChart,
-  Crown,
   ChevronRight,
-  Lock,
   Database,
-  Layers,
-  ArrowRight
+  Lock,
+  ArrowRight,
+  BarChart3,
+  Globe2,
+  Server
 } from "lucide-react";
 
 const COUNTDOWN_STORAGE_KEY = "fast_fx_countdown_target_15d";
@@ -158,7 +157,6 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
     if (marketTab === "gainers") {
       return [...marketPairs].sort((a, b) => b.change24h - a.change24h);
     }
-    // "hot" shows key pairs
     return marketPairs;
   }, [marketPairs, marketTab]);
 
@@ -171,168 +169,203 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
   };
 
   return (
-    <div className="space-y-20 py-8">
-      {/* OKX Mega Hero Section */}
+    <div className="space-y-24 py-10">
+      {/* 1. Modern Institutional Hero Section */}
       <section className="relative px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        {/* Subtle Ambient Mesh Radial Behind Hero */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-gradient-to-tr from-sky-600/10 via-cyan-500/10 to-indigo-600/10 blur-3xl pointer-events-none -z-10" />
+
         <div className="max-w-4xl mx-auto text-center space-y-6">
-          {/* OKX Kicker Pill */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-[#161a22] text-zinc-300 border border-[#222832]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00c087] animate-pulse" />
-            <span>{isAr ? "منصة التداول المؤسسية فئة Tier-1" : "Tier-1 Multi-Asset Institutional Exchange"}</span>
+          {/* Institutional Metadata Line (Quiet inline text with separators - Zero-Pill) */}
+          <div className="flex items-center justify-center gap-2 text-xs text-slate-400 font-mono tracking-wide">
+            <span>TIER-1 LIQUIDITY</span>
+            <span aria-hidden="true" className="text-slate-600">·</span>
+            <span>EQUINIX CROSS-CONNECT</span>
+            <span aria-hidden="true" className="text-slate-600">·</span>
+            <span>100% PROOF OF RESERVES</span>
           </div>
 
-          {/* OKX Hero Headlines */}
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight text-white leading-tight">
-            <span className="block">{t.heroLine1}</span>
-            <span className="block text-zinc-400 font-bold mt-1">{t.heroLine2}</span>
+          {/* Hero Headlines with text-wrap: balance */}
+          <h1
+            className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.1]"
+            style={{ textWrap: "balance" }}
+          >
+            <span>{t.heroLine1}</span>
+            <span className="block mt-2 bg-gradient-to-r from-sky-400 via-cyan-300 to-emerald-400 bg-clip-text text-transparent">
+              {t.heroLine2}
+            </span>
           </h1>
 
-          <p className="max-w-2xl mx-auto text-sm sm:text-base text-zinc-400 leading-relaxed font-normal">
+          <p
+            className="max-w-2xl mx-auto text-sm sm:text-base text-slate-300 leading-relaxed font-normal"
+            style={{ textWrap: "balance" }}
+          >
             {isAr
-              ? "تداول العملات المشفرة، الفوركس والسلع عبر محرك مطابقة فائق السرعة بزمن استجابة يقل عن 0.003ms مع إثبات احتياطيات بنسبة 100% وسجلات SQL محمية."
-              : "Trade Crypto, Forex, and Commodities with sub-millisecond execution, raw 0.0 pip spreads, and 100% Proof of Reserves verified by audited SQL ledger."}
+              ? "منصة تداول مؤسسية متعددة الأصول تجمع بين الفوركس والعملات المشفرة والسلع مع زمن استجابة دون الميلي ثانية وسجلات تدقيق مالية متوافقة مع معايير SQL."
+              : "High-frequency multi-asset liquidity platform combining Forex, Cryptocurrencies, and Commodities with sub-millisecond execution and audited SQL relational settlement."}
           </p>
 
-          {/* OKX Hero Fast Sign-up Bar */}
-          <div className="max-w-lg mx-auto pt-2">
-            <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2 bg-[#0b0e11] p-1.5 rounded-xl border border-[#1e2329] shadow-2xl">
+          {/* Action CTAs */}
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
+            <button
+              onClick={onNavigateToTrading}
+              className="px-6 py-3 rounded-lg font-semibold text-sm bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white shadow-lg shadow-sky-500/20 transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <CandlestickChart className="w-4 h-4" />
+              <span>{t.navTrade}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => openAuthModal("register")}
+              className="px-6 py-3 rounded-lg font-semibold text-sm bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-100 hover:text-white transition-all cursor-pointer"
+            >
+              {t.registerBtn}
+            </button>
+          </div>
+
+          {/* 4 Key Institutional Trust Metrics Strip */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-8 border-t border-slate-800/80 mt-10">
+            <div className="text-center p-3">
+              <div className="text-2xl sm:text-3xl font-black text-white font-mono tabular-nums">0.003ms</div>
+              <div className="text-xs text-slate-400 font-sans mt-1">{isAr ? "سرعة المطابقة الفائقة" : "Execution Latency"}</div>
+            </div>
+            <div className="text-center p-3">
+              <div className="text-2xl sm:text-3xl font-black text-white font-mono tabular-nums">0.0 Pips</div>
+              <div className="text-xs text-slate-400 font-sans mt-1">{isAr ? "فوارق سعرية خام" : "Raw Institutional Spread"}</div>
+            </div>
+            <div className="text-center p-3">
+              <div className="text-2xl sm:text-3xl font-black text-white font-mono tabular-nums">100%</div>
+              <div className="text-xs text-slate-400 font-sans mt-1">{isAr ? "إثبات احتياطيات موثق" : "Proof of Reserves (1:1)"}</div>
+            </div>
+            <div className="text-center p-3">
+              <div className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono tabular-nums">$4.2B+</div>
+              <div className="text-xs text-slate-400 font-sans mt-1">{isAr ? "حجم التداول اليومي" : "24h Volume Liquidity"}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* 15-Day Grand Prix Official Launch Countdown Card */}
+        <div id="grand-prix-countdown" className="mt-14 max-w-3xl mx-auto rounded-2xl bg-[#0c1322] border border-slate-800 p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+          {/* Subtle Corner Accent Highlight */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 rounded-full blur-2xl pointer-events-none" />
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-sky-400">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-white font-sans">
+                  {t.countdownTitle}
+                </h3>
+                <div className="text-xs text-slate-400 font-mono">
+                  FAST FX GLOBAL TRADING GRAND PRIX · 15-DAY COUNTDOWN
+                </div>
+              </div>
+            </div>
+            <span className="text-xs font-mono font-semibold text-sky-400">
+              {t.countdownBadge}
+            </span>
+          </div>
+
+          {/* Countdown Clock Digits */}
+          <div className="grid grid-cols-4 gap-3 sm:gap-4 my-6 font-mono">
+            {/* Days */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 sm:p-4 text-center">
+              <div className="text-3xl sm:text-5xl font-black text-white tabular-nums">
+                {String(timeLeft.days).padStart(2, "0")}
+              </div>
+              <div className="text-[11px] text-slate-400 font-sans mt-1 uppercase tracking-wider">{t.days}</div>
+            </div>
+
+            {/* Hours */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 sm:p-4 text-center">
+              <div className="text-3xl sm:text-5xl font-black text-white tabular-nums">
+                {String(timeLeft.hours).padStart(2, "0")}
+              </div>
+              <div className="text-[11px] text-slate-400 font-sans mt-1 uppercase tracking-wider">{t.hours}</div>
+            </div>
+
+            {/* Minutes */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 sm:p-4 text-center">
+              <div className="text-3xl sm:text-5xl font-black text-white tabular-nums">
+                {String(timeLeft.minutes).padStart(2, "0")}
+              </div>
+              <div className="text-[11px] text-slate-400 font-sans mt-1 uppercase tracking-wider">{t.minutes}</div>
+            </div>
+
+            {/* Seconds */}
+            <div className="bg-slate-900/90 border border-sky-500/40 rounded-xl p-3 sm:p-4 text-center shadow-lg shadow-sky-500/10">
+              <div className="text-3xl sm:text-5xl font-black text-sky-400 tabular-nums">
+                {String(timeLeft.seconds).padStart(2, "0")}
+              </div>
+              <div className="text-[11px] text-sky-400 font-sans mt-1 uppercase tracking-wider">{t.seconds}</div>
+            </div>
+          </div>
+
+          {/* Quick Registration Form to reserve priority allocation */}
+          <div className="pt-4 border-t border-slate-800">
+            <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2 max-w-xl mx-auto">
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t.emailPlaceholder}
-                className="flex-1 bg-transparent text-white px-3.5 py-2.5 text-xs sm:text-sm focus:outline-none font-mono"
+                className="flex-1 bg-slate-900 border border-slate-700 focus:border-sky-400 text-white px-4 py-2.5 rounded-lg text-xs sm:text-sm focus:outline-none font-mono"
               />
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-lg font-bold text-xs sm:text-sm bg-white text-black hover:bg-zinc-200 transition-all cursor-pointer whitespace-nowrap shadow-sm"
+                className="px-5 py-2.5 rounded-lg font-semibold text-xs sm:text-sm bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white transition-all cursor-pointer whitespace-nowrap shadow-sm"
               >
-                {isAr ? "تسجيل فوري" : "Sign Up"}
+                {t.submitButton}
               </button>
             </form>
-            {errorMsg && <p className="text-xs text-[#f6465d] mt-2 font-mono">{errorMsg}</p>}
+
+            {errorMsg && <p className="text-xs text-rose-400 mt-2 text-center font-mono">{errorMsg}</p>}
             {isSubscribed && (
-              <p className="text-xs text-[#00c087] mt-2 font-mono flex items-center justify-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" />
+              <p className="text-xs text-emerald-400 mt-2 text-center font-mono flex items-center justify-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4" />
                 <span>{t.successTitle}</span>
               </p>
             )}
-          </div>
 
-          {/* OKX Quick Action Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <button
-              onClick={onNavigateToTrading}
-              className="px-6 py-3 rounded-lg font-bold text-xs sm:text-sm bg-[#00c087] text-black hover:bg-[#00c087]/90 transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-[#00c087]/15"
-            >
-              <CandlestickChart className="w-4 h-4" />
-              <span>{t.navTrade}</span>
-              <ArrowUpRight className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={() => openAuthModal("login")}
-              className="px-6 py-3 rounded-lg font-bold text-xs sm:text-sm bg-[#0b0e11] border border-[#1e2329] text-white hover:bg-[#161a22] hover:border-zinc-700 transition-all cursor-pointer"
-            >
-              <span>{t.loginBtn}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* 15-Day Official Launch / Global Grand Prix Countdown Box */}
-        <div className="mt-12 max-w-3xl mx-auto p-5 sm:p-7 rounded-2xl bg-[#0b0e11] border border-[#1e2329] shadow-2xl">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-[#1e2329]">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#161a22] flex items-center justify-center text-[#00c087]">
-                <Clock className="w-4 h-4" />
-              </div>
+            <div className="mt-4 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 font-mono gap-2 pt-2">
               <div>
-                <h3 className="text-sm sm:text-base font-bold text-white font-mono">
-                  {t.countdownTitle}
-                </h3>
-                <p className="text-[11px] text-zinc-500 font-mono">
-                  FAST FX GLOBAL TRADING GRAND PRIX • 15 DAYS
-                </p>
+                {t.countdownEndDateLabel} <span className="text-slate-200 font-bold">{targetDateFormatted}</span>
               </div>
-            </div>
-            <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-[#00c087]/15 text-[#00c087] border border-[#00c087]/30">
-              {t.countdownBadge}
-            </span>
-          </div>
-
-          {/* Countdown Digit Blocks */}
-          <div className="grid grid-cols-4 gap-3 sm:gap-4 font-mono">
-            {/* Days */}
-            <div className="bg-[#12161c] border border-[#1e2329] rounded-xl p-3 sm:p-4 text-center">
-              <div className="text-2xl sm:text-4xl font-black text-white font-tabular">
-                {String(timeLeft.days).padStart(2, "0")}
+              <div className="text-slate-500 text-[11px]">
+                EQUINIX LD4 · PRIME BROKERAGE ROUTING
               </div>
-              <div className="text-[10px] text-zinc-500 font-sans mt-1 uppercase tracking-wider">{t.days}</div>
-            </div>
-
-            {/* Hours */}
-            <div className="bg-[#12161c] border border-[#1e2329] rounded-xl p-3 sm:p-4 text-center">
-              <div className="text-2xl sm:text-4xl font-black text-white font-tabular">
-                {String(timeLeft.hours).padStart(2, "0")}
-              </div>
-              <div className="text-[10px] text-zinc-500 font-sans mt-1 uppercase tracking-wider">{t.hours}</div>
-            </div>
-
-            {/* Minutes */}
-            <div className="bg-[#12161c] border border-[#1e2329] rounded-xl p-3 sm:p-4 text-center">
-              <div className="text-2xl sm:text-4xl font-black text-white font-tabular">
-                {String(timeLeft.minutes).padStart(2, "0")}
-              </div>
-              <div className="text-[10px] text-zinc-500 font-sans mt-1 uppercase tracking-wider">{t.minutes}</div>
-            </div>
-
-            {/* Seconds */}
-            <div className="bg-[#12161c] border border-[#00c087]/40 rounded-xl p-3 sm:p-4 text-center shadow-lg shadow-[#00c087]/10">
-              <div className="text-2xl sm:text-4xl font-black text-[#00c087] font-tabular animate-pulse">
-                {String(timeLeft.seconds).padStart(2, "0")}
-              </div>
-              <div className="text-[10px] text-[#00c087] font-sans mt-1 uppercase tracking-wider">{t.seconds}</div>
-            </div>
-          </div>
-
-          <div className="mt-4 pt-3 border-t border-[#1e2329]/80 flex flex-col sm:flex-row items-center justify-between text-xs text-zinc-500 font-mono gap-2">
-            <div>
-              {t.countdownEndDateLabel} <span className="text-white font-bold">{targetDateFormatted}</span>
-            </div>
-            <div className="text-[10px] text-zinc-600">
-              EQUINIX LD4 • ZERO SLIPPAGE ARCHITECTURE
             </div>
           </div>
         </div>
       </section>
 
-      {/* OKX Live Markets Table (The Centerpiece of okx.com) */}
+      {/* 2. Institutional Live Markets Table */}
       <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="bg-[#0b0e11] border border-[#1e2329] rounded-2xl p-5 sm:p-7 shadow-2xl">
-          {/* Market Table Header & Tabs */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-[#1e2329]">
+        <div className="rounded-2xl bg-[#0c1322] border border-slate-800 p-5 sm:p-7 shadow-2xl">
+          {/* Header & Filter Controls */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-800">
             <div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#00c087]" />
-                <h2 className="text-xl sm:text-2xl font-black text-white font-mono">
-                  {isAr ? "أسواق التداول المباشرة" : "Live Markets Overview"}
-                </h2>
-              </div>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                {isAr ? "أسواق التداول المؤسسية المباشرة" : "Live Institutional Markets"}
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
                 {isAr
-                  ? "أسعار لحظية، فارق سعري خام، وتداول بنقرة واحدة عبر محرك SQL"
-                  : "Real-time institutional tick stream with 1-click execution"}
+                  ? "أسعار مباشرة بنظام الدفتر المزدوج مع فوارق سعرية منخفضة وتداول فوري بنقرة واحدة"
+                  : "Streaming order book pricing, raw institution-grade spreads, and 1-click execution"}
               </p>
             </div>
 
-            {/* OKX Category Tabs */}
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar bg-[#12161c] p-1 rounded-xl border border-[#1e2329] text-xs font-semibold">
+            {/* Segmented Filter Control */}
+            <div className="flex items-center gap-1 p-1 bg-slate-900 rounded-xl border border-slate-800 text-xs font-semibold overflow-x-auto no-scrollbar">
               <button
                 onClick={() => setMarketTab("hot")}
                 className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
                   marketTab === "hot"
-                    ? "bg-white text-black font-bold shadow-sm"
-                    : "text-zinc-400 hover:text-white"
+                    ? "bg-slate-800 text-white shadow-sm font-bold"
+                    : "text-slate-400 hover:text-white"
                 }`}
               >
                 {t.marketHot}
@@ -341,8 +374,8 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
                 onClick={() => setMarketTab("crypto")}
                 className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
                   marketTab === "crypto"
-                    ? "bg-white text-black font-bold shadow-sm"
-                    : "text-zinc-400 hover:text-white"
+                    ? "bg-slate-800 text-white shadow-sm font-bold"
+                    : "text-slate-400 hover:text-white"
                 }`}
               >
                 {t.marketCrypto}
@@ -351,8 +384,8 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
                 onClick={() => setMarketTab("forex")}
                 className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
                   marketTab === "forex"
-                    ? "bg-white text-black font-bold shadow-sm"
-                    : "text-zinc-400 hover:text-white"
+                    ? "bg-slate-800 text-white shadow-sm font-bold"
+                    : "text-slate-400 hover:text-white"
                 }`}
               >
                 {t.marketForex}
@@ -361,8 +394,8 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
                 onClick={() => setMarketTab("commodities")}
                 className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
                   marketTab === "commodities"
-                    ? "bg-white text-black font-bold shadow-sm"
-                    : "text-zinc-400 hover:text-white"
+                    ? "bg-slate-800 text-white shadow-sm font-bold"
+                    : "text-slate-400 hover:text-white"
                 }`}
               >
                 {isAr ? "السلع" : "Commodities"}
@@ -371,8 +404,8 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
                 onClick={() => setMarketTab("gainers")}
                 className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
                   marketTab === "gainers"
-                    ? "bg-white text-black font-bold shadow-sm"
-                    : "text-zinc-400 hover:text-white"
+                    ? "bg-slate-800 text-white shadow-sm font-bold"
+                    : "text-slate-400 hover:text-white"
                 }`}
               >
                 {t.marketGainers}
@@ -380,56 +413,54 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
             </div>
           </div>
 
-          {/* OKX Table Grid */}
+          {/* Table Data */}
           <div className="overflow-x-auto mt-4">
             <table className="w-full text-left text-xs font-mono">
               <thead>
-                <tr className="text-zinc-500 border-b border-[#1e2329] text-[11px]">
+                <tr className="text-slate-400 border-b border-slate-800/80 text-[11px]">
                   <th className="pb-3 font-semibold">{isAr ? "الأصل / الرمز" : "Instrument"}</th>
                   <th className="pb-3 font-semibold">{t.currentPrice}</th>
                   <th className="pb-3 font-semibold">{isAr ? "تغير 24س" : "24h Change"}</th>
                   <th className="pb-3 font-semibold hidden md:table-cell">{isAr ? "أعلى / أدنى 24س" : "24h High / Low"}</th>
                   <th className="pb-3 font-semibold hidden sm:table-cell">{t.marketVolume}</th>
-                  <th className="pb-3 font-semibold hidden lg:table-cell">{isAr ? "المسار السعري" : "7D Trend"}</th>
+                  <th className="pb-3 font-semibold hidden lg:table-cell">{isAr ? "المسار السعري (7D)" : "7D Trend"}</th>
                   <th className="pb-3 font-semibold text-right">{t.actions}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1e2329]/70">
+              <tbody className="divide-y divide-slate-800/60">
                 {displayedPairs.map((pair) => {
                   const isUp = pair.change24h >= 0;
                   return (
                     <tr
                       key={pair.symbol}
-                      className="hover:bg-[#12161c]/80 transition-colors group cursor-pointer"
                       onClick={() => handleTradeAction(pair.symbol)}
+                      className="hover:bg-slate-800/40 transition-colors cursor-pointer group"
                     >
-                      {/* Asset Symbol & Name */}
+                      {/* Instrument Symbol & Full Name */}
                       <td className="py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-[#161a22] border border-[#222832] flex items-center justify-center font-bold text-white text-xs">
+                          <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-white text-xs">
                             {pair.symbol.slice(0, 3)}
                           </div>
                           <div>
-                            <div className="font-bold text-white text-sm group-hover:text-[#00c087] transition-colors">
+                            <div className="font-bold text-white text-sm group-hover:text-sky-400 transition-colors">
                               {pair.symbol}
                             </div>
-                            <div className="text-[11px] text-zinc-400 font-sans">{pair.name}</div>
+                            <div className="text-[11px] text-slate-400 font-sans">{pair.name}</div>
                           </div>
                         </div>
                       </td>
 
-                      {/* Last Price */}
-                      <td className="py-4 font-bold text-sm text-white font-tabular">
+                      {/* Current Price */}
+                      <td className="py-4 font-bold text-sm text-white tabular-nums">
                         ${pair.price >= 100 ? pair.price.toLocaleString(undefined, { minimumFractionDigits: 2 }) : pair.price.toFixed(4)}
                       </td>
 
-                      {/* 24h Change Pill */}
+                      {/* 24h Change */}
                       <td className="py-4">
                         <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold font-tabular ${
-                            isUp
-                              ? "bg-[#00c087]/15 text-[#00c087] border border-[#00c087]/30"
-                              : "bg-[#f6465d]/15 text-[#f6465d] border border-[#f6465d]/30"
+                          className={`font-semibold tabular-nums ${
+                            isUp ? "text-emerald-400" : "text-rose-400"
                           }`}
                         >
                           {isUp ? "+" : ""}
@@ -438,36 +469,36 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
                       </td>
 
                       {/* 24h High / Low */}
-                      <td className="py-4 text-zinc-400 hidden md:table-cell font-tabular text-[11px]">
+                      <td className="py-4 text-slate-300 hidden md:table-cell tabular-nums text-[11px]">
                         <div>H: ${pair.high24h >= 100 ? pair.high24h.toFixed(2) : pair.high24h.toFixed(4)}</div>
-                        <div className="text-zinc-500">L: ${pair.low24h >= 100 ? pair.low24h.toFixed(2) : pair.low24h.toFixed(4)}</div>
+                        <div className="text-slate-500">L: ${pair.low24h >= 100 ? pair.low24h.toFixed(2) : pair.low24h.toFixed(4)}</div>
                       </td>
 
                       {/* 24h Volume */}
-                      <td className="py-4 text-zinc-300 hidden sm:table-cell font-tabular">
+                      <td className="py-4 text-slate-300 hidden sm:table-cell tabular-nums">
                         {pair.volume24h}
                       </td>
 
-                      {/* 7D Sparkline SVG */}
+                      {/* 7D Sparkline */}
                       <td className="py-4 hidden lg:table-cell">
                         <svg className="w-24 h-7" viewBox="0 0 100 30">
                           <path
                             d={isUp ? "M 0 24 Q 25 15, 50 18 T 100 6" : "M 0 8 Q 25 20, 50 14 T 100 26"}
                             fill="none"
-                            stroke={isUp ? "#00c087" : "#f6465d"}
+                            stroke={isUp ? "#10b981" : "#f43f5e"}
                             strokeWidth="2"
                           />
                         </svg>
                       </td>
 
-                      {/* Direct Trade Action Button */}
+                      {/* Trade Button */}
                       <td className="py-4 text-right">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleTradeAction(pair.symbol);
                           }}
-                          className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#161a22] text-white border border-[#222832] group-hover:bg-white group-hover:text-black group-hover:border-white transition-all cursor-pointer inline-flex items-center gap-1.5"
+                          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-200 border border-slate-700 hover:bg-sky-500 hover:text-white hover:border-sky-400 transition-all cursor-pointer inline-flex items-center gap-1.5"
                         >
                           <span>{t.tradeAction}</span>
                           <ChevronRight className="w-3.5 h-3.5" />
@@ -482,72 +513,73 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
         </div>
       </section>
 
-      {/* OKX 100% Proof of Reserves & Institutional Security (With Orange Glow on Hover) */}
-      <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      {/* 3. Core Institutional Advantages & Proof of Reserves Section */}
+      {/* With the requested ORANGE HOVER GLOW from user request #1 */}
+      <section id="proof-of-reserves-section" className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <div className="text-xs font-bold font-mono tracking-wider text-[#00c087] uppercase mb-2">
-            INSTITUTIONAL TRUST & TRANSPARENCY
+          <div className="text-xs font-mono font-semibold tracking-wider text-sky-400 uppercase mb-2">
+            INSTITUTIONAL GRADE TRANSPARENCY
           </div>
-          <h2 className="text-2xl sm:text-4xl font-black text-white mb-3">
+          <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
             {t.whyUsTitle}
           </h2>
-          <p className="text-xs sm:text-sm text-zinc-400">
+          <p className="text-xs sm:text-sm text-slate-400 mt-2">
             {t.whyUsSubtitle}
           </p>
         </div>
 
-        {/* 3 Core Advantage Cards with orange hover glow */}
+        {/* 3 Core Cards with the Orange Hover Glow Effect requested in user prompt 1 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Card 1: Proof of Reserves */}
-          <div className="card-hover-glow p-6 sm:p-8 rounded-2xl bg-[#0b0e11] border border-[#1e2329] space-y-4">
+          {/* Card 1: 100% Proof of Reserves */}
+          <div className="card-hover-glow p-7 rounded-2xl bg-[#0c1322] border border-slate-800 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono text-zinc-500 uppercase">PROOF OF RESERVES</span>
-              <div className="w-10 h-10 rounded-xl bg-[#161a22] border border-[#222832] flex items-center justify-center text-[#00c087]">
+              <span className="text-xs font-mono text-slate-400 uppercase">PROOF OF RESERVES</span>
+              <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-emerald-400">
                 <Shield className="w-5 h-5" />
               </div>
             </div>
             <div>
-              <div className="text-3xl font-black text-white font-mono">
-                100% <span className="text-xs text-[#00c087] font-sans font-bold">1:1 BACKED</span>
+              <div className="text-3xl font-black text-white font-mono tabular-nums">
+                100% <span className="text-xs text-emerald-400 font-sans font-semibold">1:1 BACKED</span>
               </div>
-              <h3 className="text-base font-bold text-white mt-2">{t.proofOfReservesTitle}</h3>
-              <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
+              <h3 className="text-base font-bold text-white mt-2 font-sans">{t.proofOfReservesTitle}</h3>
+              <p className="text-xs text-slate-400 mt-2 leading-relaxed font-sans">
                 {t.proofOfReservesDesc}
               </p>
             </div>
           </div>
 
-          {/* Card 2: Sub-millisecond Execution */}
-          <div className="card-hover-glow p-6 sm:p-8 rounded-2xl bg-[#0b0e11] border border-[#1e2329] space-y-4">
+          {/* Card 2: Sub-millisecond Execution Speed */}
+          <div className="card-hover-glow p-7 rounded-2xl bg-[#0c1322] border border-slate-800 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono text-zinc-500 uppercase">{t.pillar1Kicker}</span>
-              <div className="w-10 h-10 rounded-xl bg-[#161a22] border border-[#222832] flex items-center justify-center text-amber-400">
+              <span className="text-xs font-mono text-slate-400 uppercase">{t.pillar1Kicker}</span>
+              <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-amber-400">
                 <Zap className="w-5 h-5" />
               </div>
             </div>
             <div>
-              <div className="text-3xl font-black text-white font-mono">
-                0.003ms <span className="text-xs text-zinc-500 font-sans">/fill</span>
+              <div className="text-3xl font-black text-white font-mono tabular-nums">
+                0.003ms <span className="text-xs text-slate-400 font-sans">/fill</span>
               </div>
-              <h3 className="text-base font-bold text-white mt-2">{t.ultraFastMatchingTitle}</h3>
-              <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
+              <h3 className="text-base font-bold text-white mt-2 font-sans">{t.ultraFastMatchingTitle}</h3>
+              <p className="text-xs text-slate-400 mt-2 leading-relaxed font-sans">
                 {t.ultraFastMatchingDesc}
               </p>
             </div>
           </div>
 
-          {/* Card 3: Relational SQL Ledger Security */}
-          <div className="card-hover-glow p-6 sm:p-8 rounded-2xl bg-[#0b0e11] border border-[#1e2329] space-y-4">
+          {/* Card 3: ACID Relational SQL Ledger Security */}
+          <div className="card-hover-glow p-7 rounded-2xl bg-[#0c1322] border border-slate-800 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono text-zinc-500 uppercase">AUDITED LEDGER</span>
-              <div className="w-10 h-10 rounded-xl bg-[#161a22] border border-[#222832] flex items-center justify-center text-emerald-400">
+              <span className="text-xs font-mono text-slate-400 uppercase">AUDITED SETTLEMENT</span>
+              <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-sky-400">
                 <Database className="w-5 h-5" />
               </div>
             </div>
             <div>
-              <div className="text-3xl font-black text-white font-mono">ACID SQL</div>
-              <h3 className="text-base font-bold text-white mt-2">{t.sqlSecurityTitle}</h3>
-              <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
+              <div className="text-3xl font-black text-white font-mono tabular-nums">ACID SQL</div>
+              <h3 className="text-base font-bold text-white mt-2 font-sans">{t.sqlSecurityTitle}</h3>
+              <p className="text-xs text-slate-400 mt-2 leading-relaxed font-sans">
                 {t.sqlSecurityDesc}
               </p>
             </div>

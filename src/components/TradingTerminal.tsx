@@ -15,16 +15,15 @@ import {
   Clock,
   Layers,
   BarChart3,
-  Sliders,
   DollarSign,
   AlertCircle,
   Database,
   ChevronDown,
-  Maximize2,
   Search,
   SlidersHorizontal,
   History,
-  FileText
+  FileText,
+  Sliders
 } from "lucide-react";
 
 interface TradingTerminalProps {
@@ -46,7 +45,7 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
   const [selectedTimeframe, setSelectedTimeframe] = useState<string>("15m");
   const [chartMode, setChartMode] = useState<"candle" | "area">("candle");
   const [showIndicators, setShowIndicators] = useState(true);
-  const [orderType, setOrderType] = useState<"MARKET" | "LIMIT" | "STOP">("MARKET");
+  const [orderType, setOrderType] = useState<"MARKET" | "LIMIT">("MARKET");
   const [rightTab, setRightTab] = useState<"orderbook" | "trades">("orderbook");
 
   // Pair selector dropdown state
@@ -177,7 +176,7 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
     return withMAs;
   }, [activePair.symbol, selectedTimeframe]);
 
-  // Simulated OKX Order Book (Bids & Asks with depth percentage)
+  // Simulated Order Book (Bids & Asks with depth percentage)
   const orderBook = useMemo(() => {
     const p = activePair.price;
     const spread = p * 0.00012;
@@ -203,7 +202,7 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
     return { asks, bids, spread: (spread * 2).toFixed(5) };
   }, [activePair.price]);
 
-  // Simulated OKX Recent Trades stream
+  // Simulated Recent Trades tape
   const recentTradesStream = useMemo(() => {
     const p = activePair.price;
     const count = 10;
@@ -281,7 +280,7 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
           userEmail: currentUser.email,
           symbol: activePair.symbol,
           type: orderSide,
-          orderType: orderType === "STOP" ? "LIMIT" : orderType,
+          orderType: orderType === "LIMIT" ? "LIMIT" : "MARKET",
           lots,
           amount: notional,
           entryPrice: execPrice,
@@ -297,7 +296,7 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
         setIsSubmitting(false);
         setExecMessage({
           text: isAr
-            ? `تم تنفيذ أمر ${orderSide} بنجاح وتسجيله في قاعدة بيانات SQL!`
+            ? `تم تنفيذ صفقة ${orderSide} بنجاح وتسجيلها في قاعدة بيانات SQL!`
             : `Order ${orderSide} filled and committed to SQL ledger!`,
           type: "success"
         });
@@ -332,39 +331,39 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
   );
 
   return (
-    <div className="w-full bg-[#000000] text-zinc-200 min-h-screen py-4 px-2 sm:px-4 lg:px-6 space-y-3 font-sans">
-      {/* OKX Pro Ticker Header Ribbon */}
-      <div className="bg-[#08090b] border border-[#1e2329] rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+    <div className="w-full bg-[#070b14] text-slate-200 min-h-screen py-4 px-2 sm:px-4 lg:px-6 space-y-3 font-sans">
+      {/* Institutional Top Ticker Ribbon */}
+      <div className="bg-[#0c1322] border border-slate-800 rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-4">
         {/* Left: Pair Switcher & Live Price */}
         <div className="flex flex-wrap items-center gap-4">
           {/* Pair Selector Dropdown Button */}
           <div ref={pairSelectorRef} className="relative">
             <button
               onClick={() => setPairSelectorOpen(!pairSelectorOpen)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#14171d] border border-[#222832] hover:border-zinc-500 transition-all cursor-pointer font-mono"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 hover:border-slate-500 transition-all cursor-pointer font-mono"
             >
-              <div className="w-6 h-6 rounded bg-zinc-800 flex items-center justify-center font-bold text-white text-[10px]">
+              <div className="w-6 h-6 rounded bg-slate-800 flex items-center justify-center font-bold text-white text-[10px]">
                 {activePair.symbol.slice(0, 3)}
               </div>
-              <span className="text-sm sm:text-base font-black text-white">{activePair.symbol}</span>
-              <span className="text-[9px] font-bold px-1.5 py-0.2 bg-[#1e2329] text-zinc-400 rounded">
-                PERP
+              <span className="text-sm sm:text-base font-bold text-white">{activePair.symbol}</span>
+              <span className="text-[10px] text-slate-400 font-sans uppercase">
+                {activePair.type}
               </span>
-              <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </button>
 
             {/* Pair Selector Dropdown Menu */}
             {pairSelectorOpen && (
-              <div className="absolute left-0 mt-2 w-72 bg-[#0b0e11] border border-[#1e2329] rounded-xl shadow-2xl p-2 z-50 animate-in fade-in max-h-80 overflow-y-auto no-scrollbar font-mono text-xs">
+              <div className="absolute left-0 mt-2 w-72 bg-[#0c1322] border border-slate-700 rounded-xl shadow-2xl p-2 z-50 animate-in fade-in max-h-80 overflow-y-auto no-scrollbar font-mono text-xs">
                 <div className="relative mb-2">
                   <input
                     type="text"
                     value={pairSearch}
                     onChange={(e) => setPairSearch(e.target.value)}
                     placeholder={t.searchPlaceholder}
-                    className="w-full bg-[#14171d] border border-[#1e2329] rounded-lg pl-7 pr-2 py-1.5 text-xs text-white focus:outline-none focus:border-zinc-500"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-7 pr-2 py-1.5 text-xs text-white focus:outline-none focus:border-sky-400"
                   />
-                  <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-2 top-2" />
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-2" />
                 </div>
                 <div className="space-y-1">
                   {filteredDropdownPairs.map((p) => (
@@ -374,19 +373,19 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
                         setSelectedSymbol(p.symbol);
                         setPairSelectorOpen(false);
                       }}
-                      className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-[#161a22] transition-colors cursor-pointer text-left"
+                      className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-800/80 transition-colors cursor-pointer text-left"
                     >
                       <div>
                         <div className="font-bold text-white">{p.symbol}</div>
-                        <div className="text-[10px] text-zinc-400">{p.name}</div>
+                        <div className="text-[10px] text-slate-400 font-sans">{p.name}</div>
                       </div>
-                      <div className="text-right font-tabular">
+                      <div className="text-right tabular-nums">
                         <div className="text-white font-bold">
                           {p.price >= 100 ? p.price.toFixed(2) : p.price.toFixed(4)}
                         </div>
                         <div
-                          className={`text-[10px] font-bold ${
-                            p.change24h >= 0 ? "text-[#00c087]" : "text-[#f6465d]"
+                          className={`text-[10px] font-semibold ${
+                            p.change24h >= 0 ? "text-emerald-400" : "text-rose-400"
                           }`}
                         >
                           {p.change24h >= 0 ? "+" : ""}
@@ -403,8 +402,8 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
           {/* Prominent Live Price Display */}
           <div className="flex items-center gap-3 font-mono">
             <div
-              className={`text-xl sm:text-2xl font-black font-tabular tracking-tight flex items-center gap-1 ${
-                activePair.change24h >= 0 ? "text-[#00c087]" : "text-[#f6465d]"
+              className={`text-xl sm:text-2xl font-black tabular-nums tracking-tight flex items-center gap-1 ${
+                activePair.change24h >= 0 ? "text-emerald-400" : "text-rose-400"
               }`}
             >
               {activePair.change24h >= 0 ? (
@@ -418,10 +417,10 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
             </div>
 
             <span
-              className={`text-xs font-bold px-2 py-0.5 rounded font-tabular ${
+              className={`text-xs font-semibold px-2 py-0.5 rounded tabular-nums ${
                 activePair.change24h >= 0
-                  ? "bg-[#00c087]/15 text-[#00c087] border border-[#00c087]/30"
-                  : "bg-[#f6465d]/15 text-[#f6465d] border border-[#f6465d]/30"
+                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                  : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
               }`}
             >
               {activePair.change24h >= 0 ? "+" : ""}
@@ -430,27 +429,27 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
           </div>
         </div>
 
-        {/* Right Stats Tickers (OKX Style: 24h High/Low/Vol, Funding Rate) */}
+        {/* Right Stats Tickers */}
         <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs font-mono">
           <div>
-            <div className="text-[10px] text-zinc-500 uppercase">24h High</div>
-            <div className="text-white font-bold font-tabular">
+            <div className="text-[10px] text-slate-400 uppercase">24h High</div>
+            <div className="text-white font-bold tabular-nums">
               ${activePair.high24h >= 100 ? activePair.high24h.toFixed(2) : activePair.high24h.toFixed(4)}
             </div>
           </div>
           <div>
-            <div className="text-[10px] text-zinc-500 uppercase">24h Low</div>
-            <div className="text-white font-bold font-tabular">
+            <div className="text-[10px] text-slate-400 uppercase">24h Low</div>
+            <div className="text-white font-bold tabular-nums">
               ${activePair.low24h >= 100 ? activePair.low24h.toFixed(2) : activePair.low24h.toFixed(4)}
             </div>
           </div>
           <div className="hidden sm:block">
-            <div className="text-[10px] text-zinc-500 uppercase">24h Volume</div>
-            <div className="text-zinc-300 font-bold font-tabular">{activePair.volume24h}</div>
+            <div className="text-[10px] text-slate-400 uppercase">24h Volume</div>
+            <div className="text-slate-200 font-bold tabular-nums">{activePair.volume24h}</div>
           </div>
           <div className="hidden md:block">
-            <div className="text-[10px] text-zinc-500 uppercase">{t.fundingRateLabel}</div>
-            <div className="text-[#00c087] font-bold font-tabular">0.0100% / 03:22:15</div>
+            <div className="text-[10px] text-slate-400 uppercase">{t.fundingRateLabel}</div>
+            <div className="text-emerald-400 font-bold tabular-nums">0.0100% / 03:22:15</div>
           </div>
         </div>
       </div>
@@ -458,19 +457,19 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
       {/* Main Trading Workstation Grid: Chart + Order Book + Order Ticket */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         {/* Left / Center Area: Candlestick Chart (7 cols on desktop) */}
-        <div className="lg:col-span-7 bg-[#08090b] border border-[#1e2329] rounded-xl p-3 sm:p-4 space-y-3">
+        <div className="lg:col-span-7 bg-[#0c1322] border border-slate-800 rounded-xl p-3 sm:p-4 space-y-3">
           {/* Chart Header Bar: Timeframes, Indicators, Chart Type */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-[#1e2329]">
-            {/* Timeframe selector buttons (OKX style) */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-800">
+            {/* Timeframe selector buttons */}
             <div className="flex items-center gap-1 text-xs font-mono">
               {["1s", "1m", "5m", "15m", "1H", "4H", "1D"].map((tf) => (
                 <button
                   key={tf}
                   onClick={() => setSelectedTimeframe(tf)}
-                  className={`px-2 py-1 rounded transition-colors cursor-pointer ${
+                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
                     selectedTimeframe === tf
-                      ? "bg-white text-black font-bold shadow-sm"
-                      : "text-zinc-400 hover:text-white hover:bg-[#161a22]"
+                      ? "bg-slate-700 text-white font-bold shadow-sm"
+                      : "text-slate-400 hover:text-white hover:bg-slate-800"
                   }`}
                 >
                   {tf}
@@ -484,8 +483,8 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
                 onClick={() => setShowIndicators(!showIndicators)}
                 className={`px-2.5 py-1 rounded border text-[11px] transition-colors cursor-pointer ${
                   showIndicators
-                    ? "bg-[#161a22] border-zinc-600 text-white font-bold"
-                    : "border-transparent text-zinc-500 hover:text-zinc-300"
+                    ? "bg-slate-800 border-slate-600 text-sky-400 font-bold"
+                    : "border-transparent text-slate-400 hover:text-white"
                 }`}
               >
                 MA (7, 25)
@@ -493,7 +492,7 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
 
               <button
                 onClick={() => setChartMode(chartMode === "candle" ? "area" : "candle")}
-                className="px-2 py-1 rounded bg-[#161a22] text-zinc-300 hover:text-white text-[11px] border border-[#222832] cursor-pointer"
+                className="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:text-white text-[11px] border border-slate-700 cursor-pointer"
               >
                 {chartMode === "candle" ? "Candles" : "Line"}
               </button>
@@ -501,9 +500,9 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
           </div>
 
           {/* Interactive SVG Candlestick & Volume Chart */}
-          <div className="h-80 sm:h-96 w-full relative bg-[#040507] rounded-lg p-2 overflow-hidden border border-[#1e2329]/50">
+          <div className="h-80 sm:h-96 w-full relative bg-[#070b14] rounded-lg p-2 overflow-hidden border border-slate-800/60">
             {/* Legend / Overlay Price Info */}
-            <div className="absolute top-3 left-4 z-10 text-[11px] font-mono flex items-center gap-3 text-zinc-400">
+            <div className="absolute top-3 left-4 z-10 text-[11px] font-mono flex items-center gap-3 text-slate-400">
               <span className="text-white font-bold">{activePair.symbol}</span>
               {showIndicators && (
                 <>
@@ -514,13 +513,6 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
             </div>
 
             <svg className="w-full h-full overflow-visible" viewBox="0 0 650 320" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#00c087" stopOpacity="0.2" />
-                  <stop offset="100%" stopColor="#00c087" stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
-
               {/* Grid Horizontal Guidelines */}
               {[50, 110, 170, 230].map((y) => (
                 <line
@@ -529,7 +521,7 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
                   y1={y}
                   x2="650"
                   y2={y}
-                  stroke="#14171f"
+                  stroke="#152033"
                   strokeWidth="1"
                   strokeDasharray="4 4"
                 />
@@ -542,7 +534,6 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
                 const max = Math.max(...chartPoints.map((p) => p.high));
                 const range = max - min || 1;
 
-                // Price coordinates mapping
                 const scaleY = (val: number) => 240 - ((val - min) / range) * 200;
 
                 const openY = scaleY(pt.open);
@@ -550,8 +541,6 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
                 const highY = scaleY(pt.high);
                 const lowY = scaleY(pt.low);
                 const isGreen = pt.close >= pt.open;
-
-                // Volume Bar height at bottom
                 const volHeight = Math.min(45, (pt.volume / 60) * 45);
 
                 return (
@@ -562,7 +551,7 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
                       y={310 - volHeight}
                       width="7"
                       height={volHeight}
-                      fill={isGreen ? "rgba(0, 192, 135, 0.25)" : "rgba(246, 70, 93, 0.25)"}
+                      fill={isGreen ? "rgba(16, 185, 129, 0.25)" : "rgba(244, 63, 94, 0.25)"}
                     />
 
                     {/* Candlestick High/Low Wick */}
@@ -571,7 +560,7 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
                       y1={highY}
                       x2={x}
                       y2={lowY}
-                      stroke={isGreen ? "#00c087" : "#f6465d"}
+                      stroke={isGreen ? "#10b981" : "#f43f5e"}
                       strokeWidth="1.2"
                     />
 
@@ -581,7 +570,7 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
                       y={Math.min(openY, closeY)}
                       width="8"
                       height={Math.max(2, Math.abs(closeY - openY))}
-                      fill={isGreen ? "#00c087" : "#f6465d"}
+                      fill={isGreen ? "#10b981" : "#f43f5e"}
                       rx="0.5"
                     />
                   </g>
@@ -628,35 +617,35 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
                 y1="140"
                 x2="650"
                 y2="140"
-                stroke={activePair.change24h >= 0 ? "#00c087" : "#f6465d"}
+                stroke={activePair.change24h >= 0 ? "#10b981" : "#f43f5e"}
                 strokeWidth="1"
                 strokeDasharray="4 3"
               />
             </svg>
 
             {/* Current Price Floating Badge on Right Border */}
-            <div className="absolute right-2 top-[128px] bg-white text-black font-mono font-bold text-[10px] px-1.5 py-0.5 rounded shadow">
+            <div className="absolute right-2 top-[128px] bg-slate-100 text-slate-900 font-mono font-bold text-[10px] px-2 py-0.5 rounded shadow">
               ${activePair.price >= 100 ? activePair.price.toFixed(2) : activePair.price.toFixed(4)}
             </div>
 
-            {/* Bottom Watermark */}
-            <div className="absolute bottom-2 left-3 text-[10px] font-mono text-zinc-600 flex items-center gap-2">
-              <Database className="w-3 h-3 text-[#00c087]" />
-              <span>OKX MATCHING PROTOCOL • LD4 SUB-MILLISECOND FEED</span>
+            {/* Bottom Meta */}
+            <div className="absolute bottom-2 left-3 text-[10px] font-mono text-slate-500 flex items-center gap-2">
+              <Database className="w-3 h-3 text-sky-400" />
+              <span>MATCHING ENGINE · LD4 DIRECT SUB-MILLISECOND FEED</span>
             </div>
           </div>
         </div>
 
         {/* Center-Right Column: Live Order Book & Recent Trades (2.5 cols) */}
-        <div className="lg:col-span-2 bg-[#08090b] border border-[#1e2329] rounded-xl p-3 flex flex-col justify-between space-y-2">
+        <div className="lg:col-span-2 bg-[#0c1322] border border-slate-800 rounded-xl p-3 flex flex-col justify-between space-y-2">
           {/* Tabs: Order Book vs Recent Trades */}
-          <div className="flex border-b border-[#1e2329] pb-2 text-xs font-semibold">
+          <div className="flex border-b border-slate-800 pb-2 text-xs font-semibold">
             <button
               onClick={() => setRightTab("orderbook")}
               className={`flex-1 pb-1 transition-colors cursor-pointer text-center ${
                 rightTab === "orderbook"
-                  ? "text-white border-b-2 border-white font-bold"
-                  : "text-zinc-500 hover:text-zinc-300 border-b-2 border-transparent"
+                  ? "text-sky-400 border-b-2 border-sky-400 font-bold"
+                  : "text-slate-400 hover:text-white border-b-2 border-transparent"
               }`}
             >
               {t.depthTab}
@@ -665,8 +654,8 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
               onClick={() => setRightTab("trades")}
               className={`flex-1 pb-1 transition-colors cursor-pointer text-center ${
                 rightTab === "trades"
-                  ? "text-white border-b-2 border-white font-bold"
-                  : "text-zinc-500 hover:text-zinc-300 border-b-2 border-transparent"
+                  ? "text-sky-400 border-b-2 border-sky-400 font-bold"
+                  : "text-slate-400 hover:text-white border-b-2 border-transparent"
               }`}
             >
               {t.recentTradesTab}
@@ -674,101 +663,99 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
           </div>
 
           {rightTab === "orderbook" ? (
-            /* OKX Dual-View Order Book */
+            /* Dual-View Order Book */
             <div className="flex-1 flex flex-col justify-between text-[11px] font-mono space-y-1">
-              <div className="flex justify-between text-zinc-500 text-[10px] pb-1">
+              <div className="flex justify-between text-slate-500 text-[10px] pb-1">
                 <span>{t.price} (USD)</span>
                 <span>{t.amount}</span>
               </div>
 
-              {/* Asks (Sell Orders in Red) */}
+              {/* Asks (Sell Orders in Crimson/Rose) */}
               <div className="space-y-0.5">
                 {orderBook.asks.map((a, i) => (
                   <div
                     key={i}
                     onClick={() => setLimitPrice(a.price >= 100 ? a.price.toFixed(2) : a.price.toFixed(4))}
-                    className="relative flex justify-between py-0.5 px-1 rounded hover:bg-[#161a22] transition-colors cursor-pointer overflow-hidden"
+                    className="relative flex justify-between py-0.5 px-1 rounded hover:bg-slate-800/60 transition-colors cursor-pointer overflow-hidden"
                   >
                     <div
-                      className="absolute right-0 top-0 bottom-0 bg-[#f6465d]/12 pointer-events-none"
+                      className="absolute right-0 top-0 bottom-0 bg-rose-500/15 pointer-events-none"
                       style={{ width: `${a.depthPercent}%` }}
                     />
-                    <span className="text-[#f6465d] font-bold font-tabular relative z-10">
+                    <span className="text-rose-400 font-bold tabular-nums relative z-10">
                       {a.price >= 100 ? a.price.toFixed(2) : a.price.toFixed(4)}
                     </span>
-                    <span className="text-zinc-400 font-tabular relative z-10">{a.volume}</span>
+                    <span className="text-slate-300 tabular-nums relative z-10">{a.volume}</span>
                   </div>
                 ))}
               </div>
 
               {/* Center Spread & Mark Price */}
-              <div className="py-2 my-1 px-1.5 bg-[#12161c] rounded border border-[#1e2329] flex items-center justify-between text-xs">
-                <span className="font-bold text-white font-tabular">
+              <div className="py-2 my-1 px-2 bg-slate-900 rounded border border-slate-800 flex items-center justify-between text-xs">
+                <span className="font-bold text-white tabular-nums">
                   ${activePair.price >= 100 ? activePair.price.toFixed(2) : activePair.price.toFixed(4)}
                 </span>
-                <span className="text-[10px] text-zinc-500 font-tabular">
+                <span className="text-[10px] text-slate-400 tabular-nums">
                   Spread: {orderBook.spread}
                 </span>
               </div>
 
-              {/* Bids (Buy Orders in Green) */}
+              {/* Bids (Buy Orders in Emerald) */}
               <div className="space-y-0.5">
                 {orderBook.bids.map((b, i) => (
                   <div
                     key={i}
                     onClick={() => setLimitPrice(b.price >= 100 ? b.price.toFixed(2) : b.price.toFixed(4))}
-                    className="relative flex justify-between py-0.5 px-1 rounded hover:bg-[#161a22] transition-colors cursor-pointer overflow-hidden"
+                    className="relative flex justify-between py-0.5 px-1 rounded hover:bg-slate-800/60 transition-colors cursor-pointer overflow-hidden"
                   >
                     <div
-                      className="absolute right-0 top-0 bottom-0 bg-[#00c087]/12 pointer-events-none"
+                      className="absolute right-0 top-0 bottom-0 bg-emerald-500/15 pointer-events-none"
                       style={{ width: `${b.depthPercent}%` }}
                     />
-                    <span className="text-[#00c087] font-bold font-tabular relative z-10">
+                    <span className="text-emerald-400 font-bold tabular-nums relative z-10">
                       {b.price >= 100 ? b.price.toFixed(2) : b.price.toFixed(4)}
                     </span>
-                    <span className="text-zinc-400 font-tabular relative z-10">{b.volume}</span>
+                    <span className="text-slate-300 tabular-nums relative z-10">{b.volume}</span>
                   </div>
                 ))}
               </div>
             </div>
           ) : (
-            /* OKX Recent Trades Stream */
+            /* Recent Trades Stream */
             <div className="flex-1 flex flex-col text-[11px] font-mono space-y-1 overflow-y-auto no-scrollbar max-h-72">
-              <div className="flex justify-between text-zinc-500 text-[10px] pb-1">
+              <div className="flex justify-between text-slate-500 text-[10px] pb-1">
                 <span>{t.price}</span>
                 <span>{t.amount}</span>
                 <span>{t.time}</span>
               </div>
               {recentTradesStream.map((tr) => (
-                <div key={tr.id} className="flex justify-between py-0.5 px-1 text-[10px] font-tabular">
-                  <span className={tr.side === "BUY" ? "text-[#00c087] font-bold" : "text-[#f6465d] font-bold"}>
+                <div key={tr.id} className="flex justify-between py-0.5 px-1 text-[10px] tabular-nums">
+                  <span className={tr.side === "BUY" ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}>
                     {tr.price >= 100 ? tr.price.toFixed(2) : tr.price.toFixed(4)}
                   </span>
-                  <span className="text-zinc-300">{tr.size}</span>
-                  <span className="text-zinc-500">{tr.time}</span>
+                  <span className="text-slate-300">{tr.size}</span>
+                  <span className="text-slate-500">{tr.time}</span>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Right Area: OKX Pro Order Form (2.5 cols) */}
-        <div className="lg:col-span-3 bg-[#08090b] border border-[#1e2329] rounded-xl p-4 space-y-4">
-          {/* Cross Margin Badge & Order Type selector */}
-          <div className="flex items-center justify-between pb-3 border-b border-[#1e2329]">
-            <div className="flex items-center gap-1.5">
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#161a22] text-zinc-300 border border-[#222832]">
-                CROSS {leverage}x
-              </span>
-            </div>
+        {/* Right Area: Institutional Order Ticket (3 cols) */}
+        <div className="lg:col-span-3 bg-[#0c1322] border border-slate-800 rounded-xl p-4 space-y-4">
+          {/* Header */}
+          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <span className="text-xs font-mono font-bold text-sky-400">
+              CROSS MARGIN {leverage}x
+            </span>
 
             {/* Order Types */}
             <div className="flex items-center gap-1 text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => setOrderType("MARKET")}
-                className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
-                  orderType === "MARKET" ? "text-white font-bold" : "text-zinc-500 hover:text-white"
+                className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
+                  orderType === "MARKET" ? "bg-slate-700 text-white font-bold" : "text-slate-400 hover:text-white"
                 }`}
               >
                 {t.orderTypeMarket}
@@ -776,8 +763,8 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
               <button
                 type="button"
                 onClick={() => setOrderType("LIMIT")}
-                className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
-                  orderType === "LIMIT" ? "text-white font-bold" : "text-zinc-500 hover:text-white"
+                className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
+                  orderType === "LIMIT" ? "bg-slate-700 text-white font-bold" : "text-slate-400 hover:text-white"
                 }`}
               >
                 {t.orderTypeLimit}
@@ -785,15 +772,15 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
             </div>
           </div>
 
-          {/* OKX Buy / Long vs Sell / Short Toggle Tabs */}
+          {/* Buy / Long vs Sell / Short Toggle Tabs */}
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setOrderSide("BUY")}
-              className={`py-2 rounded-lg font-black text-xs uppercase transition-all cursor-pointer ${
+              className={`py-2 rounded-lg font-bold text-xs uppercase transition-all cursor-pointer ${
                 orderSide === "BUY"
-                  ? "bg-[#00c087] text-black shadow-lg shadow-[#00c087]/20"
-                  : "bg-[#14171d] text-zinc-400 hover:text-white border border-[#1e2329]"
+                  ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20"
+                  : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
               }`}
             >
               {t.buyLong}
@@ -801,10 +788,10 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
             <button
               type="button"
               onClick={() => setOrderSide("SELL")}
-              className={`py-2 rounded-lg font-black text-xs uppercase transition-all cursor-pointer ${
+              className={`py-2 rounded-lg font-bold text-xs uppercase transition-all cursor-pointer ${
                 orderSide === "SELL"
-                  ? "bg-[#f6465d] text-white shadow-lg shadow-[#f6465d]/20"
-                  : "bg-[#14171d] text-zinc-400 hover:text-white border border-[#1e2329]"
+                  ? "bg-rose-500 text-white shadow-md shadow-rose-500/20"
+                  : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
               }`}
             >
               {t.sellShort}
@@ -814,23 +801,23 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
           {/* Limit Price Input (if LIMIT order selected) */}
           {orderType === "LIMIT" && (
             <div>
-              <div className="flex justify-between text-xs text-zinc-400 mb-1 font-mono">
+              <div className="flex justify-between text-xs text-slate-400 mb-1 font-mono">
                 <span>{t.price}</span>
-                <span className="text-zinc-500">USD</span>
+                <span className="text-slate-500">USD</span>
               </div>
               <input
                 type="number"
                 step="0.0001"
                 value={limitPrice}
                 onChange={(e) => setLimitPrice(e.target.value)}
-                className="w-full bg-[#12161c] border border-[#1e2329] focus:border-zinc-400 text-white rounded-lg p-2 text-xs font-mono font-tabular focus:outline-none"
+                className="w-full bg-slate-900 border border-slate-700 focus:border-sky-400 text-white rounded-lg p-2 text-xs font-mono tabular-nums focus:outline-none"
               />
             </div>
           )}
 
           {/* Volume / Lots Input */}
           <div className="space-y-2">
-            <div className="flex justify-between text-xs text-zinc-400 font-mono">
+            <div className="flex justify-between text-xs text-slate-400 font-mono">
               <span>{t.orderVolume}</span>
               <span className="text-white font-bold">{lots} Lots</span>
             </div>
@@ -841,10 +828,10 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
               step="0.1"
               value={lots}
               onChange={(e) => setLots(parseFloat(e.target.value) || 0.1)}
-              className="w-full bg-[#12161c] border border-[#1e2329] focus:border-zinc-400 text-white rounded-lg p-2 text-xs font-mono font-tabular focus:outline-none"
+              className="w-full bg-slate-900 border border-slate-700 focus:border-sky-400 text-white rounded-lg p-2 text-xs font-mono tabular-nums focus:outline-none"
             />
 
-            {/* Quick Percentage Chips */}
+            {/* Quick Percentage Presets */}
             <div className="grid grid-cols-4 gap-1.5 font-mono text-[10px]">
               {[0.25, 0.5, 0.75, 1.0].map((frac) => (
                 <button
@@ -854,7 +841,7 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
                     const maxAllowed = maxLotsAffordable > 0 ? maxLotsAffordable : 5.0;
                     setLots(Math.max(0.1, Number((maxAllowed * frac).toFixed(2))));
                   }}
-                  className="py-1 rounded bg-[#161a22] border border-[#222832] text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                  className="py-1 rounded bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
                 >
                   {frac * 100}%
                 </button>
@@ -862,9 +849,9 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
             </div>
           </div>
 
-          {/* Leverage Slider */}
+          {/* Leverage Selector */}
           <div className="space-y-1.5">
-            <div className="flex justify-between text-xs text-zinc-400 font-mono">
+            <div className="flex justify-between text-xs text-slate-400 font-mono">
               <span>{t.leverage}</span>
               <span className="text-white font-bold">{leverage}x</span>
             </div>
@@ -876,8 +863,8 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
                   onClick={() => setLeverage(lev)}
                   className={`py-1 rounded cursor-pointer border ${
                     leverage === lev
-                      ? "bg-white text-black font-bold border-white"
-                      : "bg-[#161a22] border-[#222832] text-zinc-400 hover:text-white"
+                      ? "bg-slate-700 text-white font-bold border-slate-500"
+                      : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
                   }`}
                 >
                   {lev}x
@@ -890,51 +877,51 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
               max="100"
               value={leverage}
               onChange={(e) => setLeverage(parseInt(e.target.value, 10))}
-              className="w-full accent-[#00c087] cursor-pointer"
+              className="w-full accent-sky-400 cursor-pointer"
             />
           </div>
 
           {/* TP & SL Inputs */}
           <div className="grid grid-cols-2 gap-2 font-mono text-[11px]">
             <div>
-              <label className="block text-zinc-500 mb-1">{t.stopLoss}</label>
+              <label className="block text-slate-400 mb-1">{t.stopLoss}</label>
               <input
                 type="number"
                 step="0.0001"
                 value={stopLoss}
                 onChange={(e) => setStopLoss(e.target.value)}
                 placeholder="Optional"
-                className="w-full bg-[#12161c] border border-[#1e2329] text-white rounded p-1.5 text-xs focus:outline-none"
+                className="w-full bg-slate-900 border border-slate-700 text-white rounded p-1.5 text-xs focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-zinc-500 mb-1">{t.takeProfit}</label>
+              <label className="block text-slate-400 mb-1">{t.takeProfit}</label>
               <input
                 type="number"
                 step="0.0001"
                 value={takeProfit}
                 onChange={(e) => setTakeProfit(e.target.value)}
                 placeholder="Optional"
-                className="w-full bg-[#12161c] border border-[#1e2329] text-white rounded p-1.5 text-xs focus:outline-none"
+                className="w-full bg-slate-900 border border-slate-700 text-white rounded p-1.5 text-xs focus:outline-none"
               />
             </div>
           </div>
 
           {/* Margin & Account Summary */}
-          <div className="bg-[#12161c] p-2.5 rounded-lg border border-[#1e2329] text-xs font-mono space-y-1">
-            <div className="flex justify-between text-zinc-400">
+          <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 text-xs font-mono space-y-1">
+            <div className="flex justify-between text-slate-400">
               <span>{t.marginLabel}:</span>
-              <span className="text-white font-bold font-tabular">${requiredMargin.toLocaleString()}</span>
+              <span className="text-white font-bold tabular-nums">${requiredMargin.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between text-zinc-400">
+            <div className="flex justify-between text-slate-400">
               <span>{t.freeMarginLabel}:</span>
-              <span className="text-[#00c087] font-bold font-tabular">
+              <span className="text-emerald-400 font-bold tabular-nums">
                 ${currentUser ? Math.max(0, currentUser.balance - requiredMargin).toLocaleString(undefined, { minimumFractionDigits: 2 }) : "0.00"}
               </span>
             </div>
-            <div className="flex justify-between text-zinc-500 text-[10px] pt-1 border-t border-[#1e2329]">
+            <div className="flex justify-between text-slate-500 text-[10px] pt-1 border-t border-slate-800">
               <span>Est. Liq Price:</span>
-              <span className="text-zinc-400 font-tabular">${estimatedLiquidationPrice}</span>
+              <span className="text-slate-300 tabular-nums">${estimatedLiquidationPrice}</span>
             </div>
           </div>
 
@@ -943,24 +930,24 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
             <div
               className={`p-2 rounded text-xs flex items-center gap-1.5 font-mono ${
                 execMessage.type === "success"
-                  ? "bg-[#00c087]/15 border border-[#00c087]/40 text-[#00c087]"
-                  : "bg-[#f6465d]/15 border border-[#f6465d]/40 text-[#f6465d]"
+                  ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
+                  : "bg-rose-500/10 border border-rose-500/30 text-rose-400"
               }`}
             >
-              {execMessage.type === "success" ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
+              {execMessage.type === "success" ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
               <span>{execMessage.text}</span>
             </div>
           )}
 
-          {/* Big Action Button (OKX Green for Long / OKX Red for Short) */}
+          {/* Order Execution Action Button */}
           <button
             type="button"
             onClick={handleExecuteTrade}
             disabled={isSubmitting}
-            className={`w-full py-3 px-4 rounded-lg font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-lg ${
+            className={`w-full py-3 px-4 rounded-lg font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-lg ${
               orderSide === "BUY"
-                ? "bg-[#00c087] hover:bg-[#00c087]/90 text-black shadow-[#00c087]/20"
-                : "bg-[#f6465d] hover:bg-[#f6465d]/90 text-white shadow-[#f6465d]/20"
+                ? "bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20"
+                : "bg-rose-500 hover:bg-rose-400 text-white shadow-rose-500/20"
             }`}
           >
             {isSubmitting
@@ -971,18 +958,18 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
       </div>
 
       {/* Bottom Workstation: Open Positions, History & SQL Ledger */}
-      <div className="bg-[#08090b] border border-[#1e2329] rounded-xl p-4 shadow-2xl">
-        <div className="flex items-center gap-4 border-b border-[#1e2329] pb-3 mb-3">
+      <div className="bg-[#0c1322] border border-slate-800 rounded-xl p-4 shadow-2xl">
+        <div className="flex items-center gap-4 border-b border-slate-800 pb-3 mb-3">
           <button
             onClick={() => setActiveBottomTab("positions")}
             className={`flex items-center gap-2 text-xs font-bold pb-1 transition-all border-b-2 cursor-pointer ${
               activeBottomTab === "positions"
-                ? "border-white text-white"
-                : "border-transparent text-zinc-500 hover:text-zinc-300"
+                ? "border-sky-400 text-white"
+                : "border-transparent text-slate-400 hover:text-white"
             }`}
           >
             <span>{t.openPositions}</span>
-            <span className="px-1.5 py-0.2 rounded font-mono text-[10px] bg-[#161a22] text-white">
+            <span className="px-1.5 py-0.2 rounded font-mono text-[10px] bg-slate-800 text-slate-300">
               {openPositions.length}
             </span>
           </button>
@@ -991,12 +978,12 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
             onClick={() => setActiveBottomTab("history")}
             className={`flex items-center gap-2 text-xs font-bold pb-1 transition-all border-b-2 cursor-pointer ${
               activeBottomTab === "history"
-                ? "border-white text-white"
-                : "border-transparent text-zinc-500 hover:text-zinc-300"
+                ? "border-sky-400 text-white"
+                : "border-transparent text-slate-400 hover:text-white"
             }`}
           >
             <span>{t.closedTrades}</span>
-            <span className="px-1.5 py-0.2 rounded font-mono text-[10px] bg-[#161a22] text-white">
+            <span className="px-1.5 py-0.2 rounded font-mono text-[10px] bg-slate-800 text-slate-300">
               {closedPositions.length}
             </span>
           </button>
@@ -1005,13 +992,13 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
             onClick={() => setActiveBottomTab("ledger")}
             className={`flex items-center gap-2 text-xs font-bold pb-1 transition-all border-b-2 cursor-pointer ${
               activeBottomTab === "ledger"
-                ? "border-[#00c087] text-[#00c087]"
-                : "border-transparent text-zinc-500 hover:text-zinc-300"
+                ? "border-sky-400 text-sky-400"
+                : "border-transparent text-slate-400 hover:text-white"
             }`}
           >
             <Database className="w-3.5 h-3.5" />
-            <span>SQL Ledger</span>
-            <span className="px-1.5 py-0.2 rounded font-mono text-[10px] bg-[#00c087]/20 text-[#00c087]">
+            <span>SQL Relational Ledger</span>
+            <span className="px-1.5 py-0.2 rounded font-mono text-[10px] bg-sky-500/20 text-sky-400">
               {transactions.length}
             </span>
           </button>
@@ -1021,57 +1008,59 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
         {activeBottomTab === "positions" && (
           <div className="overflow-x-auto">
             {openPositions.length === 0 ? (
-              <div className="py-8 text-center text-zinc-500 text-xs font-mono">
+              <div className="py-8 text-center text-slate-500 text-xs font-mono">
                 {t.noOpenPositions}
               </div>
             ) : (
               <table className="w-full text-left text-xs font-mono">
                 <thead>
-                  <tr className="text-zinc-500 border-b border-[#1e2329] text-[11px]">
+                  <tr className="text-slate-400 border-b border-slate-800 text-[11px]">
                     <th className="pb-2">ID</th>
                     <th className="pb-2">{t.symbol}</th>
                     <th className="pb-2">{t.type}</th>
                     <th className="pb-2">{t.orderVolume}</th>
                     <th className="pb-2">{t.entryPrice}</th>
                     <th className="pb-2">{t.currentPrice}</th>
+                    <th className="pb-2">{t.marginLabel}</th>
                     <th className="pb-2">{t.pnl}</th>
                     <th className="pb-2 text-right">{t.actions}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1e2329]/60">
+                <tbody className="divide-y divide-slate-800/60">
                   {openPositions.map((trd) => {
                     const isProfit = trd.pnl >= 0;
                     return (
-                      <tr key={trd.id} className="hover:bg-[#12161c] transition-colors">
-                        <td className="py-2.5 text-zinc-500">{trd.id}</td>
+                      <tr key={trd.id} className="hover:bg-slate-800/40">
+                        <td className="py-2.5 text-slate-400">{trd.id}</td>
                         <td className="py-2.5 font-bold text-white">{trd.symbol}</td>
                         <td className="py-2.5">
                           <span
                             className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
                               trd.type === "BUY"
-                                ? "bg-[#00c087]/15 text-[#00c087]"
-                                : "bg-[#f6465d]/15 text-[#f6465d]"
+                                ? "bg-emerald-500/15 text-emerald-400"
+                                : "bg-rose-500/15 text-rose-400"
                             }`}
                           >
                             {trd.type}
                           </span>
                         </td>
-                        <td className="py-2.5 text-zinc-300 font-tabular">{trd.lots}</td>
-                        <td className="py-2.5 text-zinc-300 font-tabular">
-                          ${trd.entryPrice >= 100 ? trd.entryPrice.toFixed(2) : trd.entryPrice.toFixed(4)}
-                        </td>
-                        <td className="py-2.5 text-zinc-300 font-tabular">
-                          ${trd.currentPrice >= 100 ? trd.currentPrice.toFixed(2) : trd.currentPrice.toFixed(4)}
-                        </td>
-                        <td className="py-2.5 font-tabular">
-                          <span className={`font-bold ${isProfit ? "text-[#00c087]" : "text-[#f6465d]"}`}>
+                        <td className="py-2.5 tabular-nums">{trd.lots} Lots</td>
+                        <td className="py-2.5 tabular-nums">${trd.entryPrice}</td>
+                        <td className="py-2.5 tabular-nums">${trd.currentPrice}</td>
+                        <td className="py-2.5 tabular-nums text-slate-300">${trd.margin}</td>
+                        <td className="py-2.5">
+                          <span
+                            className={`font-bold tabular-nums ${
+                              isProfit ? "text-emerald-400" : "text-rose-400"
+                            }`}
+                          >
                             {isProfit ? "+" : ""}${trd.pnl.toFixed(2)}
                           </span>
                         </td>
                         <td className="py-2.5 text-right">
                           <button
                             onClick={() => handleClosePosition(trd)}
-                            className="px-2.5 py-1 rounded bg-[#161a22] hover:bg-[#f6465d]/20 text-[#f6465d] border border-[#f6465d]/30 text-[10px] font-bold transition-all cursor-pointer"
+                            className="px-2.5 py-1 text-[11px] rounded bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30 transition-colors cursor-pointer"
                           >
                             {t.closePosition}
                           </button>
@@ -1085,61 +1074,59 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
           </div>
         )}
 
-        {/* Tab 2: Closed Trades History */}
+        {/* Tab 2: Trade History */}
         {activeBottomTab === "history" && (
           <div className="overflow-x-auto">
             {closedPositions.length === 0 ? (
-              <div className="py-8 text-center text-zinc-500 text-xs font-mono">
+              <div className="py-8 text-center text-slate-500 text-xs font-mono">
                 {t.noTradesHistory}
               </div>
             ) : (
               <table className="w-full text-left text-xs font-mono">
                 <thead>
-                  <tr className="text-zinc-500 border-b border-[#1e2329] text-[11px]">
+                  <tr className="text-slate-400 border-b border-slate-800 text-[11px]">
                     <th className="pb-2">ID</th>
                     <th className="pb-2">{t.symbol}</th>
                     <th className="pb-2">{t.type}</th>
                     <th className="pb-2">{t.orderVolume}</th>
                     <th className="pb-2">{t.entryPrice}</th>
-                    <th className="pb-2">Close Price</th>
+                    <th className="pb-2">{isAr ? "سعر الإغلاق" : "Close Price"}</th>
                     <th className="pb-2">{t.pnl}</th>
-                    <th className="pb-2">{t.status}</th>
+                    <th className="pb-2 text-right">{isAr ? "تاريخ الإغلاق" : "Closed At"}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1e2329]/60">
+                <tbody className="divide-y divide-slate-800/60">
                   {closedPositions.map((trd) => {
                     const isProfit = trd.pnl >= 0;
                     return (
-                      <tr key={trd.id} className="hover:bg-[#12161c] transition-colors">
-                        <td className="py-2.5 text-zinc-500">{trd.id}</td>
+                      <tr key={trd.id} className="hover:bg-slate-800/40">
+                        <td className="py-2.5 text-slate-400">{trd.id}</td>
                         <td className="py-2.5 font-bold text-white">{trd.symbol}</td>
                         <td className="py-2.5">
                           <span
                             className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
                               trd.type === "BUY"
-                                ? "bg-[#00c087]/15 text-[#00c087]"
-                                : "bg-[#f6465d]/15 text-[#f6465d]"
+                                ? "bg-emerald-500/15 text-emerald-400"
+                                : "bg-rose-500/15 text-rose-400"
                             }`}
                           >
                             {trd.type}
                           </span>
                         </td>
-                        <td className="py-2.5 text-zinc-300 font-tabular">{trd.lots}</td>
-                        <td className="py-2.5 text-zinc-300 font-tabular">
-                          ${trd.entryPrice >= 100 ? trd.entryPrice.toFixed(2) : trd.entryPrice.toFixed(4)}
-                        </td>
-                        <td className="py-2.5 text-zinc-300 font-tabular">
-                          ${trd.closePrice ? (trd.closePrice >= 100 ? trd.closePrice.toFixed(2) : trd.closePrice.toFixed(4)) : "-"}
-                        </td>
-                        <td className="py-2.5 font-tabular">
-                          <span className={`font-bold ${isProfit ? "text-[#00c087]" : "text-[#f6465d]"}`}>
+                        <td className="py-2.5 tabular-nums">{trd.lots} Lots</td>
+                        <td className="py-2.5 tabular-nums">${trd.entryPrice}</td>
+                        <td className="py-2.5 tabular-nums">${trd.closePrice}</td>
+                        <td className="py-2.5">
+                          <span
+                            className={`font-bold tabular-nums ${
+                              isProfit ? "text-emerald-400" : "text-rose-400"
+                            }`}
+                          >
                             {isProfit ? "+" : ""}${trd.pnl.toFixed(2)}
                           </span>
                         </td>
-                        <td className="py-2.5">
-                          <span className="text-zinc-400 bg-[#161a22] px-1.5 py-0.5 rounded text-[9px]">
-                            {trd.status}
-                          </span>
+                        <td className="py-2.5 text-right text-slate-400 text-[11px]">
+                          {trd.closedAt ? new Date(trd.closedAt).toLocaleTimeString() : "-"}
                         </td>
                       </tr>
                     );
@@ -1150,38 +1137,36 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
           </div>
         )}
 
-        {/* Tab 3: SQL Ledger */}
+        {/* Tab 3: Relational SQL Ledger */}
         {activeBottomTab === "ledger" && (
           <div className="overflow-x-auto">
             {transactions.length === 0 ? (
-              <div className="py-8 text-center text-zinc-500 text-xs font-mono">
-                No SQL ledger transactions recorded yet.
+              <div className="py-8 text-center text-slate-500 text-xs font-mono">
+                {isAr ? "لا توجد معاملات مسجلة في دفتر الأستاذ" : "No transactions recorded in ledger"}
               </div>
             ) : (
               <table className="w-full text-left text-xs font-mono">
                 <thead>
-                  <tr className="text-zinc-500 border-b border-[#1e2329] text-[11px]">
+                  <tr className="text-slate-400 border-b border-slate-800 text-[11px]">
                     <th className="pb-2">TX ID</th>
-                    <th className="pb-2">User</th>
-                    <th className="pb-2">Type</th>
-                    <th className="pb-2">Amount</th>
-                    <th className="pb-2">Balance After</th>
-                    <th className="pb-2">Timestamp</th>
+                    <th className="pb-2">{isAr ? "نوع المعاملة" : "Transaction Type"}</th>
+                    <th className="pb-2">{isAr ? "المبلغ" : "Amount"}</th>
+                    <th className="pb-2">{isAr ? "الرصيد بعدها" : "Balance After"}</th>
+                    <th className="pb-2">{isAr ? "بيان القيد" : "Audit Note"}</th>
+                    <th className="pb-2 text-right">{isAr ? "التوقيت" : "Timestamp"}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1e2329]/60">
-                  {transactions.slice(0, 15).map((tx) => (
-                    <tr key={tx.id} className="hover:bg-[#12161c] transition-colors">
-                      <td className="py-2 text-zinc-500">{tx.id}</td>
-                      <td className="py-2 text-zinc-300">{tx.userEmail}</td>
-                      <td className="py-2">
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#161a22] text-[#00c087] font-bold">
-                          {tx.type}
-                        </span>
+                <tbody className="divide-y divide-slate-800/60">
+                  {transactions.map((tx) => (
+                    <tr key={tx.id} className="hover:bg-slate-800/40">
+                      <td className="py-2.5 text-slate-400">{tx.id}</td>
+                      <td className="py-2.5 font-bold text-sky-400">{tx.type}</td>
+                      <td className="py-2.5 font-bold text-white tabular-nums">${tx.amount.toLocaleString()}</td>
+                      <td className="py-2.5 text-emerald-400 font-bold tabular-nums">${tx.balanceAfter.toLocaleString()}</td>
+                      <td className="py-2.5 text-slate-300 font-sans text-xs">{tx.note}</td>
+                      <td className="py-2.5 text-right text-slate-400 text-[11px]">
+                        {new Date(tx.timestamp).toLocaleTimeString()}
                       </td>
-                      <td className="py-2 font-bold font-tabular text-white">${tx.amount.toFixed(2)}</td>
-                      <td className="py-2 text-zinc-400 font-tabular">${tx.balanceAfter.toFixed(2)}</td>
-                      <td className="py-2 text-zinc-500 text-[10px]">{new Date(tx.timestamp).toLocaleTimeString()}</td>
                     </tr>
                   ))}
                 </tbody>
