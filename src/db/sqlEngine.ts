@@ -8,7 +8,7 @@ import {
   SqlQueryResult
 } from "../types";
 
-export const SUPER_ADMIN_EMAIL = "h07806480810@gmail.com";
+export const SUPER_ADMIN_EMAIL = "admin@fast-fx.uk";
 const DB_STORAGE_KEY = "fast_fx_relational_sql_db_v2";
 
 interface DatabaseState {
@@ -174,7 +174,7 @@ const defaultInitialState: DatabaseState = {
     },
     {
       id: "sub_03",
-      email: "h07806480810@gmail.com",
+      email: SUPER_ADMIN_EMAIL,
       createdAt: new Date(Date.now() - 1 * 24 * 3600 * 1000).toISOString(),
       source: "Admin Priority Waitlist",
       status: "active"
@@ -216,6 +216,51 @@ class SqlDatabaseEngine {
       const raw = localStorage.getItem(DB_STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
+        const OLD_EMAIL = "h07806480810@gmail.com";
+
+        // Migrate users: replace old email with admin@fast-fx.uk
+        if (parsed.users && Array.isArray(parsed.users)) {
+          parsed.users = parsed.users.map((u: User) => {
+            if (u.email.toLowerCase() === OLD_EMAIL.toLowerCase()) {
+              return {
+                ...u,
+                email: SUPER_ADMIN_EMAIL,
+                name: "مدير المنصة الرئيسي (Super Admin)",
+                role: "admin"
+              };
+            }
+            return u;
+          });
+        }
+
+        // Migrate subscribers
+        if (parsed.subscribers && Array.isArray(parsed.subscribers)) {
+          parsed.subscribers = parsed.subscribers.map((s: Subscriber) => {
+            if (s.email.toLowerCase() === OLD_EMAIL.toLowerCase()) {
+              return { ...s, email: SUPER_ADMIN_EMAIL };
+            }
+            return s;
+          });
+        }
+
+        // Migrate audit logs
+        if (parsed.audit_logs && Array.isArray(parsed.audit_logs)) {
+          parsed.audit_logs = parsed.audit_logs.map((log: AuditLog) => {
+            if (log.actorEmail?.toLowerCase() === OLD_EMAIL.toLowerCase()) {
+              return { ...log, actorEmail: SUPER_ADMIN_EMAIL };
+            }
+            return log;
+          });
+        }
+
+        // Migrate active session if present
+        try {
+          const session = localStorage.getItem("fast_fx_auth_session");
+          if (session && session.toLowerCase() === OLD_EMAIL.toLowerCase()) {
+            localStorage.setItem("fast_fx_auth_session", SUPER_ADMIN_EMAIL);
+          }
+        } catch {}
+
         // Ensure super admin always exists
         const hasSuperAdmin = parsed.users?.some(
           (u: User) => u.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()

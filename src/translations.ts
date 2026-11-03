@@ -334,7 +334,7 @@ export const translations: Record<Language, Translations> = {
     // Admin Dashboard
     adminTitle: "لوحة التحكم والرقابة الإدارية",
     adminSubtitle: "بوابة التحكم الفوري المخصصة حصرياً لمدير النظام مع وحدة استعلامات SQL حية",
-    adminRestrictedNotice: "منطقة أمان مشددة: الوصول مصرح به فقط لمدير النظام (اسم المستخدم: admin وكلمة المرور: 123456789)",
+    adminRestrictedNotice: "منطقة أمان مشددة: الوصول مصرح به فقط لمدير النظام المصرح له.",
     adminAccessDenied: "وصول محظور - غير مصرح لك بدخول لوحة الإدارة",
     adminSwitchToAdmin: "تسجيل الدخول بحساب المدير (admin)",
     tabUsers: "إدارة المتداولين",
@@ -521,10 +521,10 @@ export const translations: Record<Language, Translations> = {
 
     // Admin Dashboard
     adminTitle: "Fast FX Administrative Center",
-    adminSubtitle: "Exclusively restricted to Administrator (username: admin) with live SQL console",
-    adminRestrictedNotice: "Secured Area: Authorized access granted strictly to Administrator (Username: admin, Password: 123456789)",
+    adminSubtitle: "Exclusively restricted to Administrator with live SQL console",
+    adminRestrictedNotice: "Secured Area: Authorized access granted strictly to verified Administrator.",
     adminAccessDenied: "Access Forbidden - Administrator Clearance Required",
-    adminSwitchToAdmin: "Sign In to Administrator Account (admin)",
+    adminSwitchToAdmin: "Sign In to Administrator Account",
     tabUsers: "User Accounts",
     tabSupervision: "Trade Supervision",
     tabSqlConsole: "SQL Database Console",

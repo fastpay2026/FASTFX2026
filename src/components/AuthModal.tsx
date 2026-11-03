@@ -2,15 +2,13 @@ import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import {
   X,
-  ShieldCheck,
   Lock,
   Mail,
   User as UserIcon,
   ArrowRight,
   Sparkles,
   Eye,
-  EyeOff,
-  Crown
+  EyeOff
 } from "lucide-react";
 
 interface AuthModalProps {
@@ -29,7 +27,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
   if (!isAuthModalOpen) return null;
 
   const isAr = lang === "ar";
-  const isAdminInput = identifier.trim().toLowerCase() === "admin" || identifier.trim().toLowerCase() === "h07806480810@gmail.com";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,8 +35,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
     if (!identifier.trim()) {
       setError(
         isAr
-          ? "يرجى إدخال اسم المستخدم (admin) أو البريد الإلكتروني"
-          : "Please enter username (admin) or email address"
+          ? "يرجى إدخال اسم المستخدم أو البريد الإلكتروني"
+          : "Please enter username or email address"
       );
       return;
     }
@@ -74,19 +71,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
       <div
         className="relative w-full max-w-md bg-[#0d0e14] border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden"
         style={{
-          boxShadow: isAdminInput
-            ? "0 0 50px -10px rgba(245, 158, 11, 0.25)"
-            : "0 0 50px -10px rgba(249, 115, 22, 0.2)"
+          boxShadow: "0 0 50px -10px rgba(249, 115, 22, 0.2)"
         }}
       >
         {/* Top gradient line */}
-        <div
-          className={`absolute top-0 left-0 right-0 h-1 transition-colors ${
-            isAdminInput
-              ? "bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600"
-              : "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600"
-          }`}
-        />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600" />
 
         {/* Close button */}
         <button
@@ -99,25 +88,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
         <div className="p-6 sm:p-8">
           {/* Brand Badge */}
           <div className="flex items-center gap-2 mb-2">
-            <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                isAdminInput
-                  ? "bg-amber-500/15 text-amber-300 border border-amber-500/30"
-                  : "bg-orange-500/10 text-orange-400 border border-orange-500/20"
-              }`}
-            >
-              {isAdminInput ? <Crown className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
-              {isAdminInput ? "FAST FX ADMIN GATEWAY" : "FAST FX SECURE ACCESS"}
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20">
+              <Sparkles className="w-3.5 h-3.5" />
+              FAST FX SECURE ACCESS
             </span>
           </div>
 
           <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">
             {activeAuthTab === "login"
-              ? isAdminInput
-                ? isAr
-                  ? "تسجيل دخول لوحة تحكم الإدارة"
-                  : "Admin Control Panel Sign In"
-                : isAr
+              ? isAr
                 ? "تسجيل الدخول إلى المنصة"
                 : "Sign In to Fast Fx"
               : isAr
@@ -129,47 +108,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
               ? "بيانات الحساب والصفقات تخزن وتدار بأمان في قاعدة بيانات SQL"
               : "Account credentials and transactions secured with SQL ledger"}
           </p>
-
-          {/* Admin Control Panel Gateway Notice inside Login Screen */}
-          <div className="mb-5 p-3.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 border border-amber-500/30">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400 mt-0.5">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div className="flex-1 text-xs space-y-1">
-                <div className="font-bold text-amber-300 flex items-center justify-between">
-                  <span>{isAr ? "بوابة لوحة تحكم الإدارة" : "Admin Control Panel Access"}</span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                    SUPER ADMIN
-                  </span>
-                </div>
-                <p className="text-zinc-400 leading-relaxed text-[11px]">
-                  {isAr
-                    ? "يستطيع الأدمن الدخول إلى لوحة التحكم بكتابة اسم المستخدم الخاص به وكلمة المرور:"
-                    : "Admin enters the control panel by entering username and password:"}
-                </p>
-                <div className="flex flex-wrap items-center gap-2 pt-1 font-mono text-[11px]">
-                  <span className="px-2 py-0.5 rounded bg-black/60 text-zinc-300 border border-zinc-800">
-                    {isAr ? "اسم المستخدم:" : "User:"} <strong className="text-amber-400 font-bold">admin</strong>
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-black/60 text-zinc-300 border border-zinc-800">
-                    {isAr ? "كلمة المرور:" : "Pass:"} <strong className="text-amber-400 font-bold">123456789</strong>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIdentifier("admin");
-                      setPassword("123456789");
-                      setError("");
-                    }}
-                    className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 font-sans font-semibold border border-amber-500/40 cursor-pointer transition-colors"
-                  >
-                    {isAr ? "تعبئة بيانات الأدمن تلقائياً" : "Autofill Admin"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Tab selector */}
           <div className="flex border-b border-zinc-800 mb-5">
@@ -204,7 +142,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
             </div>
           )}
 
-          {/* Custom form */}
+          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {activeAuthTab === "register" && (
               <div>
@@ -238,31 +176,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
                   }}
                   placeholder={
                     isAr
-                      ? "اكتب admin للدخول كمدير أو بريدك الإلكتروني"
-                      : "Enter admin for Admin panel, or email"
+                      ? "اسم المستخدم أو البريد الإلكتروني"
+                      : "Username or email address"
                   }
-                  className={`w-full bg-[#14151f] border rounded-xl px-4 py-2.5 pl-10 text-sm focus:outline-none transition-colors ${
-                    isAdminInput
-                      ? "border-amber-500/60 focus:border-amber-400 text-amber-200"
-                      : "border-zinc-800 focus:border-orange-500 text-white"
-                  }`}
+                  className="w-full bg-[#14151f] border border-zinc-800 focus:border-orange-500 text-white rounded-xl px-4 py-2.5 pl-10 text-sm focus:outline-none transition-colors"
                 />
-                {isAdminInput ? (
-                  <Crown className="w-4 h-4 text-amber-400 absolute left-3 top-3" />
-                ) : (
-                  <Mail className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
-                )}
+                <Mail className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
               </div>
-              {isAdminInput && (
-                <div className="text-[11px] text-amber-400 mt-1 flex items-center gap-1 font-mono">
-                  <span>✓</span>
-                  <span>
-                    {isAr
-                      ? "تم التعرف على حساب المدير (admin) - أدخل كلمة المرور 123456789"
-                      : "Admin account recognized - enter password 123456789"}
-                  </span>
-                </div>
-              )}
             </div>
 
             <div>
@@ -293,21 +213,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
 
             <button
               type="submit"
-              className={`w-full py-3 px-4 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 ${
-                isAdminInput
-                  ? "bg-gradient-to-r from-amber-400 to-orange-500 text-black shadow-amber-500/25 hover:opacity-95"
-                  : "bg-gradient-to-r from-orange-500 to-amber-500 text-black shadow-orange-500/20 hover:opacity-95"
-              }`}
+              className="w-full py-3 px-4 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 bg-gradient-to-r from-orange-500 to-amber-500 text-black shadow-orange-500/20 hover:opacity-95"
             >
               <span>
                 {activeAuthTab === "login"
-                  ? isAdminInput
-                    ? isAr
-                      ? "الدخول إلى لوحة تحكم الإدارة"
-                      : "Enter Admin Control Panel"
-                    : isAr
-                    ? "تسجيل الدخول وبدء التداول"
-                    : "Sign In & Start Trading"
+                  ? isAr
+                    ? "تسجيل الدخول"
+                    : "Sign In"
                   : isAr
                   ? "إنشاء الحساب وبدء التداول"
                   : "Create Account & Start Trading"}

@@ -140,7 +140,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
     refreshAll();
   };
 
-  // Security Check: If current user is not h07806480810@gmail.com, render Access Denied Shield
+  // Security Check: If current user is not SUPER_ADMIN_EMAIL (admin@fast-fx.uk), render Access Denied Shield
   if (!isAdmin) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16">
@@ -170,7 +170,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
             className="px-6 py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-amber-500 to-orange-500 text-black hover:opacity-95 shadow-xl shadow-orange-500/20 transition-all cursor-pointer flex items-center justify-center gap-2 mx-auto"
           >
             <ShieldCheck className="w-4 h-4" />
-            <span>{isAr ? "تسجيل الدخول كمدير (اسم المستخدم: admin)" : "Sign In as Admin (username: admin)"}</span>
+            <span>{isAr ? "تسجيل الدخول بحساب المدير" : "Sign In as Admin"}</span>
           </button>
         </div>
       </div>

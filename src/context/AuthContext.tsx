@@ -86,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return {
           success: false,
           isAdmin: false,
-          error: "كلمة المرور غير صحيحة لحساب المدير. كلمة المرور الصحيحة هي 123456789"
+          error: "كلمة المرور غير صحيحة لحساب المدير"
         };
       }
 
@@ -156,7 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAuthModalOpen(false);
   };
 
-  // Strictly check if email matches h07806480810@gmail.com or role is admin
+  // Strictly check if email matches SUPER_ADMIN_EMAIL (admin@fast-fx.uk) or role is admin
   const isAdmin = Boolean(
     currentUser &&
       (currentUser.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() ||
