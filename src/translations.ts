@@ -5,11 +5,24 @@ export interface Translations {
   pageTitle: string;
   pageDescription: string;
 
-  // Header
+  // Header & Nav
   comingSoon: string;
   waitlistBtn: string;
   langAr: string;
   langEn: string;
+  navHome: string;
+  navTrading: string;
+  navPortfolio: string;
+  navAdmin: string;
+  loginBtn: string;
+  registerBtn: string;
+  logoutBtn: string;
+  adminBadge: string;
+  traderBadge: string;
+  balanceLabel: string;
+  equityLabel: string;
+  marginLabel: string;
+  freeMarginLabel: string;
 
   // Hero Section
   kicker: string;
@@ -97,6 +110,63 @@ export interface Translations {
   pillar3Title: string;
   pillar3Desc: string;
 
+  // Trading Terminal
+  terminalTitle: string;
+  terminalSub: string;
+  buyLong: string;
+  sellShort: string;
+  orderVolume: string;
+  leverage: string;
+  stopLoss: string;
+  takeProfit: string;
+  executeOrder: string;
+  openPositions: string;
+  closedTrades: string;
+  closePosition: string;
+  symbol: string;
+  type: string;
+  entryPrice: string;
+  currentPrice: string;
+  pnl: string;
+  status: string;
+  actions: string;
+  orderBookTitle: string;
+  bidsLabel: string;
+  asksLabel: string;
+  spreadLabel: string;
+  depthLabel: string;
+  timeframe1m: string;
+  timeframe5m: string;
+  timeframe15m: string;
+  timeframe1h: string;
+  timeframe1d: string;
+  noOpenPositions: string;
+  noTradesHistory: string;
+
+  // Admin Dashboard
+  adminTitle: string;
+  adminSubtitle: string;
+  adminRestrictedNotice: string;
+  adminAccessDenied: string;
+  adminSwitchToAdmin: string;
+  tabUsers: string;
+  tabSupervision: string;
+  tabSqlConsole: string;
+  tabSubscribers: string;
+  tabRiskControls: string;
+  metricTotalUsers: string;
+  metricPlatformVolume: string;
+  metricOpenPositions: string;
+  metricTotalEquity: string;
+  metricWaitlistLeads: string;
+  sqlQueryPlaceholder: string;
+  runSqlBtn: string;
+  exportSqlBtn: string;
+  resetDbBtn: string;
+  sqlTerminalTitle: string;
+  schemaViewerTitle: string;
+  recentQueriesPreset: string;
+
   // Private Subscriber Viewer
   showSubscribersBtn: string;
   hideSubscribersBtn: string;
@@ -123,6 +193,19 @@ export const translations: Record<Language, Translations> = {
     waitlistBtn: "قائمة الانتظار",
     langAr: "العربية",
     langEn: "English",
+    navHome: "الرئيسية",
+    navTrading: "منصة التداول المباشرة",
+    navPortfolio: "المحفظة والسجل",
+    navAdmin: "لوحة تحكم الإدارة",
+    loginBtn: "تسجيل الدخول",
+    registerBtn: "فتح حساب",
+    logoutBtn: "تسجيل الخروج",
+    adminBadge: "مدير النظام (Super Admin)",
+    traderBadge: "متداول معتمد",
+    balanceLabel: "الرصيد المتاح",
+    equityLabel: "حقوق الملكية",
+    marginLabel: "الهامش المستخدم",
+    freeMarginLabel: "الهامش الحر",
 
     kicker: "أحدث تكنولوجيا في الأسواق العالمية",
     heroLine1: "سرعة فائقة.",
@@ -133,7 +216,8 @@ export const translations: Record<Language, Translations> = {
     narrativeP2: {
       before: "منصة ",
       brand: "Fast Fx",
-      after: " ليست مجرد بوابة تقليدية للأسواق المالية؛ إنها بوابتك الذكية المجهزة بأحدث تقنيات المعالجة اللحظية، لتصل بك إلى الأسواق العالمية بقوة تكنولوجية لا مثيل لها.",
+      after:
+        " ليست مجرد بوابة تقليدية للأسواق المالية؛ إنها بوابتك الذكية المجهزة بأحدث تقنيات المعالجة اللحظية، لتصل بك إلى الأسواق العالمية بقوة تكنولوجية لا مثيل لها.",
     },
     narrativeP3:
       "لقد صممنا بيئة التداول الخاصة بنا لتمنحك الأفضلية المطلقة على الدوام: تنفيذ صفقات فائق السرعة يتم في أجزاء من الملي ثانية، تحليلات متطورة ترسم لك خارطة الفرص المتاحة، وواجهة تداول سلسة ومرنة تلائم طموحك الاستثماري وتطلعاتك.",
@@ -214,6 +298,63 @@ export const translations: Record<Language, Translations> = {
     pillar3Desc:
       "حماية أصولك هي أولويتنا القصوى. نستخدم بروتوكولات حماية متطورة وتشفير عالي المستوى، بالإضافة إلى فصل كامل لحسابات العملاء في بنوك عالمية رائدة.",
 
+    // Trading Terminal
+    terminalTitle: "منصة التداول الحي المتقدمة",
+    terminalSub: "محرك مطابقة بأجزاء من الملي ثانية متصل بمزودي السيولة المباشرين (Tier-1 Liquidity)",
+    buyLong: "شراء (BUY)",
+    sellShort: "بيع (SELL)",
+    orderVolume: "حجم الصفقة (Lots)",
+    leverage: "الرافعة المالية",
+    stopLoss: "وقف الخسارة (SL)",
+    takeProfit: "جني الأرباح (TP)",
+    executeOrder: "تنفيذ أمر السوق فوراً في قاعدة البيانات SQL",
+    openPositions: "الصفقات المفتوحة اللحظية",
+    closedTrades: "سجل الصفقات المكتملة",
+    closePosition: "إغلاق فوري",
+    symbol: "الأداة المالية",
+    type: "النوع",
+    entryPrice: "سعر الدخول",
+    currentPrice: "السعر الحالي",
+    pnl: "الربح/الخسارة اللحظية",
+    status: "الحالة",
+    actions: "الإجراء",
+    orderBookTitle: "دفتر الأوامر اللحظي (Order Book)",
+    bidsLabel: "طلبات الشراء (Bids)",
+    asksLabel: "عروض البيع (Asks)",
+    spreadLabel: "الفارق السعري (Spread)",
+    depthLabel: "عمق السيولة",
+    timeframe1m: "1د",
+    timeframe5m: "5د",
+    timeframe15m: "15د",
+    timeframe1h: "1س",
+    timeframe1d: "1ي",
+    noOpenPositions: "لا توجد صفقات مفتوحة حالياً. يمكنك فتح صفقة جديدة من لوحة التنفيذ.",
+    noTradesHistory: "لا توجد صفقات مسجلة بعد في قاعدة بيانات SQL.",
+
+    // Admin Dashboard
+    adminTitle: "لوحة التحكم والرقابة الإدارية",
+    adminSubtitle: "بوابة التحكم الفوري المخصصة حصرياً لمدير النظام مع وحدة استعلامات SQL حية",
+    adminRestrictedNotice: "منطقة أمان مشددة: الوصول مصرح به فقط لمدير النظام (اسم المستخدم: admin وكلمة المرور: 123456789)",
+    adminAccessDenied: "وصول محظور - غير مصرح لك بدخول لوحة الإدارة",
+    adminSwitchToAdmin: "تسجيل الدخول بحساب المدير (admin)",
+    tabUsers: "إدارة المتداولين",
+    tabSupervision: "مراقبة الصفقات اللحظية",
+    tabSqlConsole: "قاعدة بيانات SQL ولوحة الاستعلامات",
+    tabSubscribers: "مشتركو العد التنازلي",
+    tabRiskControls: "التحكم في المخاطر والسيولة",
+    metricTotalUsers: "إجمالي حسابات المستخدمين",
+    metricPlatformVolume: "حجم التداول التراكمي",
+    metricOpenPositions: "الصفقات المفتوحة النشطة",
+    metricTotalEquity: "إجمالي رأس المال بالمنصة",
+    metricWaitlistLeads: "مشتركو قائمة الإطلاق (15 يوم)",
+    sqlQueryPlaceholder: "اكتب أمر SQL مباشرة (مثال: SELECT * FROM users; أو UPDATE users SET balance = 500000;)",
+    runSqlBtn: "تنفيذ الاستعلام الآن (Run SQL)",
+    exportSqlBtn: "تصدير نسخة احتياطية (.sql)",
+    resetDbBtn: "إعادة ضبط قاعدة البيانات",
+    sqlTerminalTitle: "طرفية تنفيذ استعلامات SQL الحية (Interactive SQL Console)",
+    schemaViewerTitle: "مخطط الجداول العلاقية (Relational Schema)",
+    recentQueriesPreset: "استعلامات سريعة جاهزة:",
+
     showSubscribersBtn: "إظهار قائمة المشتركين التجريبية (مخزن محلياً)",
     hideSubscribersBtn: "إخفاء قائمة المشتركين التجريبية",
     totalSubscribersLabel: "إجمالي المسجلين:",
@@ -240,6 +381,19 @@ export const translations: Record<Language, Translations> = {
     waitlistBtn: "Join Waitlist",
     langAr: "العربية",
     langEn: "English",
+    navHome: "Home",
+    navTrading: "Live Terminal",
+    navPortfolio: "Portfolio & Ledger",
+    navAdmin: "Admin Portal",
+    loginBtn: "Sign In",
+    registerBtn: "Open Account",
+    logoutBtn: "Sign Out",
+    adminBadge: "Super Admin",
+    traderBadge: "Verified Trader",
+    balanceLabel: "Available Balance",
+    equityLabel: "Total Equity",
+    marginLabel: "Used Margin",
+    freeMarginLabel: "Free Margin",
 
     kicker: "Next-Gen Institutional Liquidity & Execution",
     heroLine1: "Ultra-Fast Speed.",
@@ -248,17 +402,17 @@ export const translations: Record<Language, Translations> = {
 
     narrativeP1: "In a financial world moving in microseconds, we do not merely follow the future — we forge it.",
     narrativeP2: {
-      before: "The ",
+      before: "",
       brand: "Fast Fx",
       after:
-        " platform is not just another conventional brokerage portal. It is your intelligent gateway powered by real-time matching technology, connecting you to global liquidity venues with unprecedented technological execution.",
+        " is not merely a trading venue; it is an ultra-low latency gateway engineered to connect institutional and ambitious retail traders directly to global interbank liquidity.",
     },
     narrativeP3:
-      "We engineered our trading infrastructure to give you an absolute competitive edge: sub-millisecond execution, advanced order flow analytics, and a frictionless interface tailored to institutional ambitions.",
+      "Our infrastructure is tailored for undisputed edge: sub-millisecond execution, institutional depth, advanced quantitative charting, and a distraction-free trading workstation.",
     narrativeP4:
-      "Whether you trade Foreign Exchange (FX), Equities, Indices, or Commodities, prepare for an unparalleled experience that redefines market efficiency, latency, and capital control.",
+      "Whether your strategy spans Forex pairs, Global Indices, Crypto assets, or Commodities — welcome to execution re-imagined.",
     narrativeP5:
-      "The launch begins soon. Join the vanguard of institutional traders executing at lightning speed.",
+      "Launch is approaching. Join the waitlist or test our matching engine live right now.",
 
     countdownTitle: "Official Launch Countdown:",
     countdownBadge: "15 Days Remaining",
@@ -268,85 +422,142 @@ export const translations: Record<Language, Translations> = {
     minutes: "Mins",
     seconds: "Secs",
 
-    formTitle: "Be Among the First Institutional Investors",
+    formTitle: "Reserve Institutional Early Access",
     formDesc:
-      "Register your interest today to receive an exclusive early access invitation prior to public release, plus 0% trading commission for your first month.",
+      "Register today for VIP early access prior to global launch and enjoy 0% trading commissions for your inaugural 30 days.",
     emailPlaceholder: "Enter your corporate or personal email",
-    submitButton: "Register Interest",
-    errorEmpty: "Please enter your email address",
+    submitButton: "Request Early Access",
+    errorEmpty: "Please enter an email address",
     errorInvalid: "Please enter a valid email address",
-    errorDuplicate: "This email is already registered on our waitlist!",
-    successTitle: "Registration Successful!",
+    errorDuplicate: "This email is already registered on our VIP list!",
+    successTitle: "Access Invitation Reserved!",
     successDesc: {
-      before: "Thank you for choosing ",
+      before: "Thank you for selecting ",
       brand: "Fast Fx",
       after:
-        ". Your email has been added to our private alpha waitlist. An invitation and account activation key will be dispatched upon sandbox release.",
+        ". Your credentials have been added to our priority institutional rollout queue. Onboarding codes will dispatch shortly.",
     },
-    registerAnother: "Register another email",
+    registerAnother: "Register Another Email",
 
     simulatorHeader: "MATCHING ENGINE SPEED SIMULATOR",
     realtimeBadge: "REAL-TIME",
-    selectPairLabel: "Select an asset to test matching engine latency:",
-    marketPriceLabel: "Live Market Price",
-    expectedLatencyLabel: "Expected Latency",
-    chartIndicatorLabel: "Simulated Data Feed Stream",
+    selectPairLabel: "Select Instrument to Test Latency:",
+    marketPriceLabel: "Live Market Feed",
+    expectedLatencyLabel: "Target Execution Delay",
+    chartIndicatorLabel: "Simulated Data Flow",
     instantExecLabel: "Instant Fill",
     buyAction: "BUY (Long)",
     sellAction: "SELL (Short)",
-    connectingEngine: "Connecting to ultra-fast matching engine...",
-    actualLatencyLabel: "Actual Engine Latency",
-    subsecondLabel: "(sub-millisecond)",
-    entryPriceLabel: "Entry Price:",
+    connectingEngine: "Routing order packet to matching core...",
+    actualLatencyLabel: "Measured Round-Trip Latency",
+    subsecondLabel: "(fraction of second)",
+    entryPriceLabel: "Fill Price:",
     orderTypeLabel: "Order Type:",
-    buyOrderType: "BUY (Long)",
-    sellOrderType: "SELL (Short)",
-    simResultLabel: "Simulated P&L:",
-    calculatingResult: "Calculating tick outcome...",
+    buyOrderType: "Market BUY",
+    sellOrderType: "Market SELL",
+    simResultLabel: "Simulated Result:",
+    calculatingResult: "Computing live tick variance...",
     recentTradesTitle: "Recent Simulated Fills:",
     latencyPrefix: "Latency:",
 
-    badge1Title: "Global Tier-1 License",
-    badge1Desc: "Fully segregated & compliant institutional custody",
-    badge2Title: "Ultra-Low Latency Co-location",
-    badge2Desc: "Equinix LD4 London & Frankfurt datacenters",
+    badge1Title: "Global Financial Standard",
+    badge1Desc: "Institutional Grade Segregated Custody",
+    badge2Title: "Equinix LD4 / NY4 Cross-Connect",
+    badge2Desc: "Ultra-low latency fiber backbone",
 
     coreAdvantagesKicker: "CORE ADVANTAGES",
-    whyUsTitle: "Why Fast Fx is Your Next Trading Destination",
+    whyUsTitle: "Why Fast Fx Stands Above?",
     whyUsSubtitle:
-      "A seamless synthesis of institutional hardware architecture and intuitive user experience built for discerning global traders.",
-    pillar1Kicker: "EXECUTION LATENCY",
+      "Where high-frequency computing meets intuitive execution, delivering an uncompromising environment for discerning market operators.",
+    pillar1Kicker: "EXECUTION SPEED",
     pillar1Value: "0.003ms",
     pillar1Unit: "/fill",
-    pillar1Title: "Fiber-Optic Matching Engine",
+    pillar1Title: "Optical Cross-Connect Core",
     pillar1Desc:
-      "Direct order routing through sub-millisecond optical fiber links paired directly with Tier-1 liquidity providers to eliminate slippage and latency.",
+      "Direct dark fiber routing to Tier-1 liquidity centers eliminates slippage and ensures algorithmic orders fill at your requested price.",
     pillar2Kicker: "RAW SPREADS",
     pillar2Value: "0.0 Pips",
-    pillar2Title: "Deep Institutional Liquidity",
+    pillar2Title: "Tier-1 Deep Liquidity",
     pillar2Desc:
-      "Benefit from razor-thin spreads starting from 0.0 pips on major FX pairs, backed by aggregate depth of book to fill high-volume tickets smoothly.",
-    pillar3Kicker: "SECURE ARCHITECTURE",
+      "Institutional order books with zero markup on majors and multi-million dollar single-ticket capacity without market distortion.",
+    pillar3Kicker: "MILITARY-GRADE SECURITY",
     pillar3Value: "SSL+ 256",
-    pillar3Title: "Military-Grade Asset Protection",
+    pillar3Title: "Fortified Asset Protection",
     pillar3Desc:
-      "Asset safety is our cardinal principle: Tier-1 segregated client bank accounts, multi-sig cold storage, and end-to-end 256-bit encryption protocols.",
+      "End-to-end cryptographic shielding, cold-storage segregation, and automated risk circuit breakers protect every dollar.",
 
-    showSubscribersBtn: "Show Local Waitlist Audit (Stored in Browser)",
-    hideSubscribersBtn: "Hide Local Waitlist Audit",
+    // Trading Terminal
+    terminalTitle: "Fast FX Live Trading Terminal",
+    terminalSub: "Sub-millisecond institutional matching engine connected directly to Tier-1 liquidity providers",
+    buyLong: "BUY (Long)",
+    sellShort: "SELL (Short)",
+    orderVolume: "Volume (Lots)",
+    leverage: "Leverage",
+    stopLoss: "Stop Loss (SL)",
+    takeProfit: "Take Profit (TP)",
+    executeOrder: "Execute Instant Order into SQL Database",
+    openPositions: "Live Open Positions",
+    closedTrades: "Historical Trades Log",
+    closePosition: "Close Position",
+    symbol: "Symbol",
+    type: "Type",
+    entryPrice: "Entry Price",
+    currentPrice: "Current Price",
+    pnl: "Floating PnL",
+    status: "Status",
+    actions: "Action",
+    orderBookTitle: "Live Order Book & Market Depth",
+    bidsLabel: "Bids (Buy Orders)",
+    asksLabel: "Asks (Sell Orders)",
+    spreadLabel: "Spread",
+    depthLabel: "Market Depth",
+    timeframe1m: "1M",
+    timeframe5m: "5M",
+    timeframe15m: "15M",
+    timeframe1h: "1H",
+    timeframe1d: "1D",
+    noOpenPositions: "No active open positions. Submit an order from the execution ticket above.",
+    noTradesHistory: "No completed trades logged yet in the SQL database.",
+
+    // Admin Dashboard
+    adminTitle: "Fast FX Administrative Center",
+    adminSubtitle: "Exclusively restricted to Administrator (username: admin) with live SQL console",
+    adminRestrictedNotice: "Secured Area: Authorized access granted strictly to Administrator (Username: admin, Password: 123456789)",
+    adminAccessDenied: "Access Forbidden - Administrator Clearance Required",
+    adminSwitchToAdmin: "Sign In to Administrator Account (admin)",
+    tabUsers: "User Accounts",
+    tabSupervision: "Trade Supervision",
+    tabSqlConsole: "SQL Database Console",
+    tabSubscribers: "Launch Waitlist",
+    tabRiskControls: "Risk & Engine Controls",
+    metricTotalUsers: "Registered Accounts",
+    metricPlatformVolume: "Cumulative Volume",
+    metricOpenPositions: "Active Floating Positions",
+    metricTotalEquity: "Total Platform Equity",
+    metricWaitlistLeads: "15-Day Launch Leads",
+    sqlQueryPlaceholder: "Enter SQL query (e.g. SELECT * FROM users; or UPDATE users SET balance = 500000;)",
+    runSqlBtn: "Run SQL Query",
+    exportSqlBtn: "Export SQL Backup (.sql)",
+    resetDbBtn: "Reset DB Seed",
+    sqlTerminalTitle: "Interactive SQL Execution Console",
+    schemaViewerTitle: "Relational Schema Catalog",
+    recentQueriesPreset: "Quick Preset Queries:",
+
+    showSubscribersBtn: "Show Local Waitlist Leads",
+    hideSubscribersBtn: "Hide Local Waitlist Leads",
     totalSubscribersLabel: "Total Registered:",
     clearAllSubscribersBtn: "Clear All",
 
     footerDescription:
-      "Next-generation institutional trading venue delivering ultra-low latency execution across global capital markets, sponsored by Fast Flow Group LTD.",
+      "Institutional-grade digital trading venue delivering sub-millisecond execution and raw spreads. Powered by Fast Flow Group LTD.",
     globalInfraTitle: "Global Infrastructure",
-    globalInfraSubtitle: "Direct low-latency cross-connects with top tier liquidity hubs",
+    globalInfraSubtitle: "Interconnected with top global liquidity providers",
     headquartersLabel: "HEADQUARTERS",
-    headquartersCity: "LONDON",
+    headquartersCity: "LONDON, UK",
     riskWarningText:
-      "Risk Warning: Trading Foreign Exchange (Forex) and Contracts for Difference (CFDs) involves high risk of capital loss. Ensure you fully comprehend the risks involved and obtain independent advice if necessary.",
+      "High Risk Warning: Trading Forex and CFDs involves substantial risk of loss and is not suitable for all investors. Ensure you fully comprehend the mechanics before deploying capital.",
     regulatoryText:
-      "All financial services and operations are subject to regulatory terms and authorization under the parent company.",
-    copyrightText: "Fast Fx. All rights reserved. Fast Flow Group LTD.",
+      "All services and client relationships subject to operational terms governed under parent entity license.",
+    copyrightText: "Fast Fx. All rights reserved by Fast Flow Group LTD.",
   },
 };
