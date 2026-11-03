@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, FormEvent } from "react";
 import { translations, Language } from "../translations";
 import { sqlDb } from "../db/sqlEngine";
 import { useAuth } from "../context/AuthContext";
+import { MarketPair } from "../types";
 import {
   TrendingUp,
   TrendingDown,
@@ -15,7 +16,12 @@ import {
   ArrowUpRight,
   Sparkles,
   CandlestickChart,
-  Crown
+  Crown,
+  ChevronRight,
+  Lock,
+  Database,
+  Layers,
+  ArrowRight
 } from "lucide-react";
 
 const COUNTDOWN_STORAGE_KEY = "fast_fx_countdown_target_15d";
@@ -66,20 +72,25 @@ function calculateTimeLeftValues(target: number) {
 
 interface LandingSectionProps {
   lang: Language;
+  marketPairs?: MarketPair[];
   onNavigateToTrading: () => void;
+  onSelectPairAndTrade?: (symbol: string) => void;
 }
 
 export const LandingSection: React.FC<LandingSectionProps> = ({
   lang,
-  onNavigateToTrading
+  marketPairs = [],
+  onNavigateToTrading,
+  onSelectPairAndTrade
 }) => {
-  const { openAuthModal, isAdmin } = useAuth();
+  const { openAuthModal } = useAuth();
   const t = translations[lang];
   const isAr = lang === "ar";
 
   const [targetTimestamp] = useState<number>(() => getLaunchTargetDate());
   const [timeLeft, setTimeLeft] = useState(() => calculateTimeLeftValues(getLaunchTargetDate()));
 
+  const [marketTab, setMarketTab] = useState<"hot" | "crypto" | "forex" | "commodities" | "gainers">("hot");
   const [email, setEmail] = useState("");
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -133,223 +144,412 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
     setEmail("");
   };
 
+  // Filter pairs by active market tab
+  const displayedPairs = useMemo(() => {
+    if (marketTab === "crypto") {
+      return marketPairs.filter((p) => p.type === "crypto");
+    }
+    if (marketTab === "forex") {
+      return marketPairs.filter((p) => p.type === "forex");
+    }
+    if (marketTab === "commodities") {
+      return marketPairs.filter((p) => p.type === "commodities");
+    }
+    if (marketTab === "gainers") {
+      return [...marketPairs].sort((a, b) => b.change24h - a.change24h);
+    }
+    // "hot" shows key pairs
+    return marketPairs;
+  }, [marketPairs, marketTab]);
+
+  const handleTradeAction = (symbol: string) => {
+    if (onSelectPairAndTrade) {
+      onSelectPairAndTrade(symbol);
+    } else {
+      onNavigateToTrading();
+    }
+  };
+
   return (
-    <div className="space-y-16 py-8">
-      {/* Hero Section */}
-      <section className="relative px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
-        {/* Glow ambient background element */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] sm:w-[500px] h-[340px] sm:h-[500px] bg-orange-500/10 rounded-full blur-[120px] pointer-events-none" />
+    <div className="space-y-20 py-8">
+      {/* OKX Mega Hero Section */}
+      <section className="relative px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="max-w-4xl mx-auto text-center space-y-6">
+          {/* OKX Kicker Pill */}
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-[#161a22] text-zinc-300 border border-[#222832]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00c087] animate-pulse" />
+            <span>{isAr ? "منصة التداول المؤسسية فئة Tier-1" : "Tier-1 Multi-Asset Institutional Exchange"}</span>
+          </div>
 
-        {/* Kicker badge */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/25 mb-6">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>{t.kicker}</span>
-        </div>
+          {/* OKX Hero Headlines */}
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight text-white leading-tight">
+            <span className="block">{t.heroLine1}</span>
+            <span className="block text-zinc-400 font-bold mt-1">{t.heroLine2}</span>
+          </h1>
 
-        {/* Main Punchy Headlines */}
-        <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-white leading-tight sm:leading-none mb-6">
-          <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-orange-400 to-amber-500">
-            {t.heroLine1}
-          </span>
-          <span className="block text-white mt-1 sm:mt-2">{t.heroLine2}</span>
-          <span className="block text-zinc-400 font-light mt-1 sm:mt-2">{t.heroLine3}</span>
-        </h1>
-
-        {/* Narrative Paragraphs */}
-        <div className="space-y-4 max-w-3xl mx-auto text-sm sm:text-base text-zinc-400 leading-relaxed font-light mb-8">
-          <p className="text-zinc-300 font-medium">{t.narrativeP1}</p>
-          <p>
-            {t.narrativeP2.before}
-            <strong className="text-white font-bold">{t.narrativeP2.brand}</strong>
-            {t.narrativeP2.after}
+          <p className="max-w-2xl mx-auto text-sm sm:text-base text-zinc-400 leading-relaxed font-normal">
+            {isAr
+              ? "تداول العملات المشفرة، الفوركس والسلع عبر محرك مطابقة فائق السرعة بزمن استجابة يقل عن 0.003ms مع إثبات احتياطيات بنسبة 100% وسجلات SQL محمية."
+              : "Trade Crypto, Forex, and Commodities with sub-millisecond execution, raw 0.0 pip spreads, and 100% Proof of Reserves verified by audited SQL ledger."}
           </p>
-          <p>{t.narrativeP3}</p>
-          <p className="text-amber-400 font-medium">{t.narrativeP5}</p>
+
+          {/* OKX Hero Fast Sign-up Bar */}
+          <div className="max-w-lg mx-auto pt-2">
+            <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2 bg-[#0b0e11] p-1.5 rounded-xl border border-[#1e2329] shadow-2xl">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t.emailPlaceholder}
+                className="flex-1 bg-transparent text-white px-3.5 py-2.5 text-xs sm:text-sm focus:outline-none font-mono"
+              />
+              <button
+                type="submit"
+                className="px-5 py-2.5 rounded-lg font-bold text-xs sm:text-sm bg-white text-black hover:bg-zinc-200 transition-all cursor-pointer whitespace-nowrap shadow-sm"
+              >
+                {isAr ? "تسجيل فوري" : "Sign Up"}
+              </button>
+            </form>
+            {errorMsg && <p className="text-xs text-[#f6465d] mt-2 font-mono">{errorMsg}</p>}
+            {isSubscribed && (
+              <p className="text-xs text-[#00c087] mt-2 font-mono flex items-center justify-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>{t.successTitle}</span>
+              </p>
+            )}
+          </div>
+
+          {/* OKX Quick Action Buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <button
+              onClick={onNavigateToTrading}
+              className="px-6 py-3 rounded-lg font-bold text-xs sm:text-sm bg-[#00c087] text-black hover:bg-[#00c087]/90 transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-[#00c087]/15"
+            >
+              <CandlestickChart className="w-4 h-4" />
+              <span>{t.navTrade}</span>
+              <ArrowUpRight className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => openAuthModal("login")}
+              className="px-6 py-3 rounded-lg font-bold text-xs sm:text-sm bg-[#0b0e11] border border-[#1e2329] text-white hover:bg-[#161a22] hover:border-zinc-700 transition-all cursor-pointer"
+            >
+              <span>{t.loginBtn}</span>
+            </button>
+          </div>
         </div>
 
-        {/* Hero Quick Action Buttons */}
-        <div className="flex flex-wrap items-center justify-center gap-4 mb-10">
-          <button
-            onClick={onNavigateToTrading}
-            className="px-6 py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-black shadow-xl shadow-orange-500/25 hover:opacity-95 transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <CandlestickChart className="w-4 h-4" />
-            <span>{t.navTrading}</span>
-            <ArrowUpRight className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => openAuthModal("login")}
-            className="px-6 py-3.5 rounded-xl font-bold text-sm bg-zinc-900 border border-zinc-700 text-zinc-200 hover:text-white hover:bg-zinc-800 transition-all cursor-pointer flex items-center gap-2"
-          >
-            <span>{isAr ? "تسجيل الدخول / فتح حساب" : "Sign In / Open Account"}</span>
-          </button>
-        </div>
-
-        {/* 15-Day Official Launch Countdown Box */}
-        <div className="relative max-w-2xl mx-auto p-6 sm:p-8 rounded-3xl bg-gradient-to-b from-[#11131c] to-[#0a0b10] border border-orange-500/30 shadow-2xl overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600" />
-
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-6">
-            <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-orange-400" />
-              <h3 className="text-base sm:text-lg font-bold text-white tracking-wide">
-                {t.countdownTitle}
-              </h3>
+        {/* 15-Day Official Launch / Global Grand Prix Countdown Box */}
+        <div className="mt-12 max-w-3xl mx-auto p-5 sm:p-7 rounded-2xl bg-[#0b0e11] border border-[#1e2329] shadow-2xl">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-[#1e2329]">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#161a22] flex items-center justify-center text-[#00c087]">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-bold text-white font-mono">
+                  {t.countdownTitle}
+                </h3>
+                <p className="text-[11px] text-zinc-500 font-mono">
+                  FAST FX GLOBAL TRADING GRAND PRIX • 15 DAYS
+                </p>
+              </div>
             </div>
-            <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-orange-500/20 text-orange-400 border border-orange-500/40">
+            <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-[#00c087]/15 text-[#00c087] border border-[#00c087]/30">
               {t.countdownBadge}
             </span>
           </div>
 
           {/* Countdown Digit Blocks */}
-          <div className="grid grid-cols-4 gap-2.5 sm:gap-4 font-mono">
+          <div className="grid grid-cols-4 gap-3 sm:gap-4 font-mono">
             {/* Days */}
-            <div className="bg-[#141624] border border-zinc-800/90 rounded-2xl p-3 sm:p-4 text-center">
-              <div className="text-2xl sm:text-4xl font-black text-white">
+            <div className="bg-[#12161c] border border-[#1e2329] rounded-xl p-3 sm:p-4 text-center">
+              <div className="text-2xl sm:text-4xl font-black text-white font-tabular">
                 {String(timeLeft.days).padStart(2, "0")}
               </div>
-              <div className="text-[10px] sm:text-xs text-zinc-400 font-sans mt-1">{t.days}</div>
+              <div className="text-[10px] text-zinc-500 font-sans mt-1 uppercase tracking-wider">{t.days}</div>
             </div>
 
             {/* Hours */}
-            <div className="bg-[#141624] border border-zinc-800/90 rounded-2xl p-3 sm:p-4 text-center">
-              <div className="text-2xl sm:text-4xl font-black text-white">
+            <div className="bg-[#12161c] border border-[#1e2329] rounded-xl p-3 sm:p-4 text-center">
+              <div className="text-2xl sm:text-4xl font-black text-white font-tabular">
                 {String(timeLeft.hours).padStart(2, "0")}
               </div>
-              <div className="text-[10px] sm:text-xs text-zinc-400 font-sans mt-1">{t.hours}</div>
+              <div className="text-[10px] text-zinc-500 font-sans mt-1 uppercase tracking-wider">{t.hours}</div>
             </div>
 
             {/* Minutes */}
-            <div className="bg-[#141624] border border-zinc-800/90 rounded-2xl p-3 sm:p-4 text-center">
-              <div className="text-2xl sm:text-4xl font-black text-white">
+            <div className="bg-[#12161c] border border-[#1e2329] rounded-xl p-3 sm:p-4 text-center">
+              <div className="text-2xl sm:text-4xl font-black text-white font-tabular">
                 {String(timeLeft.minutes).padStart(2, "0")}
               </div>
-              <div className="text-[10px] sm:text-xs text-zinc-400 font-sans mt-1">{t.minutes}</div>
+              <div className="text-[10px] text-zinc-500 font-sans mt-1 uppercase tracking-wider">{t.minutes}</div>
             </div>
 
             {/* Seconds */}
-            <div className="bg-[#141624] border border-orange-500/40 rounded-2xl p-3 sm:p-4 text-center shadow-lg shadow-orange-500/10">
-              <div className="text-2xl sm:text-4xl font-black text-orange-400 animate-pulse">
+            <div className="bg-[#12161c] border border-[#00c087]/40 rounded-xl p-3 sm:p-4 text-center shadow-lg shadow-[#00c087]/10">
+              <div className="text-2xl sm:text-4xl font-black text-[#00c087] font-tabular animate-pulse">
                 {String(timeLeft.seconds).padStart(2, "0")}
               </div>
-              <div className="text-[10px] sm:text-xs text-orange-400 font-sans mt-1">{t.seconds}</div>
+              <div className="text-[10px] text-[#00c087] font-sans mt-1 uppercase tracking-wider">{t.seconds}</div>
             </div>
           </div>
 
-          <div className="mt-5 text-center text-xs text-zinc-400 font-mono">
-            {t.countdownEndDateLabel} <span className="text-amber-400 font-bold">{targetDateFormatted}</span>
+          <div className="mt-4 pt-3 border-t border-[#1e2329]/80 flex flex-col sm:flex-row items-center justify-between text-xs text-zinc-500 font-mono gap-2">
+            <div>
+              {t.countdownEndDateLabel} <span className="text-white font-bold">{targetDateFormatted}</span>
+            </div>
+            <div className="text-[10px] text-zinc-600">
+              EQUINIX LD4 • ZERO SLIPPAGE ARCHITECTURE
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Waitlist Subscription Section with SQL Storage */}
-      <section className="px-4 sm:px-6 lg:px-8 max-w-xl mx-auto text-center">
-        <div className="bg-[#0e1017] border border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xl">
-          <div className="w-12 h-12 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mx-auto mb-4 text-orange-400">
-            <Mail className="w-6 h-6" />
-          </div>
-
-          <h3 className="text-lg sm:text-xl font-bold text-white mb-2">{t.formTitle}</h3>
-          <p className="text-xs sm:text-sm text-zinc-400 mb-6">{t.formDesc}</p>
-
-          {isSubscribed ? (
-            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-left space-y-2">
-              <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
-                <CheckCircle2 className="w-5 h-5" />
-                <span>{t.successTitle}</span>
+      {/* OKX Live Markets Table (The Centerpiece of okx.com) */}
+      <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="bg-[#0b0e11] border border-[#1e2329] rounded-2xl p-5 sm:p-7 shadow-2xl">
+          {/* Market Table Header & Tabs */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-[#1e2329]">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#00c087]" />
+                <h2 className="text-xl sm:text-2xl font-black text-white font-mono">
+                  {isAr ? "أسواق التداول المباشرة" : "Live Markets Overview"}
+                </h2>
               </div>
-              <p className="text-xs text-zinc-300">
-                {t.successDesc.before}
-                <strong>{t.successDesc.brand}</strong>
-                {t.successDesc.after}
+              <p className="text-xs text-zinc-400 mt-0.5">
+                {isAr
+                  ? "أسعار لحظية، فارق سعري خام، وتداول بنقرة واحدة عبر محرك SQL"
+                  : "Real-time institutional tick stream with 1-click execution"}
               </p>
+            </div>
+
+            {/* OKX Category Tabs */}
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar bg-[#12161c] p-1 rounded-xl border border-[#1e2329] text-xs font-semibold">
               <button
-                onClick={() => setIsSubscribed(false)}
-                className="text-xs text-amber-400 hover:underline pt-2 inline-block cursor-pointer"
+                onClick={() => setMarketTab("hot")}
+                className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+                  marketTab === "hot"
+                    ? "bg-white text-black font-bold shadow-sm"
+                    : "text-zinc-400 hover:text-white"
+                }`}
               >
-                {t.registerAnother}
+                {t.marketHot}
+              </button>
+              <button
+                onClick={() => setMarketTab("crypto")}
+                className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+                  marketTab === "crypto"
+                    ? "bg-white text-black font-bold shadow-sm"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                {t.marketCrypto}
+              </button>
+              <button
+                onClick={() => setMarketTab("forex")}
+                className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+                  marketTab === "forex"
+                    ? "bg-white text-black font-bold shadow-sm"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                {t.marketForex}
+              </button>
+              <button
+                onClick={() => setMarketTab("commodities")}
+                className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+                  marketTab === "commodities"
+                    ? "bg-white text-black font-bold shadow-sm"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                {isAr ? "السلع" : "Commodities"}
+              </button>
+              <button
+                onClick={() => setMarketTab("gainers")}
+                className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+                  marketTab === "gainers"
+                    ? "bg-white text-black font-bold shadow-sm"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                {t.marketGainers}
               </button>
             </div>
-          ) : (
-            <form onSubmit={handleSubscribe} className="space-y-3">
-              <div className="flex flex-col sm:flex-row gap-2">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={t.emailPlaceholder}
-                  className="flex-1 bg-[#13151f] border border-zinc-800 focus:border-orange-500 text-white rounded-xl px-4 py-3 text-xs sm:text-sm focus:outline-none transition-colors"
-                />
-                <button
-                  type="submit"
-                  className="py-3 px-6 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-orange-500 to-amber-500 text-black hover:opacity-95 shadow-md shadow-orange-500/20 transition-all cursor-pointer whitespace-nowrap"
-                >
-                  {t.submitButton}
-                </button>
-              </div>
-              {errorMsg && <p className="text-xs text-rose-400 text-left">{errorMsg}</p>}
-            </form>
-          )}
+          </div>
+
+          {/* OKX Table Grid */}
+          <div className="overflow-x-auto mt-4">
+            <table className="w-full text-left text-xs font-mono">
+              <thead>
+                <tr className="text-zinc-500 border-b border-[#1e2329] text-[11px]">
+                  <th className="pb-3 font-semibold">{isAr ? "الأصل / الرمز" : "Instrument"}</th>
+                  <th className="pb-3 font-semibold">{t.currentPrice}</th>
+                  <th className="pb-3 font-semibold">{isAr ? "تغير 24س" : "24h Change"}</th>
+                  <th className="pb-3 font-semibold hidden md:table-cell">{isAr ? "أعلى / أدنى 24س" : "24h High / Low"}</th>
+                  <th className="pb-3 font-semibold hidden sm:table-cell">{t.marketVolume}</th>
+                  <th className="pb-3 font-semibold hidden lg:table-cell">{isAr ? "المسار السعري" : "7D Trend"}</th>
+                  <th className="pb-3 font-semibold text-right">{t.actions}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#1e2329]/70">
+                {displayedPairs.map((pair) => {
+                  const isUp = pair.change24h >= 0;
+                  return (
+                    <tr
+                      key={pair.symbol}
+                      className="hover:bg-[#12161c]/80 transition-colors group cursor-pointer"
+                      onClick={() => handleTradeAction(pair.symbol)}
+                    >
+                      {/* Asset Symbol & Name */}
+                      <td className="py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-[#161a22] border border-[#222832] flex items-center justify-center font-bold text-white text-xs">
+                            {pair.symbol.slice(0, 3)}
+                          </div>
+                          <div>
+                            <div className="font-bold text-white text-sm group-hover:text-[#00c087] transition-colors">
+                              {pair.symbol}
+                            </div>
+                            <div className="text-[11px] text-zinc-400 font-sans">{pair.name}</div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Last Price */}
+                      <td className="py-4 font-bold text-sm text-white font-tabular">
+                        ${pair.price >= 100 ? pair.price.toLocaleString(undefined, { minimumFractionDigits: 2 }) : pair.price.toFixed(4)}
+                      </td>
+
+                      {/* 24h Change Pill */}
+                      <td className="py-4">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold font-tabular ${
+                            isUp
+                              ? "bg-[#00c087]/15 text-[#00c087] border border-[#00c087]/30"
+                              : "bg-[#f6465d]/15 text-[#f6465d] border border-[#f6465d]/30"
+                          }`}
+                        >
+                          {isUp ? "+" : ""}
+                          {pair.change24h.toFixed(2)}%
+                        </span>
+                      </td>
+
+                      {/* 24h High / Low */}
+                      <td className="py-4 text-zinc-400 hidden md:table-cell font-tabular text-[11px]">
+                        <div>H: ${pair.high24h >= 100 ? pair.high24h.toFixed(2) : pair.high24h.toFixed(4)}</div>
+                        <div className="text-zinc-500">L: ${pair.low24h >= 100 ? pair.low24h.toFixed(2) : pair.low24h.toFixed(4)}</div>
+                      </td>
+
+                      {/* 24h Volume */}
+                      <td className="py-4 text-zinc-300 hidden sm:table-cell font-tabular">
+                        {pair.volume24h}
+                      </td>
+
+                      {/* 7D Sparkline SVG */}
+                      <td className="py-4 hidden lg:table-cell">
+                        <svg className="w-24 h-7" viewBox="0 0 100 30">
+                          <path
+                            d={isUp ? "M 0 24 Q 25 15, 50 18 T 100 6" : "M 0 8 Q 25 20, 50 14 T 100 26"}
+                            fill="none"
+                            stroke={isUp ? "#00c087" : "#f6465d"}
+                            strokeWidth="2"
+                          />
+                        </svg>
+                      </td>
+
+                      {/* Direct Trade Action Button */}
+                      <td className="py-4 text-right">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTradeAction(pair.symbol);
+                          }}
+                          className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#161a22] text-white border border-[#222832] group-hover:bg-white group-hover:text-black group-hover:border-white transition-all cursor-pointer inline-flex items-center gap-1.5"
+                        >
+                          <span>{t.tradeAction}</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
-      {/* Why Fast FX Section with Hover Orange Glow */}
-      <section className="px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
+      {/* OKX 100% Proof of Reserves & Institutional Security (With Orange Glow on Hover) */}
+      <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <div className="text-xs font-bold font-mono tracking-wider text-orange-400 uppercase mb-2">
-            {t.coreAdvantagesKicker}
+          <div className="text-xs font-bold font-mono tracking-wider text-[#00c087] uppercase mb-2">
+            INSTITUTIONAL TRUST & TRANSPARENCY
           </div>
-          <h2 className="text-2xl sm:text-4xl font-black text-white mb-3">{t.whyUsTitle}</h2>
-          <p className="text-xs sm:text-sm text-zinc-400">{t.whyUsSubtitle}</p>
+          <h2 className="text-2xl sm:text-4xl font-black text-white mb-3">
+            {t.whyUsTitle}
+          </h2>
+          <p className="text-xs sm:text-sm text-zinc-400">
+            {t.whyUsSubtitle}
+          </p>
         </div>
 
         {/* 3 Core Advantage Cards with orange hover glow */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Card 1 */}
-          <div className="card-hover-glow p-6 sm:p-8 rounded-2xl bg-[#0c0e15] border border-zinc-800/80 space-y-4">
+          {/* Card 1: Proof of Reserves */}
+          <div className="card-hover-glow p-6 sm:p-8 rounded-2xl bg-[#0b0e11] border border-[#1e2329] space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono text-zinc-400 uppercase">{t.pillar1Kicker}</span>
-              <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
+              <span className="text-xs font-mono text-zinc-500 uppercase">PROOF OF RESERVES</span>
+              <div className="w-10 h-10 rounded-xl bg-[#161a22] border border-[#222832] flex items-center justify-center text-[#00c087]">
+                <Shield className="w-5 h-5" />
+              </div>
+            </div>
+            <div>
+              <div className="text-3xl font-black text-white font-mono">
+                100% <span className="text-xs text-[#00c087] font-sans font-bold">1:1 BACKED</span>
+              </div>
+              <h3 className="text-base font-bold text-white mt-2">{t.proofOfReservesTitle}</h3>
+              <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
+                {t.proofOfReservesDesc}
+              </p>
+            </div>
+          </div>
+
+          {/* Card 2: Sub-millisecond Execution */}
+          <div className="card-hover-glow p-6 sm:p-8 rounded-2xl bg-[#0b0e11] border border-[#1e2329] space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono text-zinc-500 uppercase">{t.pillar1Kicker}</span>
+              <div className="w-10 h-10 rounded-xl bg-[#161a22] border border-[#222832] flex items-center justify-center text-amber-400">
                 <Zap className="w-5 h-5" />
               </div>
             </div>
             <div>
               <div className="text-3xl font-black text-white font-mono">
-                {t.pillar1Value} <span className="text-xs text-zinc-500 font-sans">{t.pillar1Unit}</span>
+                0.003ms <span className="text-xs text-zinc-500 font-sans">/fill</span>
               </div>
-              <h3 className="text-base font-bold text-zinc-100 mt-2">{t.pillar1Title}</h3>
-              <p className="text-xs text-zinc-400 mt-2 leading-relaxed">{t.pillar1Desc}</p>
+              <h3 className="text-base font-bold text-white mt-2">{t.ultraFastMatchingTitle}</h3>
+              <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
+                {t.ultraFastMatchingDesc}
+              </p>
             </div>
           </div>
 
-          {/* Card 2 */}
-          <div className="card-hover-glow p-6 sm:p-8 rounded-2xl bg-[#0c0e15] border border-zinc-800/80 space-y-4">
+          {/* Card 3: Relational SQL Ledger Security */}
+          <div className="card-hover-glow p-6 sm:p-8 rounded-2xl bg-[#0b0e11] border border-[#1e2329] space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono text-zinc-400 uppercase">{t.pillar2Kicker}</span>
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                <Activity className="w-5 h-5" />
+              <span className="text-xs font-mono text-zinc-500 uppercase">AUDITED LEDGER</span>
+              <div className="w-10 h-10 rounded-xl bg-[#161a22] border border-[#222832] flex items-center justify-center text-emerald-400">
+                <Database className="w-5 h-5" />
               </div>
             </div>
             <div>
-              <div className="text-3xl font-black text-white font-mono">{t.pillar2Value}</div>
-              <h3 className="text-base font-bold text-zinc-100 mt-2">{t.pillar2Title}</h3>
-              <p className="text-xs text-zinc-400 mt-2 leading-relaxed">{t.pillar2Desc}</p>
-            </div>
-          </div>
-
-          {/* Card 3 */}
-          <div className="card-hover-glow p-6 sm:p-8 rounded-2xl bg-[#0c0e15] border border-zinc-800/80 space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono text-zinc-400 uppercase">{t.pillar3Kicker}</span>
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                <Shield className="w-5 h-5" />
-              </div>
-            </div>
-            <div>
-              <div className="text-3xl font-black text-white font-mono">{t.pillar3Value}</div>
-              <h3 className="text-base font-bold text-zinc-100 mt-2">{t.pillar3Title}</h3>
-              <p className="text-xs text-zinc-400 mt-2 leading-relaxed">{t.pillar3Desc}</p>
+              <div className="text-3xl font-black text-white font-mono">ACID SQL</div>
+              <h3 className="text-base font-bold text-white mt-2">{t.sqlSecurityTitle}</h3>
+              <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
+                {t.sqlSecurityDesc}
+              </p>
             </div>
           </div>
         </div>

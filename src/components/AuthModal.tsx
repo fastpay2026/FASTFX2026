@@ -67,20 +67,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div
-        className="relative w-full max-w-md bg-[#0d0e14] border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden"
-        style={{
-          boxShadow: "0 0 50px -10px rgba(249, 115, 22, 0.2)"
-        }}
-      >
-        {/* Top gradient line */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-md bg-[#0b0e11] border border-[#1e2329] rounded-2xl shadow-2xl overflow-hidden">
+        {/* Top subtle border highlight */}
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#00c087] to-transparent" />
 
         {/* Close button */}
         <button
           onClick={closeAuthModal}
-          className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800/60 transition-colors cursor-pointer"
+          className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-[#161a22] transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -88,36 +83,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
         <div className="p-6 sm:p-8">
           {/* Brand Badge */}
           <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20">
-              <Sparkles className="w-3.5 h-3.5" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-semibold bg-[#161a22] text-zinc-300 border border-[#222832]">
+              <Sparkles className="w-3.5 h-3.5 text-[#00c087]" />
               FAST FX SECURE ACCESS
             </span>
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-1.5 font-mono">
             {activeAuthTab === "login"
               ? isAr
                 ? "تسجيل الدخول إلى المنصة"
-                : "Sign In to Fast Fx"
+                : "Sign In to Exchange"
               : isAr
               ? "فتح حساب تداول جديد"
-              : "Open New Trading Account"}
+              : "Open Trading Account"}
           </h2>
-          <p className="text-xs sm:text-sm text-zinc-400 mb-5">
+          <p className="text-xs text-zinc-400 mb-5">
             {isAr
               ? "بيانات الحساب والصفقات تخزن وتدار بأمان في قاعدة بيانات SQL"
               : "Account credentials and transactions secured with SQL ledger"}
           </p>
 
-          {/* Tab selector */}
-          <div className="flex border-b border-zinc-800 mb-5">
+          {/* Tab selector (OKX Style) */}
+          <div className="flex border-b border-[#1e2329] mb-5">
             <button
               type="button"
               onClick={() => openAuthModal("login")}
-              className={`flex-1 pb-2.5 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
+              className={`flex-1 pb-2.5 text-xs font-bold transition-colors border-b-2 cursor-pointer ${
                 activeAuthTab === "login"
-                  ? "border-orange-500 text-orange-400"
-                  : "border-transparent text-zinc-400 hover:text-zinc-200"
+                  ? "border-white text-white"
+                  : "border-transparent text-zinc-500 hover:text-zinc-300"
               }`}
             >
               {isAr ? "تسجيل الدخول" : "Sign In"}
@@ -125,18 +120,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
             <button
               type="button"
               onClick={() => openAuthModal("register")}
-              className={`flex-1 pb-2.5 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
+              className={`flex-1 pb-2.5 text-xs font-bold transition-colors border-b-2 cursor-pointer ${
                 activeAuthTab === "register"
-                  ? "border-orange-500 text-orange-400"
-                  : "border-transparent text-zinc-400 hover:text-zinc-200"
+                  ? "border-white text-white"
+                  : "border-transparent text-zinc-500 hover:text-zinc-300"
               }`}
             >
-              {isAr ? "حساب جديد" : "Register"}
+              {isAr ? "حساب جديد" : "Sign Up"}
             </button>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-lg flex items-start gap-2">
+            <div className="mb-4 p-3 bg-[#f6465d]/10 border border-[#f6465d]/30 text-[#f6465d] text-xs rounded-lg flex items-start gap-2 font-mono">
               <span className="font-bold">!</span>
               <span>{error}</span>
             </div>
@@ -155,7 +150,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder={isAr ? "مثال: طارق المنصوري" : "e.g. Alex Mercer"}
-                    className="w-full bg-[#14151f] border border-zinc-800 focus:border-orange-500 text-white rounded-xl px-4 py-2.5 pl-10 text-sm focus:outline-none transition-colors"
+                    className="w-full bg-[#12161c] border border-[#1e2329] focus:border-zinc-400 text-white rounded-xl px-4 py-2.5 pl-10 text-xs sm:text-sm focus:outline-none transition-colors"
                   />
                   <UserIcon className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
                 </div>
@@ -179,7 +174,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
                       ? "اسم المستخدم أو البريد الإلكتروني"
                       : "Username or email address"
                   }
-                  className="w-full bg-[#14151f] border border-zinc-800 focus:border-orange-500 text-white rounded-xl px-4 py-2.5 pl-10 text-sm focus:outline-none transition-colors"
+                  className="w-full bg-[#12161c] border border-[#1e2329] focus:border-zinc-400 text-white rounded-xl px-4 py-2.5 pl-10 text-xs sm:text-sm focus:outline-none transition-colors font-mono"
                 />
                 <Mail className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
               </div>
@@ -198,7 +193,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
                     setError("");
                   }}
                   placeholder="••••••••"
-                  className="w-full bg-[#14151f] border border-zinc-800 focus:border-orange-500 text-white rounded-xl px-4 py-2.5 pl-10 pr-10 text-sm focus:outline-none transition-colors font-mono"
+                  className="w-full bg-[#12161c] border border-[#1e2329] focus:border-zinc-400 text-white rounded-xl px-4 py-2.5 pl-10 pr-10 text-xs sm:text-sm focus:outline-none transition-colors font-mono"
                 />
                 <Lock className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
                 <button
@@ -211,9 +206,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
               </div>
             </div>
 
+            {/* OKX Solid White Action Button */}
             <button
               type="submit"
-              className="w-full py-3 px-4 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 bg-gradient-to-r from-orange-500 to-amber-500 text-black shadow-orange-500/20 hover:opacity-95"
+              className="w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer mt-3 bg-white text-black hover:bg-zinc-200 shadow-sm"
             >
               <span>
                 {activeAuthTab === "login"
@@ -229,7 +225,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
           </form>
 
           {/* Security footnote */}
-          <div className="mt-5 pt-4 border-t border-zinc-800/80 text-center">
+          <div className="mt-5 pt-4 border-t border-[#1e2329] text-center">
             <p className="text-[11px] text-zinc-500 font-mono">
               {isAr
                 ? "تشفير بيانات الحساب متوافق مع معايير SQL Relational Security"

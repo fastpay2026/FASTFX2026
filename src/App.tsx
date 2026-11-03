@@ -77,6 +77,19 @@ const initialMarketPairs: MarketPair[] = [
     spreadPips: 0.9
   },
   {
+    symbol: "SOL/USD",
+    name: "Solana / US Dollar",
+    type: "crypto",
+    price: 188.40,
+    bid: 188.35,
+    ask: 188.45,
+    change24h: 3.42,
+    high24h: 194.20,
+    low24h: 181.50,
+    volume24h: "$4.1B",
+    spreadPips: 0.8
+  },
+  {
     symbol: "Gold (XAU)",
     name: "Spot Gold / USD",
     type: "commodities",
@@ -114,6 +127,7 @@ function AppContent() {
   });
 
   const [activeView, setActiveView] = useState<ActiveView>("landing");
+  const [selectedSymbol, setSelectedSymbol] = useState<string>("BTC/USD");
   const [marketPairs, setMarketPairs] = useState<MarketPair[]>(initialMarketPairs);
 
   const t = translations[lang];
@@ -147,8 +161,13 @@ function AppContent() {
     return () => clearInterval(interval);
   }, []);
 
+  const handleSelectPairAndTrade = (symbol: string) => {
+    setSelectedSymbol(symbol);
+    setActiveView("trading");
+  };
+
   return (
-    <div className="min-h-screen bg-[#06070a] text-zinc-100 flex flex-col font-sans selection:bg-orange-500 selection:text-black">
+    <div className="min-h-screen bg-[#000000] text-zinc-100 flex flex-col font-sans selection:bg-[#00c087] selection:text-black">
       {/* Top Header */}
       <Header
         lang={lang}
@@ -156,6 +175,7 @@ function AppContent() {
         activeView={activeView}
         onViewChange={setActiveView}
         marketPairs={marketPairs}
+        onSelectPair={handleSelectPairAndTrade}
       />
 
       {/* Main Body View */}
@@ -163,12 +183,18 @@ function AppContent() {
         {activeView === "landing" && (
           <LandingSection
             lang={lang}
+            marketPairs={marketPairs}
             onNavigateToTrading={() => setActiveView("trading")}
+            onSelectPairAndTrade={handleSelectPairAndTrade}
           />
         )}
 
         {activeView === "trading" && (
-          <TradingTerminal lang={lang} marketPairs={marketPairs} />
+          <TradingTerminal
+            lang={lang}
+            marketPairs={marketPairs}
+            initialSymbol={selectedSymbol}
+          />
         )}
 
         {activeView === "admin" && (
@@ -188,29 +214,41 @@ function AppContent() {
         }}
       />
 
-      {/* Institutional Global Footer */}
-      <footer className="mt-20 border-t border-zinc-900 bg-[#050608] text-xs text-zinc-500 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-8 border-b border-zinc-900">
+      {/* Institutional OKX Global Footer */}
+      <footer className="mt-24 border-t border-[#1e2329] bg-[#000000] text-xs text-zinc-400 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-8 border-b border-[#1e2329]">
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-black text-white font-mono">FAST FX</span>
-                <span className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-orange-500/20 text-orange-400 font-mono">
-                  RELATIONAL SQL ENGINE
+              <div className="flex items-center gap-2.5 mb-2">
+                {/* OKX style geometric mark */}
+                <div className="w-5 h-5 bg-white text-black flex items-center justify-center font-black text-[10px] tracking-tighter">
+                  FX
+                </div>
+                <span className="text-base font-black text-white font-mono tracking-tight">FAST FX</span>
+                <span className="px-1.5 py-0.5 text-[9px] font-mono font-bold rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
+                  SQL RELATIONAL
+                </span>
+                <span className="px-1.5 py-0.5 text-[9px] font-mono font-bold rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  100% POR
                 </span>
               </div>
-              <p className="text-xs text-zinc-400 max-w-md">{t.footerDescription}</p>
+              <p className="text-xs text-zinc-400 max-w-lg leading-relaxed">{t.footerDescription}</p>
             </div>
 
-            <div className="flex items-center gap-6 font-mono text-xs">
+            <div className="flex flex-wrap items-center gap-6 font-mono text-xs">
               <div>
-                <div className="text-[10px] text-zinc-600 uppercase">{t.headquartersLabel}</div>
-                <div className="text-zinc-300 font-bold">{t.headquartersCity}</div>
+                <div className="text-[10px] text-zinc-500 uppercase">{t.headquartersLabel}</div>
+                <div className="text-white font-bold">{t.headquartersCity}</div>
               </div>
-              <div className="w-px h-8 bg-zinc-800" />
+              <div className="w-px h-8 bg-[#1e2329] hidden sm:block" />
               <div>
-                <div className="text-[10px] text-zinc-600 uppercase">{t.globalInfraTitle}</div>
-                <div className="text-emerald-400 font-bold">EQUINIX LD4 & NY4</div>
+                <div className="text-[10px] text-zinc-500 uppercase">{t.globalInfraTitle}</div>
+                <div className="text-[#00c087] font-bold">EQUINIX LD4 & NY4</div>
+              </div>
+              <div className="w-px h-8 bg-[#1e2329] hidden sm:block" />
+              <div>
+                <div className="text-[10px] text-zinc-500 uppercase">MATCHING CORE</div>
+                <div className="text-white font-bold">&lt; 0.003ms ULTRA-FAST</div>
               </div>
             </div>
           </div>
@@ -219,10 +257,12 @@ function AppContent() {
           <div className="space-y-3 text-[11px] leading-relaxed text-zinc-500">
             <p>{t.riskWarningText}</p>
             <p>{t.regulatoryText}</p>
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-zinc-900/80 text-[10px]">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-[#1e2329] text-[10px]">
               <div>© {new Date().getFullYear()} {t.copyrightText}</div>
-              <div className="flex items-center gap-3 font-mono">
+              <div className="flex items-center gap-3 font-mono text-zinc-400">
                 <span>SQL Engine v2.4</span>
+                <span>•</span>
+                <span>OKX Pro Architecture</span>
                 <span>•</span>
                 <span>Tier-1 Prime Brokerage</span>
               </div>

@@ -14,6 +14,36 @@ export interface Translations {
   navTrading: string;
   navPortfolio: string;
   navAdmin: string;
+  navBuyCrypto: string;
+  navMarkets: string;
+  navTrade: string;
+  navFutures: string;
+  navGrow: string;
+  navWeb3: string;
+  searchPlaceholder: string;
+  depositBtn: string;
+  tradeAction: string;
+  marketHot: string;
+  marketGainers: string;
+  marketForex: string;
+  marketCrypto: string;
+  marketNew: string;
+  marketVolume: string;
+  fundingRateLabel: string;
+  orderTypeLimit: string;
+  orderTypeMarket: string;
+  orderTypeStop: string;
+  recentTradesTab: string;
+  depthTab: string;
+  time: string;
+  price: string;
+  amount: string;
+  proofOfReservesTitle: string;
+  proofOfReservesDesc: string;
+  ultraFastMatchingTitle: string;
+  ultraFastMatchingDesc: string;
+  sqlSecurityTitle: string;
+  sqlSecurityDesc: string;
   loginBtn: string;
   registerBtn: string;
   logoutBtn: string;
@@ -197,6 +227,36 @@ export const translations: Record<Language, Translations> = {
     navTrading: "منصة التداول المباشرة",
     navPortfolio: "المحفظة والسجل",
     navAdmin: "لوحة تحكم الإدارة",
+    navBuyCrypto: "شراء العملات",
+    navMarkets: "الأسواق",
+    navTrade: "التداول",
+    navFutures: "العقود الآجلة",
+    navGrow: "الأرباح",
+    navWeb3: "محفظة Web3",
+    searchPlaceholder: "ابحث عن أصل، زوج أو عقد...",
+    depositBtn: "إيداع سريع",
+    tradeAction: "تداول",
+    marketHot: "الأكثر رواجاً",
+    marketGainers: "الأعلى صعوداً",
+    marketForex: "الفوركس والذهب",
+    marketCrypto: "العملات المشفرة",
+    marketNew: "إدراجات جديدة",
+    marketVolume: "حجم التداول 24س",
+    fundingRateLabel: "معدل التمويل / العد",
+    orderTypeLimit: "أمر محدد (Limit)",
+    orderTypeMarket: "سعر السوق (Market)",
+    orderTypeStop: "أمر وقف (Stop)",
+    recentTradesTab: "الصفقات المباشرة",
+    depthTab: "دفتر الأوامر",
+    time: "الوقت",
+    price: "السعر",
+    amount: "الكمية",
+    proofOfReservesTitle: "إثبات احتياطيات 1:1 بنسبة 100%",
+    proofOfReservesDesc: "أصول مفحوصة ومؤكدة بنسبة 100% بتقنية Merkle-tree وسجلات SQL العلاقية. كل دولار وأصل مدعوم بالكامل 1:1 بحفظ آمن منفصل.",
+    ultraFastMatchingTitle: "محرك مطابقة فائق السرعة",
+    ultraFastMatchingDesc: "تنفيذ فائق السرعة عبر شبكة الألياف الضوئية في Equinix LD4 بزمن استجابة يقل عن 0.003ms وبلا أي انزلاق سعري.",
+    sqlSecurityTitle: "أمان وتدقيق SQL العلاقية",
+    sqlSecurityDesc: "سجل علاقي مدقق بمعايير ACID، وتحقق لحظي من سلامة الأرصدة، ورقابة إدارية فورية.",
     loginBtn: "تسجيل الدخول",
     registerBtn: "فتح حساب",
     logoutBtn: "تسجيل الخروج",
@@ -385,8 +445,38 @@ export const translations: Record<Language, Translations> = {
     navTrading: "Live Terminal",
     navPortfolio: "Portfolio & Ledger",
     navAdmin: "Admin Portal",
+    navBuyCrypto: "Buy Crypto",
+    navMarkets: "Markets",
+    navTrade: "Trade",
+    navFutures: "Futures",
+    navGrow: "Earn",
+    navWeb3: "Web3",
+    searchPlaceholder: "Search coin, pair or contract...",
+    depositBtn: "Deposit",
+    tradeAction: "Trade",
+    marketHot: "Hot",
+    marketGainers: "Top Gainers",
+    marketForex: "Forex & Gold",
+    marketCrypto: "Crypto",
+    marketNew: "New Listings",
+    marketVolume: "24h Volume",
+    fundingRateLabel: "Funding / Countdown",
+    orderTypeLimit: "Limit",
+    orderTypeMarket: "Market",
+    orderTypeStop: "Stop / Trigger",
+    recentTradesTab: "Recent Trades",
+    depthTab: "Order Book",
+    time: "Time",
+    price: "Price",
+    amount: "Amount",
+    proofOfReservesTitle: "100% Proof of Reserves",
+    proofOfReservesDesc: "Merkle-tree verified on-chain and in SQL transactional ledgers. Every client dollar and coin is 100% backed in 1:1 segregated custody.",
+    ultraFastMatchingTitle: "Sub-millisecond Execution Core",
+    ultraFastMatchingDesc: "Equinix LD4 ultra-low latency optical execution under 0.003ms with zero slippage.",
+    sqlSecurityTitle: "Relational SQL Audit Security",
+    sqlSecurityDesc: "Live relational ledger with ACID transactions, real-time balance integrity checks, and instant administrative oversight.",
     loginBtn: "Sign In",
-    registerBtn: "Open Account",
+    registerBtn: "Sign Up",
     logoutBtn: "Sign Out",
     adminBadge: "Super Admin",
     traderBadge: "Verified Trader",
