@@ -5,11 +5,14 @@ import {
   Subscriber,
   AuditLog,
   PlatformSettings,
-  SqlQueryResult
+  SqlQueryResult,
+  FundRequest,
+  ManagedMarketPair,
+  PlatformBroadcast
 } from "../types";
 
 export const SUPER_ADMIN_EMAIL = "admin@fast-fx.uk";
-const DB_STORAGE_KEY = "fast_fx_relational_sql_db_v2";
+const DB_STORAGE_KEY = "fast_fx_relational_sql_db_v3";
 
 interface DatabaseState {
   users: User[];
@@ -18,7 +21,209 @@ interface DatabaseState {
   subscribers: Subscriber[];
   audit_logs: AuditLog[];
   platform_settings: PlatformSettings;
+  fund_requests: FundRequest[];
+  market_instruments: ManagedMarketPair[];
+  broadcasts: PlatformBroadcast[];
 }
+
+const initialMarketInstruments: ManagedMarketPair[] = [
+  {
+    symbol: "EUR/USD",
+    name: "Euro / US Dollar",
+    type: "forex",
+    price: 1.0945,
+    bid: 1.0944,
+    ask: 1.0946,
+    change24h: 0.18,
+    high24h: 1.0975,
+    low24h: 1.0921,
+    volume24h: "$4.2B",
+    spreadPips: 0.2,
+    minLots: 0.01,
+    maxLots: 100.0,
+    maxLeverage: 500,
+    tradingEnabled: true
+  },
+  {
+    symbol: "GBP/USD",
+    name: "British Pound / US Dollar",
+    type: "forex",
+    price: 1.2721,
+    bid: 1.2720,
+    ask: 1.2723,
+    change24h: -0.09,
+    high24h: 1.2760,
+    low24h: 1.2690,
+    volume24h: "$2.8B",
+    spreadPips: 0.3,
+    minLots: 0.01,
+    maxLots: 100.0,
+    maxLeverage: 500,
+    tradingEnabled: true
+  },
+  {
+    symbol: "USD/JPY",
+    name: "US Dollar / Japanese Yen",
+    type: "forex",
+    price: 155.80,
+    bid: 155.78,
+    ask: 155.82,
+    change24h: 0.35,
+    high24h: 156.10,
+    low24h: 155.30,
+    volume24h: "$3.1B",
+    spreadPips: 0.4,
+    minLots: 0.01,
+    maxLots: 100.0,
+    maxLeverage: 500,
+    tradingEnabled: true
+  },
+  {
+    symbol: "BTC/USD",
+    name: "Bitcoin / US Dollar",
+    type: "crypto",
+    price: 96450.0,
+    bid: 96445.0,
+    ask: 96455.0,
+    change24h: 1.85,
+    high24h: 97800.0,
+    low24h: 94900.0,
+    volume24h: "$18.5B",
+    spreadPips: 1.0,
+    minLots: 0.01,
+    maxLots: 50.0,
+    maxLeverage: 100,
+    tradingEnabled: true
+  },
+  {
+    symbol: "ETH/USD",
+    name: "Ethereum / US Dollar",
+    type: "crypto",
+    price: 3450.25,
+    bid: 3449.80,
+    ask: 3450.70,
+    change24h: -0.72,
+    high24h: 3520.0,
+    low24h: 3410.0,
+    volume24h: "$8.4B",
+    spreadPips: 0.9,
+    minLots: 0.01,
+    maxLots: 50.0,
+    maxLeverage: 100,
+    tradingEnabled: true
+  },
+  {
+    symbol: "SOL/USD",
+    name: "Solana / US Dollar",
+    type: "crypto",
+    price: 188.40,
+    bid: 188.35,
+    ask: 188.45,
+    change24h: 3.42,
+    high24h: 194.20,
+    low24h: 181.50,
+    volume24h: "$4.1B",
+    spreadPips: 0.8,
+    minLots: 0.1,
+    maxLots: 50.0,
+    maxLeverage: 50,
+    tradingEnabled: true
+  },
+  {
+    symbol: "Gold (XAU)",
+    name: "Spot Gold / USD",
+    type: "commodities",
+    price: 2342.1,
+    bid: 2341.9,
+    ask: 2342.3,
+    change24h: -0.15,
+    high24h: 2355.0,
+    low24h: 2332.0,
+    volume24h: "$5.6B",
+    spreadPips: 0.4,
+    minLots: 0.01,
+    maxLots: 80.0,
+    maxLeverage: 200,
+    tradingEnabled: true
+  },
+  {
+    symbol: "Crude Oil",
+    name: "WTI Crude Oil",
+    type: "commodities",
+    price: 78.45,
+    bid: 78.43,
+    ask: 78.47,
+    change24h: 1.25,
+    high24h: 79.10,
+    low24h: 77.80,
+    volume24h: "$3.9B",
+    spreadPips: 0.4,
+    minLots: 0.1,
+    maxLots: 100.0,
+    maxLeverage: 100,
+    tradingEnabled: true
+  }
+];
+
+const initialFundRequests: FundRequest[] = [
+  {
+    id: "req_fnd_101",
+    userId: "usr_trader_002",
+    userEmail: "trader.alex@fastfx.com",
+    userName: "Alex Mercer",
+    type: "DEPOSIT",
+    amount: 15000.0,
+    paymentMethod: "BANK_WIRE",
+    txReference: "SWIFT-CH9930214",
+    status: "PENDING",
+    createdAt: new Date(Date.now() - 45 * 60 * 1000).toISOString()
+  },
+  {
+    id: "req_fnd_102",
+    userId: "usr_trader_003",
+    userEmail: "sarah.invest@fastfx.com",
+    userName: "Sarah Jenkins",
+    type: "WITHDRAWAL",
+    amount: 5000.0,
+    paymentMethod: "CRYPTO_USDT",
+    txReference: "TRC20-0x8892bcaef12",
+    status: "PENDING",
+    createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString()
+  },
+  {
+    id: "req_fnd_100",
+    userId: "usr_trader_002",
+    userEmail: "trader.alex@fastfx.com",
+    userName: "Alex Mercer",
+    type: "DEPOSIT",
+    amount: 25000.0,
+    paymentMethod: "SEPA",
+    txReference: "SEPA-DE88192019",
+    status: "APPROVED",
+    createdAt: new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString(),
+    reviewedAt: new Date(Date.now() - 14 * 24 * 3600 * 1000 + 120000).toISOString(),
+    reviewNote: "Verified with Bundesbank SEPA clearing gateway"
+  }
+];
+
+const initialBroadcasts: PlatformBroadcast[] = [
+  {
+    id: "bc_001",
+    title: "Equinix LD4 Server Optimization",
+    message: "Scheduled matching engine latency calibration completed. Core fill latency verified at < 0.003ms.",
+    severity: "info",
+    active: true,
+    createdAt: new Date(Date.now() - 6 * 3600 * 1000).toISOString()
+  },
+  {
+    id: "bc_002",
+    title: "15-Day Grand Prix Priority Allocation",
+    message: "Early registration is open for institutional accounts. Raw spreads 0.0 pips activated.",
+    severity: "warning",
+    active: true,
+    createdAt: new Date(Date.now() - 24 * 3600 * 1000).toISOString()
+  }
+];
 
 const defaultInitialState: DatabaseState = {
   users: [
@@ -31,6 +236,10 @@ const defaultInitialState: DatabaseState = {
       equity: 500000.0,
       demoBalance: 100000.0,
       kycStatus: "verified",
+      kycTier: "TIER_3_UNLIMITED",
+      kycNotes: "Root institutional clearance verified with FSA London & FCA registry",
+      country: "United Kingdom",
+      phone: "+44 20 7946 0912",
       status: "active",
       createdAt: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
     },
@@ -43,6 +252,10 @@ const defaultInitialState: DatabaseState = {
       equity: 25840.0,
       demoBalance: 50000.0,
       kycStatus: "verified",
+      kycTier: "TIER_2_INSTITUTIONAL",
+      kycNotes: "Passport & Proof of Address verified. Proof of funds on record.",
+      country: "Germany",
+      phone: "+49 30 2312 8841",
       status: "active",
       createdAt: new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString()
     },
@@ -54,9 +267,29 @@ const defaultInitialState: DatabaseState = {
       balance: 82400.0,
       equity: 81950.0,
       demoBalance: 100000.0,
-      kycStatus: "verified",
+      kycStatus: "pending",
+      kycTier: "TIER_1_STANDARD",
+      kycNotes: "Awaiting notarized bank reference letter for Tier 2 Institutional upgrade.",
+      country: "United Arab Emirates",
+      phone: "+971 4 391 2200",
       status: "active",
       createdAt: new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString()
+    },
+    {
+      id: "usr_trader_004",
+      email: "khalid.trading@gulfcapital.sa",
+      name: "خالد الشمري",
+      role: "trader",
+      balance: 145000.0,
+      equity: 145200.0,
+      demoBalance: 100000.0,
+      kycStatus: "verified",
+      kycTier: "TIER_2_INSTITUTIONAL",
+      kycNotes: "Institutional Corporate Account documentation validated.",
+      country: "Saudi Arabia",
+      phone: "+966 11 482 1900",
+      status: "active",
+      createdAt: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString()
     }
   ],
   trades: [
@@ -116,6 +349,23 @@ const defaultInitialState: DatabaseState = {
       openedAt: new Date(Date.now() - 8 * 3600 * 1000).toISOString()
     },
     {
+      id: "trd_881024",
+      userId: "usr_trader_004",
+      userEmail: "khalid.trading@gulfcapital.sa",
+      symbol: "EUR/USD",
+      type: "SELL",
+      orderType: "MARKET",
+      lots: 5.0,
+      amount: 500000,
+      entryPrice: 1.0960,
+      currentPrice: 1.0945,
+      leverage: 200,
+      margin: 2736.0,
+      pnl: 750.0,
+      status: "OPEN",
+      openedAt: new Date(Date.now() - 1 * 3600 * 1000).toISOString()
+    },
+    {
       id: "trd_881019",
       userId: "usr_trader_003",
       userEmail: "sarah.invest@fastfx.com",
@@ -155,6 +405,16 @@ const defaultInitialState: DatabaseState = {
       balanceAfter: 25000.0,
       note: "Bank Wire Deposit Verified",
       timestamp: new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString()
+    },
+    {
+      id: "tx_003",
+      userId: "usr_trader_004",
+      userEmail: "khalid.trading@gulfcapital.sa",
+      type: "DEPOSIT",
+      amount: 145000.0,
+      balanceAfter: 145000.0,
+      note: "Corporate Institutional Custody Transfer",
+      timestamp: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString()
     }
   ],
   subscribers: [
@@ -185,8 +445,15 @@ const defaultInitialState: DatabaseState = {
       id: "log_001",
       actorEmail: SUPER_ADMIN_EMAIL,
       action: "DATABASE_INITIALIZE",
-      details: "PostgreSQL/SQLite Relational Schema initialized successfully",
+      details: "PostgreSQL/SQLite Relational Schema v3.0 initialized successfully",
       timestamp: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
+    },
+    {
+      id: "log_002",
+      actorEmail: SUPER_ADMIN_EMAIL,
+      action: "RISK_PARAMETERS_CONFIGURED",
+      details: "Configured A-Book/B-Book hybrid execution routing with 20% auto-liquidation trigger",
+      timestamp: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString()
     }
   ],
   platform_settings: {
@@ -194,8 +461,14 @@ const defaultInitialState: DatabaseState = {
     maxLeverage: 500,
     spreadMultiplier: 1.0,
     maintenanceMode: false,
-    minDeposit: 50.0
-  }
+    minDeposit: 50.0,
+    allowNewRegistrations: true,
+    riskMode: "HYBRID",
+    autoLiquidationLevel: 20
+  },
+  fund_requests: initialFundRequests,
+  market_instruments: initialMarketInstruments,
+  broadcasts: initialBroadcasts
 };
 
 type DbChangeListener = () => void;
@@ -216,65 +489,28 @@ class SqlDatabaseEngine {
       const raw = localStorage.getItem(DB_STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        const OLD_EMAIL = "h07806480810@gmail.com";
 
-        // Migrate users: replace old email with admin@fast-fx.uk
-        if (parsed.users && Array.isArray(parsed.users)) {
-          parsed.users = parsed.users.map((u: User) => {
-            if (u.email.toLowerCase() === OLD_EMAIL.toLowerCase()) {
-              return {
-                ...u,
-                email: SUPER_ADMIN_EMAIL,
-                name: "مدير المنصة الرئيسي (Super Admin)",
-                role: "admin"
-              };
-            }
-            return u;
-          });
-        }
-
-        // Migrate subscribers
-        if (parsed.subscribers && Array.isArray(parsed.subscribers)) {
-          parsed.subscribers = parsed.subscribers.map((s: Subscriber) => {
-            if (s.email.toLowerCase() === OLD_EMAIL.toLowerCase()) {
-              return { ...s, email: SUPER_ADMIN_EMAIL };
-            }
-            return s;
-          });
-        }
-
-        // Migrate audit logs
-        if (parsed.audit_logs && Array.isArray(parsed.audit_logs)) {
-          parsed.audit_logs = parsed.audit_logs.map((log: AuditLog) => {
-            if (log.actorEmail?.toLowerCase() === OLD_EMAIL.toLowerCase()) {
-              return { ...log, actorEmail: SUPER_ADMIN_EMAIL };
-            }
-            return log;
-          });
-        }
-
-        // Migrate active session if present
-        try {
-          const session = localStorage.getItem("fast_fx_auth_session");
-          if (session && session.toLowerCase() === OLD_EMAIL.toLowerCase()) {
-            localStorage.setItem("fast_fx_auth_session", SUPER_ADMIN_EMAIL);
-          }
-        } catch {}
-
-        // Ensure super admin always exists
+        // Ensure super admin always exists with correct email
         const hasSuperAdmin = parsed.users?.some(
           (u: User) => u.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()
         );
         if (!hasSuperAdmin) {
           parsed.users = [...(parsed.users || []), defaultInitialState.users[0]];
         }
+
         return {
           users: parsed.users || defaultInitialState.users,
           trades: parsed.trades || defaultInitialState.trades,
           transactions: parsed.transactions || defaultInitialState.transactions,
           subscribers: parsed.subscribers || defaultInitialState.subscribers,
           audit_logs: parsed.audit_logs || defaultInitialState.audit_logs,
-          platform_settings: parsed.platform_settings || defaultInitialState.platform_settings
+          platform_settings: {
+            ...defaultInitialState.platform_settings,
+            ...(parsed.platform_settings || {})
+          },
+          fund_requests: parsed.fund_requests || defaultInitialState.fund_requests,
+          market_instruments: parsed.market_instruments || defaultInitialState.market_instruments,
+          broadcasts: parsed.broadcasts || defaultInitialState.broadcasts
         };
       }
     } catch (e) {
@@ -337,7 +573,17 @@ class SqlDatabaseEngine {
 
       // 5. SHOW TABLES or PRAGMA table_info
       if (upper.includes("SHOW TABLES") || upper.includes("INFORMATION_SCHEMA")) {
-        const tables = ["users", "trades", "transactions", "subscribers", "audit_logs", "platform_settings"];
+        const tables = [
+          "users",
+          "trades",
+          "transactions",
+          "fund_requests",
+          "market_instruments",
+          "broadcasts",
+          "subscribers",
+          "audit_logs",
+          "platform_settings"
+        ];
         return {
           columns: ["table_name", "record_count", "engine"],
           rows: tables.map((tbl) => [tbl, (this.state as any)[tbl]?.length ?? 1, "Relational SQL (Postgres / SQLite)"]),
@@ -378,7 +624,6 @@ class SqlDatabaseEngine {
   }
 
   private executeSelect(sql: string, startTime: number): SqlQueryResult {
-    // Basic SQL Regex Parser: SELECT ... FROM <table> [WHERE ...] [ORDER BY ...] [LIMIT ...]
     const match = sql.match(/SELECT\s+(.*?)\s+FROM\s+([a-zA-Z0-9_]+)(?:\s+WHERE\s+(.*?))?(?:\s+ORDER\s+BY\s+(.*?))?(?:\s+LIMIT\s+(\d+))?$/i);
 
     if (!match) {
@@ -458,7 +703,6 @@ class SqlDatabaseEngine {
   }
 
   private executeInsert(sql: string, startTime: number): SqlQueryResult {
-    // INSERT INTO <table> [(col1, col2)] VALUES (val1, val2)
     const match = sql.match(/INSERT\s+INTO\s+([a-zA-Z0-9_]+)\s*(?:\((.*?)\))?\s+VALUES\s*\((.*?)\)/i);
     if (!match) {
       throw new Error("Invalid INSERT statement. Expected: INSERT INTO <table> [(columns)] VALUES (values)");
@@ -512,7 +756,6 @@ class SqlDatabaseEngine {
   }
 
   private executeUpdate(sql: string, startTime: number): SqlQueryResult {
-    // UPDATE <table> SET col1 = val1, col2 = val2 [WHERE condition]
     const match = sql.match(/UPDATE\s+([a-zA-Z0-9_]+)\s+SET\s+(.*?)(?:\s+WHERE\s+(.*?))?$/i);
     if (!match) {
       throw new Error("Invalid UPDATE statement. Expected: UPDATE <table> SET col = val [WHERE condition]");
@@ -527,7 +770,6 @@ class SqlDatabaseEngine {
       throw new Error(`Table '${tableName}' does not exist.`);
     }
 
-    // Parse SET assignments
     const assignments: { key: string; value: any }[] = setClause.split(",").map((item) => {
       const [k, v] = item.split("=").map((s) => s.trim());
       let parsedVal: any = v;
@@ -598,7 +840,6 @@ class SqlDatabaseEngine {
   }
 
   private evaluateWhereCondition(row: any, condition: string): boolean {
-    // Support basic operators: =, !=, >, <, LIKE
     const eqMatch = condition.match(/([a-zA-Z0-9_]+)\s*(=|!=|>|<|LIKE)\s*(.*)/i);
     if (!eqMatch) return true;
 
@@ -636,7 +877,7 @@ class SqlDatabaseEngine {
     return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
   }
 
-  // --- Type-safe ORM Convenience Methods ---
+  // --- Type-safe ORM API ---
 
   public getUsers(): User[] {
     return [...this.state.users];
@@ -661,6 +902,8 @@ class SqlDatabaseEngine {
       equity: isSuperAdmin ? 500000.0 : 10000.0,
       demoBalance: 50000.0,
       kycStatus: isSuperAdmin ? "verified" : "pending",
+      kycTier: isSuperAdmin ? "TIER_3_UNLIMITED" : "TIER_1_STANDARD",
+      kycNotes: isSuperAdmin ? "Root clearance" : "New registrant, pending document review",
       status: "active",
       createdAt: new Date().toISOString()
     };
@@ -694,6 +937,17 @@ class SqlDatabaseEngine {
     }
   }
 
+  public updateUserKyc(userId: string, kycStatus: User["kycStatus"], kycNotes?: string, kycTier?: User["kycTier"]): void {
+    const user = this.state.users.find((u) => u.id === userId);
+    if (user) {
+      user.kycStatus = kycStatus;
+      if (kycNotes) user.kycNotes = kycNotes;
+      if (kycTier) user.kycTier = kycTier;
+      this.addAuditLog(SUPER_ADMIN_EMAIL, "KYC_UPDATE", `User ${user.email} KYC set to ${kycStatus} (${kycTier || "N/A"})`);
+      this.saveToStorage();
+    }
+  }
+
   public toggleUserStatus(userId: string): void {
     const user = this.state.users.find((u) => u.id === userId);
     if (user && user.email.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) {
@@ -712,7 +966,134 @@ class SqlDatabaseEngine {
     }
   }
 
-  // --- Trading API ---
+  // --- Fund Requests (Deposits & Withdrawals Workflow) ---
+
+  public getFundRequests(): FundRequest[] {
+    return [...this.state.fund_requests];
+  }
+
+  public approveFundRequest(requestId: string, reviewNote?: string): void {
+    const req = this.state.fund_requests.find((r) => r.id === requestId);
+    if (req && req.status === "PENDING") {
+      req.status = "APPROVED";
+      req.reviewedAt = new Date().toISOString();
+      req.reviewNote = reviewNote || "Approved by institutional admin compliance officer";
+
+      const user = this.state.users.find((u) => u.id === req.userId);
+      if (user) {
+        if (req.type === "DEPOSIT") {
+          user.balance = Number((user.balance + req.amount).toFixed(2));
+          user.equity = user.balance;
+          this.state.transactions.unshift({
+            id: `tx_${Date.now().toString(36)}`,
+            userId: user.id,
+            userEmail: user.email,
+            type: "DEPOSIT",
+            amount: req.amount,
+            balanceAfter: user.balance,
+            note: `Approved deposit ref ${req.txReference}`,
+            timestamp: new Date().toISOString()
+          });
+        } else if (req.type === "WITHDRAWAL") {
+          user.balance = Number((user.balance - req.amount).toFixed(2));
+          user.equity = user.balance;
+          this.state.transactions.unshift({
+            id: `tx_${Date.now().toString(36)}`,
+            userId: user.id,
+            userEmail: user.email,
+            type: "WITHDRAWAL",
+            amount: req.amount,
+            balanceAfter: user.balance,
+            note: `Approved withdrawal ref ${req.txReference}`,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+
+      this.addAuditLog(SUPER_ADMIN_EMAIL, "FUND_REQUEST_APPROVED", `Request ${req.id} (${req.type} $${req.amount}) approved for ${req.userEmail}`);
+      this.saveToStorage();
+    }
+  }
+
+  public rejectFundRequest(requestId: string, reviewNote: string): void {
+    const req = this.state.fund_requests.find((r) => r.id === requestId);
+    if (req && req.status === "PENDING") {
+      req.status = "REJECTED";
+      req.reviewedAt = new Date().toISOString();
+      req.reviewNote = reviewNote || "Rejected due to compliance or reference mismatch";
+      this.addAuditLog(SUPER_ADMIN_EMAIL, "FUND_REQUEST_REJECTED", `Request ${req.id} rejected for ${req.userEmail}: ${reviewNote}`);
+      this.saveToStorage();
+    }
+  }
+
+  // --- Market Instruments Controls ---
+
+  public getMarketInstruments(): ManagedMarketPair[] {
+    return [...this.state.market_instruments];
+  }
+
+  public updateMarketInstrument(symbol: string, updates: Partial<ManagedMarketPair>): void {
+    const pair = this.state.market_instruments.find((p) => p.symbol === symbol);
+    if (pair) {
+      Object.assign(pair, updates);
+      this.addAuditLog(SUPER_ADMIN_EMAIL, "MARKET_PAIR_UPDATE", `Updated pair ${symbol}: ${JSON.stringify(updates)}`);
+      this.saveToStorage();
+    }
+  }
+
+  public toggleMarketInstrument(symbol: string): void {
+    const pair = this.state.market_instruments.find((p) => p.symbol === symbol);
+    if (pair) {
+      pair.tradingEnabled = !pair.tradingEnabled;
+      this.addAuditLog(SUPER_ADMIN_EMAIL, "MARKET_PAIR_TOGGLE", `Pair ${symbol} tradingEnabled set to ${pair.tradingEnabled}`);
+      this.saveToStorage();
+    }
+  }
+
+  public addMarketInstrument(instrument: ManagedMarketPair): void {
+    const existing = this.state.market_instruments.find((p) => p.symbol === instrument.symbol);
+    if (!existing) {
+      this.state.market_instruments.unshift(instrument);
+      this.addAuditLog(SUPER_ADMIN_EMAIL, "MARKET_PAIR_ADDED", `Added new market pair ${instrument.symbol}`);
+      this.saveToStorage();
+    }
+  }
+
+  // --- Broadcasts / System Announcements ---
+
+  public getBroadcasts(): PlatformBroadcast[] {
+    return [...this.state.broadcasts];
+  }
+
+  public createBroadcast(title: string, message: string, severity: PlatformBroadcast["severity"]): PlatformBroadcast {
+    const newBc: PlatformBroadcast = {
+      id: `bc_${Date.now().toString(36)}`,
+      title,
+      message,
+      severity,
+      active: true,
+      createdAt: new Date().toISOString()
+    };
+    this.state.broadcasts.unshift(newBc);
+    this.addAuditLog(SUPER_ADMIN_EMAIL, "BROADCAST_CREATED", `Created broadcast: ${title}`);
+    this.saveToStorage();
+    return newBc;
+  }
+
+  public toggleBroadcast(id: string): void {
+    const bc = this.state.broadcasts.find((b) => b.id === id);
+    if (bc) {
+      bc.active = !bc.active;
+      this.saveToStorage();
+    }
+  }
+
+  public deleteBroadcast(id: string): void {
+    this.state.broadcasts = this.state.broadcasts.filter((b) => b.id !== id);
+    this.saveToStorage();
+  }
+
+  // --- Trading API & Liquidation ---
 
   public getTrades(userId?: string): Trade[] {
     if (userId) {
@@ -736,15 +1117,15 @@ class SqlDatabaseEngine {
     return newTrade;
   }
 
-  public closeTrade(tradeId: string, closePrice: number, finalPnl: number): void {
+  public closeTrade(tradeId: string, closePrice: number, finalPnl: number, reason: string = "Trader Closed"): void {
     const trade = this.state.trades.find((t) => t.id === tradeId);
     if (trade && trade.status === "OPEN") {
       trade.status = "CLOSED";
       trade.closePrice = closePrice;
       trade.pnl = Number(finalPnl.toFixed(2));
       trade.closedAt = new Date().toISOString();
+      trade.closeReason = reason;
 
-      // Update user balance
       const user = this.state.users.find((u) => u.id === trade.userId);
       if (user) {
         user.balance = Number((user.balance + finalPnl).toFixed(2));
@@ -757,13 +1138,23 @@ class SqlDatabaseEngine {
           type: finalPnl >= 0 ? "TRADE_PROFIT" : "TRADE_LOSS",
           amount: Math.abs(finalPnl),
           balanceAfter: user.balance,
-          note: `Closed ${trade.symbol} ${trade.type} position (PnL: $${finalPnl.toFixed(2)})`,
+          note: `Closed ${trade.symbol} ${trade.type} position (${reason})`,
           timestamp: new Date().toISOString()
         });
       }
 
-      this.addAuditLog(trade.userEmail, "ORDER_CLOSED", `Closed trade ${trade.id} on ${trade.symbol} with PnL $${finalPnl}`);
+      this.addAuditLog(trade.userEmail, "ORDER_CLOSED", `Closed trade ${trade.id} on ${trade.symbol} with PnL $${finalPnl} (${reason})`);
       this.saveToStorage();
+    }
+  }
+
+  public forceLiquidatePosition(tradeId: string, reason: string): void {
+    const trade = this.state.trades.find((t) => t.id === tradeId);
+    if (trade && trade.status === "OPEN") {
+      const pair = this.state.market_instruments.find((p) => p.symbol === trade.symbol);
+      const closePrice = pair ? pair.price : trade.entryPrice;
+      this.closeTrade(tradeId, closePrice, trade.pnl, `Admin Liquidation: ${reason}`);
+      this.addAuditLog(SUPER_ADMIN_EMAIL, "FORCE_LIQUIDATION", `Force liquidated trade ${tradeId} (${trade.symbol}) by Admin: ${reason}`);
     }
   }
 
@@ -775,7 +1166,7 @@ class SqlDatabaseEngine {
     }
   }
 
-  // --- Subscribers (15-day Launch Countdown) ---
+  // --- Subscribers ---
 
   public getSubscribers(): Subscriber[] {
     return [...this.state.subscribers];
@@ -815,7 +1206,7 @@ class SqlDatabaseEngine {
     return [...this.state.audit_logs];
   }
 
-  private addAuditLog(actorEmail: string, action: string, details: string): void {
+  public addAuditLog(actorEmail: string, action: string, details: string): void {
     this.state.audit_logs.unshift({
       id: `log_${Date.now().toString(36)}`,
       actorEmail,
@@ -823,7 +1214,7 @@ class SqlDatabaseEngine {
       details,
       timestamp: new Date().toISOString()
     });
-    if (this.state.audit_logs.length > 200) {
+    if (this.state.audit_logs.length > 300) {
       this.state.audit_logs.pop();
     }
   }
@@ -840,13 +1231,54 @@ class SqlDatabaseEngine {
     this.saveToStorage();
   }
 
-  // --- Export Database to .sql script ---
+  // --- Risk & Book Analytics ---
+
+  public getRiskSummary() {
+    const openTrades = this.state.trades.filter((t) => t.status === "OPEN");
+    const longTrades = openTrades.filter((t) => t.type === "BUY");
+    const shortTrades = openTrades.filter((t) => t.type === "SELL");
+
+    const totalLongVolume = longTrades.reduce((acc, t) => acc + (t.amount || 0), 0);
+    const totalShortVolume = shortTrades.reduce((acc, t) => acc + (t.amount || 0), 0);
+    const netExposure = totalLongVolume - totalShortVolume;
+
+    const totalOpenTraderPnL = openTrades.reduce((acc, t) => acc + (t.pnl || 0), 0);
+    // In B-Book broker model, broker profit = - trader PnL
+    const brokerBookPnL = -totalOpenTraderPnL;
+
+    // Accounts under margin stress (where margin used > 70% of equity)
+    const atRiskAccounts = this.state.users
+      .map((u) => {
+        const userOpen = openTrades.filter((t) => t.userId === u.id);
+        const usedMargin = userOpen.reduce((acc, t) => acc + t.margin, 0);
+        const marginLevel = usedMargin > 0 ? (u.equity / usedMargin) * 100 : 999;
+        return {
+          user: u,
+          openTradesCount: userOpen.length,
+          usedMargin,
+          marginLevel
+        };
+      })
+      .filter((a) => a.openTradesCount > 0 && a.marginLevel < 120);
+
+    return {
+      openTradesCount: openTrades.length,
+      totalLongVolume,
+      totalShortVolume,
+      netExposure,
+      totalOpenTraderPnL,
+      brokerBookPnL,
+      atRiskAccounts
+    };
+  }
+
+  // --- Export Database to .sql dump ---
 
   public exportSqlDump(): string {
     const lines: string[] = [
-      `-- Fast FX Institutional SQL Database Dump`,
+      `-- Fast FX Institutional Relational SQL Database Dump v3.0`,
       `-- Exported At: ${new Date().toISOString()}`,
-      `-- Admin: ${SUPER_ADMIN_EMAIL}`,
+      `-- Super Admin: ${SUPER_ADMIN_EMAIL}`,
       ``,
       `-- 1. Table: users`,
       `CREATE TABLE IF NOT EXISTS users (`,
@@ -857,6 +1289,7 @@ class SqlDatabaseEngine {
       `  balance DECIMAL(15, 2) DEFAULT 0.00,`,
       `  equity DECIMAL(15, 2) DEFAULT 0.00,`,
       `  kyc_status VARCHAR(16) DEFAULT 'pending',`,
+      `  kyc_tier VARCHAR(32) DEFAULT 'TIER_1_STANDARD',`,
       `  status VARCHAR(16) DEFAULT 'active',`,
       `  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`,
       `);`,
@@ -865,7 +1298,7 @@ class SqlDatabaseEngine {
 
     this.state.users.forEach((u) => {
       lines.push(
-        `INSERT INTO users (id, email, name, role, balance, equity, kyc_status, status, created_at) VALUES ('${u.id}', '${u.email}', '${u.name.replace(/'/g, "''")}', '${u.role}', ${u.balance}, ${u.equity}, '${u.kycStatus}', '${u.status}', '${u.createdAt}');`
+        `INSERT INTO users (id, email, name, role, balance, equity, kyc_status, kyc_tier, status, created_at) VALUES ('${u.id}', '${u.email}', '${u.name.replace(/'/g, "''")}', '${u.role}', ${u.balance}, ${u.equity}, '${u.kycStatus}', '${u.kycTier || "TIER_1_STANDARD"}', '${u.status}', '${u.createdAt}');`
       );
     });
 
@@ -894,9 +1327,19 @@ class SqlDatabaseEngine {
     });
 
     lines.push(``);
-    lines.push(`-- 3. Table: subscribers`);
-    this.state.subscribers.forEach((s) => {
-      lines.push(`INSERT INTO subscribers (id, email, created_at) VALUES ('${s.id}', '${s.email}', '${s.createdAt}');`);
+    lines.push(`-- 3. Table: fund_requests`);
+    this.state.fund_requests.forEach((f) => {
+      lines.push(
+        `INSERT INTO fund_requests (id, user_id, amount, type, status, tx_reference) VALUES ('${f.id}', '${f.userId}', ${f.amount}, '${f.type}', '${f.status}', '${f.txReference}');`
+      );
+    });
+
+    lines.push(``);
+    lines.push(`-- 4. Table: market_instruments`);
+    this.state.market_instruments.forEach((m) => {
+      lines.push(
+        `INSERT INTO market_instruments (symbol, name, price, spread_pips, max_leverage, trading_enabled) VALUES ('${m.symbol}', '${m.name.replace(/'/g, "''")}', ${m.price}, ${m.spreadPips}, ${m.maxLeverage}, ${m.tradingEnabled});`
+      );
     });
 
     return lines.join("\n");

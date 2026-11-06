@@ -8,7 +8,11 @@ export interface User {
   balance: number;
   equity: number;
   demoBalance: number;
-  kycStatus: "verified" | "pending" | "unverified";
+  kycStatus: "verified" | "pending" | "unverified" | "rejected";
+  kycTier?: "TIER_1_STANDARD" | "TIER_2_INSTITUTIONAL" | "TIER_3_UNLIMITED";
+  kycNotes?: string;
+  country?: string;
+  phone?: string;
   status: "active" | "suspended";
   createdAt: string;
 }
@@ -37,6 +41,7 @@ export interface Trade {
   status: TradeStatus;
   openedAt: string;
   closedAt?: string;
+  closeReason?: string;
 }
 
 export interface Transaction {
@@ -48,6 +53,48 @@ export interface Transaction {
   balanceAfter: number;
   note: string;
   timestamp: string;
+}
+
+export interface FundRequest {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  type: "DEPOSIT" | "WITHDRAWAL";
+  amount: number;
+  paymentMethod: "BANK_WIRE" | "CRYPTO_USDT" | "SEPA" | "INSTITUTIONAL_LEDGER";
+  txReference: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  createdAt: string;
+  reviewedAt?: string;
+  reviewNote?: string;
+}
+
+export interface ManagedMarketPair {
+  symbol: string;
+  name: string;
+  type: "forex" | "crypto" | "commodities";
+  price: number;
+  bid: number;
+  ask: number;
+  change24h: number;
+  high24h: number;
+  low24h: number;
+  volume24h: string;
+  spreadPips: number;
+  minLots: number;
+  maxLots: number;
+  maxLeverage: number;
+  tradingEnabled: boolean;
+}
+
+export interface PlatformBroadcast {
+  id: string;
+  title: string;
+  message: string;
+  severity: "info" | "warning" | "urgent";
+  active: boolean;
+  createdAt: string;
 }
 
 export interface Subscriber {
@@ -72,6 +119,9 @@ export interface PlatformSettings {
   spreadMultiplier: number;
   maintenanceMode: boolean;
   minDeposit: number;
+  allowNewRegistrations: boolean;
+  riskMode: "A_BOOK" | "B_BOOK" | "HYBRID";
+  autoLiquidationLevel: number; // e.g. 20%
 }
 
 export interface MarketPair {
