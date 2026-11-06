@@ -13,14 +13,14 @@ import {
   CheckCircle2,
   Clock,
   ArrowUpRight,
-  CandlestickChart,
-  ChevronRight,
   Database,
   Lock,
   ArrowRight,
   BarChart3,
   Globe2,
-  Server
+  Server,
+  Layers,
+  Sparkles
 } from "lucide-react";
 
 const COUNTDOWN_STORAGE_KEY = "fast_fx_countdown_target_15d";
@@ -79,10 +79,9 @@ interface LandingSectionProps {
 export const LandingSection: React.FC<LandingSectionProps> = ({
   lang,
   marketPairs = [],
-  onNavigateToTrading,
-  onSelectPairAndTrade
+  onNavigateToTrading
 }) => {
-  const { openAuthModal } = useAuth();
+  const { openAuthModal, isLoggedIn } = useAuth();
   const t = translations[lang];
   const isAr = lang === "ar";
 
@@ -160,11 +159,10 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
     return marketPairs;
   }, [marketPairs, marketTab]);
 
-  const handleTradeAction = (symbol: string) => {
-    if (onSelectPairAndTrade) {
-      onSelectPairAndTrade(symbol);
-    } else {
-      onNavigateToTrading();
+  const scrollToMarkets = () => {
+    const el = document.getElementById("live-markets-section");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
     }
   };
 
@@ -205,23 +203,33 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
               : "High-frequency multi-asset liquidity platform combining Forex, Cryptocurrencies, and Commodities with sub-millisecond execution and audited SQL relational settlement."}
           </p>
 
-          {/* Action CTAs */}
+          {/* Action CTAs (Exclusively Informative / Auth - No Direct Home Trade Placement) */}
           <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
             <button
-              onClick={onNavigateToTrading}
+              onClick={scrollToMarkets}
               className="px-6 py-3 rounded-lg font-semibold text-sm bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white shadow-lg shadow-sky-500/20 transition-all flex items-center gap-2 cursor-pointer"
             >
-              <CandlestickChart className="w-4 h-4" />
-              <span>{t.navTrade}</span>
+              <Activity className="w-4 h-4" />
+              <span>{isAr ? "استعراض أسعار السوق" : "Explore Market Quotes"}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
-            <button
-              onClick={() => openAuthModal("register")}
-              className="px-6 py-3 rounded-lg font-semibold text-sm bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-100 hover:text-white transition-all cursor-pointer"
-            >
-              {t.registerBtn}
-            </button>
+            {!isLoggedIn ? (
+              <button
+                onClick={() => openAuthModal("register")}
+                className="px-6 py-3 rounded-lg font-semibold text-sm bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-100 hover:text-white transition-all cursor-pointer flex items-center gap-2"
+              >
+                <Lock className="w-3.5 h-3.5 text-sky-400" />
+                <span>{isAr ? "فتح حساب تداول ممول" : "Open Funded Account"}</span>
+              </button>
+            ) : (
+              <button
+                onClick={onNavigateToTrading}
+                className="px-6 py-3 rounded-lg font-semibold text-sm bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-100 hover:text-white transition-all cursor-pointer"
+              >
+                <span>{isAr ? "الدخول إلى محطة التداول" : "Go to Trading Terminal"}</span>
+              </button>
+            )}
           </div>
 
           {/* 4 Key Institutional Trust Metrics Strip */}
@@ -342,19 +350,24 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
         </div>
       </section>
 
-      {/* 2. Institutional Live Markets Table */}
-      <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      {/* 2. Institutional Live Markets Table (Exclusively Informational - No Trade Execution on Home Page) */}
+      <section id="live-markets-section" className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="rounded-2xl bg-[#0c1322] border border-slate-800 p-5 sm:p-7 shadow-2xl">
           {/* Header & Filter Controls */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-800">
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                {isAr ? "أسواق التداول المؤسسية المباشرة" : "Live Institutional Markets"}
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                  {isAr ? "استعراض أسعار الأسواق اللحظية" : "Live Market Rate Feed"}
+                </h2>
+                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                  {isAr ? "للعرض فقط" : "READ ONLY"}
+                </span>
+              </div>
               <p className="text-xs text-slate-400 mt-1">
                 {isAr
-                  ? "أسعار مباشرة بنظام الدفتر المزدوج مع فوارق سعرية منخفضة وتداول فوري بنقرة واحدة"
-                  : "Streaming order book pricing, raw institution-grade spreads, and 1-click execution"}
+                  ? "أسعار مباشرة بنظام الدفتر المزدوج. فتح الصفقات متاح حصرياً داخل محطة التداول بعد تسجيل الدخول وتوفر رصيد بالحساب."
+                  : "Streaming order book pricing. Trade execution is strictly restricted to authenticated accounts with funded balance inside the Terminal."}
               </p>
             </div>
 
@@ -413,7 +426,7 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
             </div>
           </div>
 
-          {/* Table Data */}
+          {/* Table Data (Informative Only - No Row Clicks or Trade Buttons) */}
           <div className="overflow-x-auto mt-4">
             <table className="w-full text-left text-xs font-mono">
               <thead>
@@ -424,7 +437,7 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
                   <th className="pb-3 font-semibold hidden md:table-cell">{isAr ? "أعلى / أدنى 24س" : "24h High / Low"}</th>
                   <th className="pb-3 font-semibold hidden sm:table-cell">{t.marketVolume}</th>
                   <th className="pb-3 font-semibold hidden lg:table-cell">{isAr ? "المسار السعري (7D)" : "7D Trend"}</th>
-                  <th className="pb-3 font-semibold text-right">{t.actions}</th>
+                  <th className="pb-3 font-semibold text-right">{isAr ? "حالة السيولة" : "Liquidity Feed"}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
@@ -433,8 +446,7 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
                   return (
                     <tr
                       key={pair.symbol}
-                      onClick={() => handleTradeAction(pair.symbol)}
-                      className="hover:bg-slate-800/40 transition-colors cursor-pointer group"
+                      className="hover:bg-slate-800/30 transition-colors"
                     >
                       {/* Instrument Symbol & Full Name */}
                       <td className="py-4">
@@ -443,7 +455,7 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
                             {pair.symbol.slice(0, 3)}
                           </div>
                           <div>
-                            <div className="font-bold text-white text-sm group-hover:text-sky-400 transition-colors">
+                            <div className="font-bold text-white text-sm">
                               {pair.symbol}
                             </div>
                             <div className="text-[11px] text-slate-400 font-sans">{pair.name}</div>
@@ -491,24 +503,50 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
                         </svg>
                       </td>
 
-                      {/* Trade Button */}
+                      {/* Informative Liquidity Status (No Trade Execution on Home Page) */}
                       <td className="py-4 text-right">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleTradeAction(pair.symbol);
-                          }}
-                          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-200 border border-slate-700 hover:bg-sky-500 hover:text-white hover:border-sky-400 transition-all cursor-pointer inline-flex items-center gap-1.5"
-                        >
-                          <span>{t.tradeAction}</span>
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center justify-end gap-2 text-slate-400 text-xs font-mono">
+                          <span className="text-[11px] text-emerald-400 font-semibold tabular-nums">
+                            {pair.spreadPips} Pips
+                          </span>
+                          <span className="text-[10px] text-slate-500">·</span>
+                          <span className="text-[11px] text-slate-300">
+                            {isAr ? "مباشر" : "Live"}
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Institutional Compliance Notice at the bottom of the table */}
+          <div className="mt-4 pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 font-mono gap-2">
+            <div className="flex items-center gap-2">
+              <Lock className="w-3.5 h-3.5 text-sky-400" />
+              <span>
+                {isAr
+                  ? "فتح الصفقات يتطلب تسجيل الدخول ووجود رصيد متاح في الحساب (الحسابات ذات الرصيد صفر لا يمكنها فتح صفقات)"
+                  : "Opening positions requires an authenticated account with a funded balance (zero balance accounts cannot trade)"}
+              </span>
+            </div>
+            {!isLoggedIn ? (
+              <button
+                onClick={() => openAuthModal("login")}
+                className="text-sky-400 hover:text-sky-300 font-bold transition-colors cursor-pointer"
+              >
+                {isAr ? "تسجيل الدخول للمتابعة ←" : "Sign In to Trade ←"}
+              </button>
+            ) : (
+              <button
+                onClick={onNavigateToTrading}
+                className="text-sky-400 hover:text-sky-300 font-bold transition-colors cursor-pointer"
+              >
+                {isAr ? "الانتقال إلى محطة التداول ←" : "Open Trading Terminal ←"}
+              </button>
+            )}
           </div>
         </div>
       </section>

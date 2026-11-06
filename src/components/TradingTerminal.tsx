@@ -23,7 +23,13 @@ import {
   SlidersHorizontal,
   History,
   FileText,
-  Sliders
+  Sliders,
+  Lock,
+  Wallet,
+  X,
+  CreditCard,
+  Building2,
+  ArrowRight
 } from "lucide-react";
 
 interface TradingTerminalProps {
@@ -69,6 +75,12 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
   const [takeProfit, setTakeProfit] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [execMessage, setExecMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+
+  // Deposit modal state for funding zero-balance accounts
+  const [showDepositModal, setShowDepositModal] = useState<boolean>(false);
+  const [depositAmountInput, setDepositAmountInput] = useState<string>("5000");
+  const [depositMethodInput, setDepositMethodInput] = useState<string>("BANK_WIRE");
+  const [depositSuccessMsg, setDepositSuccessMsg] = useState<string | null>(null);
 
   // Bottom Workstation Tab
   const [activeBottomTab, setActiveBottomTab] = useState<"positions" | "history" | "ledger">("positions");
@@ -252,16 +264,38 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
     return Number((currentUser.balance / unitPrice).toFixed(2));
   }, [currentUser, activePair.price, leverage]);
 
-  // Execute Trade Handler
+  // Execute Trade Handler (STRICTLY enforces login and positive balance)
   const handleExecuteTrade = () => {
-    if (!currentUser) {
+    // Condition 1: Must be logged in
+    if (!currentUser || !isLoggedIn) {
+      setExecMessage({
+        text: isAr
+          ? "يجب تسجيل الدخول أو فتح حساب متداول أولاً قبل فتح أي صفقة"
+          : "Please sign in or register an account before opening a trade",
+        type: "error"
+      });
       openAuthModal("login");
       return;
     }
 
+    // Condition 2: Account balance must be strictly > 0 (الحساب الذي رصيده صفر لا يستطيع فتح اي صفقة)
+    if (currentUser.balance <= 0) {
+      setExecMessage({
+        text: isAr
+          ? "عذراً، لا يمكنك فتح أي صفقة لأن رصيد حسابك صفر ($0.00). يجب شحن رصيد أولاً."
+          : "Trade blocked: Your account balance is zero ($0.00). You must deposit funds to trade.",
+        type: "error"
+      });
+      setShowDepositModal(true);
+      return;
+    }
+
+    // Condition 3: Sufficient margin coverage
     if (currentUser.balance < requiredMargin) {
       setExecMessage({
-        text: isAr ? "رصيد الحساب غير كافٍ لتغطية الهامش المطلوب" : "Insufficient account balance for required margin",
+        text: isAr
+          ? `رصيد الحساب ($${currentUser.balance.toFixed(2)}) غير كافٍ لتغطية الهامش المطلوب ($${requiredMargin.toFixed(2)})`
+          : `Insufficient account balance ($${currentUser.balance.toFixed(2)}) for required margin ($${requiredMargin.toFixed(2)})`,
         type: "error"
       });
       return;
@@ -319,6 +353,37 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
     sqlDb.closeTrade(trade.id, closeP, trade.pnl);
     loadTrades();
     refreshUser();
+  };
+
+  // Instant Deposit Submission (To fund zero-balance accounts)
+  const handleConfirmDeposit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) {
+      openAuthModal("login");
+      return;
+    }
+
+    const amount = parseFloat(depositAmountInput);
+    if (isNaN(amount) || amount <= 0) return;
+
+    sqlDb.updateUserBalance(
+      currentUser.id,
+      currentUser.balance + amount,
+      `Online Deposit via ${depositMethodInput}`
+    );
+
+    refreshUser();
+    loadTrades();
+    setDepositSuccessMsg(
+      isAr
+        ? `تم شحن رصيد حسابك بنجاح بمبلغ $${amount.toLocaleString()}! يمكنك الآن فتح الصفقات.`
+        : `Successfully funded account with $${amount.toLocaleString()}! You can now open positions.`
+    );
+
+    setTimeout(() => {
+      setDepositSuccessMsg(null);
+      setShowDepositModal(false);
+    }, 1800);
   };
 
   const openPositions = userTrades.filter((t) => t.status === "OPEN");
@@ -429,7 +494,7 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
           </div>
         </div>
 
-        {/* Right Stats Tickers */}
+        {/* Right Stats Tickers & Quick Deposit CTA */}
         <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs font-mono">
           <div>
             <div className="text-[10px] text-slate-400 uppercase">24h High</div>
@@ -447,9 +512,30 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
             <div className="text-[10px] text-slate-400 uppercase">24h Volume</div>
             <div className="text-slate-200 font-bold tabular-nums">{activePair.volume24h}</div>
           </div>
-          <div className="hidden md:block">
-            <div className="text-[10px] text-slate-400 uppercase">{t.fundingRateLabel}</div>
-            <div className="text-emerald-400 font-bold tabular-nums">0.0100% / 03:22:15</div>
+
+          {/* Account Balance Widget */}
+          <div className="pl-3 border-l border-slate-800">
+            <div className="text-[10px] text-slate-400 uppercase">{t.balanceLabel}</div>
+            <div className="flex items-center gap-2">
+              <span
+                className={`font-bold tabular-nums ${
+                  currentUser && currentUser.balance > 0 ? "text-emerald-400" : "text-rose-400"
+                }`}
+              >
+                ${currentUser ? currentUser.balance.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "0.00"}
+              </span>
+              {(!currentUser || currentUser.balance <= 0) && (
+                <button
+                  onClick={() => {
+                    if (!currentUser) openAuthModal("login");
+                    else setShowDepositModal(true);
+                  }}
+                  className="px-2 py-0.5 rounded text-[10px] font-sans font-bold bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition-colors cursor-pointer"
+                >
+                  {isAr ? "إيداع" : "Deposit"}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -742,6 +828,7 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
         </div>
 
         {/* Right Area: Institutional Order Ticket (3 cols) */}
+        {/* STRICT CONDITION: Must be logged in + balance must be > 0 */}
         <div className="lg:col-span-3 bg-[#0c1322] border border-slate-800 rounded-xl p-4 space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between pb-3 border-b border-slate-800">
@@ -915,7 +1002,11 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
             </div>
             <div className="flex justify-between text-slate-400">
               <span>{t.freeMarginLabel}:</span>
-              <span className="text-emerald-400 font-bold tabular-nums">
+              <span
+                className={`font-bold tabular-nums ${
+                  currentUser && currentUser.balance > 0 ? "text-emerald-400" : "text-rose-400"
+                }`}
+              >
                 ${currentUser ? Math.max(0, currentUser.balance - requiredMargin).toLocaleString(undefined, { minimumFractionDigits: 2 }) : "0.00"}
               </span>
             </div>
@@ -925,35 +1016,97 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
             </div>
           </div>
 
-          {/* Error / Success Feedback */}
+          {/* Execution Feedback Toast / Alert */}
           {execMessage && (
             <div
-              className={`p-2 rounded text-xs flex items-center gap-1.5 font-mono ${
+              className={`p-2.5 rounded-lg text-xs flex items-center gap-2 font-mono ${
                 execMessage.type === "success"
-                  ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
-                  : "bg-rose-500/10 border border-rose-500/30 text-rose-400"
+                  ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-300"
+                  : "bg-rose-500/15 border border-rose-500/30 text-rose-300"
               }`}
             >
-              {execMessage.type === "success" ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
+              {execMessage.type === "success" ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
               <span>{execMessage.text}</span>
             </div>
           )}
 
-          {/* Order Execution Action Button */}
-          <button
-            type="button"
-            onClick={handleExecuteTrade}
-            disabled={isSubmitting}
-            className={`w-full py-3 px-4 rounded-lg font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-lg ${
-              orderSide === "BUY"
-                ? "bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20"
-                : "bg-rose-500 hover:bg-rose-400 text-white shadow-rose-500/20"
-            }`}
-          >
-            {isSubmitting
-              ? isAr ? "جاري الإرسال إلى SQL..." : "Routing to SQL engine..."
-              : `${orderSide} ${lots} Lots ${activePair.symbol}`}
-          </button>
+          {/* 
+            STRICT TRADING PREREQUISITES LOGIC:
+            1. User must be logged in.
+            2. Account balance must be > 0.
+            3. Balance must cover required margin.
+          */}
+          {!currentUser || !isLoggedIn ? (
+            /* Case 1: NOT LOGGED IN */
+            <div className="space-y-2">
+              <div className="p-3 rounded-lg bg-sky-500/10 border border-sky-500/20 text-xs text-slate-300 flex items-start gap-2">
+                <Lock className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  {isAr
+                    ? "فتح الصفقات يتطلب تسجيل الدخول بحساب متداول موثق وشحن رصيد مالي."
+                    : "Opening positions requires an authenticated trading account with funded balance."}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => openAuthModal("login")}
+                className="w-full py-3.5 px-4 rounded-lg font-bold text-xs uppercase tracking-wider bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white transition-all cursor-pointer shadow-lg shadow-sky-500/20 flex items-center justify-center gap-2"
+              >
+                <Lock className="w-4 h-4" />
+                <span>{isAr ? "تسجيل الدخول أو فتح حساب لفتح الصفقات" : "Sign In or Register to Trade"}</span>
+              </button>
+            </div>
+          ) : currentUser.balance <= 0 ? (
+            /* Case 2: LOGGED IN BUT ZERO BALANCE (الحساب الذي رصيده صفر لا يستطيع فتح اي صفقة) */
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-sans space-y-2">
+                <div className="flex items-center gap-2 font-bold text-rose-400">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{isAr ? "رصيد الحساب صفر ($0.00) - التداول معطل" : "Account Balance is $0.00 - Trading Disabled"}</span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                  {isAr
+                    ? "وفقاً لقواعد التداول، الحساب الذي رصيده صفر لا يستطيع فتح أي صفقة. يجب إيداع رصيد مالي في حسابك أولاً لتفعيل إمكانية تنفيذ الأوامر."
+                    : "Per platform trading rules, accounts with zero balance cannot open any positions. Please fund your account to unlock execution."}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowDepositModal(true)}
+                  className="w-full py-2.5 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                >
+                  <Wallet className="w-3.5 h-3.5" />
+                  <span>{isAr ? "شحن رصيد الحساب الآن (إيداع فوري)" : "Deposit Funds to Account Now"}</span>
+                </button>
+              </div>
+
+              {/* Disabled Order Button */}
+              <button
+                type="button"
+                disabled
+                className="w-full py-3 px-4 rounded-lg font-bold text-xs uppercase tracking-wider bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Lock className="w-4 h-4" />
+                <span>{isAr ? "فتح الصفقة غير متاح (الرصيد $0.00)" : "Trade Locked (Balance $0.00)"}</span>
+              </button>
+            </div>
+          ) : (
+            /* Case 3: LOGGED IN WITH FUNDED BALANCE (> 0) */
+            <button
+              type="button"
+              onClick={handleExecuteTrade}
+              disabled={isSubmitting}
+              className={`w-full py-3 px-4 rounded-lg font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-lg ${
+                orderSide === "BUY"
+                  ? "bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20"
+                  : "bg-rose-500 hover:bg-rose-400 text-white shadow-rose-500/20"
+              }`}
+            >
+              {isSubmitting
+                ? isAr ? "جاري الإرسال إلى SQL..." : "Routing to SQL engine..."
+                : `${orderSide} ${lots} Lots ${activePair.symbol}`}
+            </button>
+          )}
         </div>
       </div>
 
@@ -1175,6 +1328,109 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
           </div>
         )}
       </div>
+
+      {/* --- QUICK DEPOSIT MODAL (To Fund Zero-Balance Accounts) --- */}
+      {showDepositModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-md bg-[#0c1322] border border-slate-700 rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-emerald-400" />
+                <h3 className="text-base font-bold text-white">
+                  {isAr ? "شحن رصيد الحساب (إيداع مالي)" : "Deposit Funds to Account"}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowDepositModal(false)}
+                className="text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300 font-sans leading-relaxed">
+              {isAr
+                ? "يجب أن يحتوي حسابك على رصيد مالي لتتمكن من فتح الصفقات في محطة التداول. اختر المبلغ وطريقة الإيداع للمتابعة:"
+                : "Your account must have an active balance to open positions in the terminal. Choose an amount and method below:"}
+            </p>
+
+            {depositSuccessMsg && (
+              <div className="p-3 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs rounded-xl flex items-center gap-2 font-mono">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>{depositSuccessMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleConfirmDeposit} className="space-y-4 text-xs font-sans">
+              {/* Quick Preset Amounts */}
+              <div>
+                <label className="block text-slate-400 mb-1.5 font-medium">{isAr ? "المبالغ المقترحة ($)" : "Quick Presets ($)"}</label>
+                <div className="grid grid-cols-4 gap-2 font-mono text-xs">
+                  {["1000", "5000", "10000", "50000"].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setDepositAmountInput(preset)}
+                      className={`py-2 rounded-lg border font-bold transition-all cursor-pointer ${
+                        depositAmountInput === preset
+                          ? "bg-emerald-500 text-slate-950 border-emerald-400"
+                          : "bg-slate-900 border-slate-700 text-slate-300 hover:text-white"
+                      }`}
+                    >
+                      ${parseInt(preset).toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom Amount Input */}
+              <div>
+                <label className="block text-slate-400 mb-1.5 font-medium">{isAr ? "المبلغ المخصص ($)" : "Custom Deposit Amount ($)"}</label>
+                <input
+                  type="number"
+                  step="100"
+                  min="50"
+                  value={depositAmountInput}
+                  onChange={(e) => setDepositAmountInput(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-2.5 font-mono text-sm focus:outline-none focus:border-emerald-400 tabular-nums"
+                  required
+                />
+              </div>
+
+              {/* Method Selection */}
+              <div>
+                <label className="block text-slate-400 mb-1.5 font-medium">{isAr ? "طريقة الإيداع" : "Deposit Method"}</label>
+                <select
+                  value={depositMethodInput}
+                  onChange={(e) => setDepositMethodInput(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-2.5 focus:outline-none font-mono"
+                >
+                  <option value="BANK_WIRE">Bank Wire Transfer (SWIFT / SEPA)</option>
+                  <option value="CRYPTO_USDT">USDT Tether (TRC20 / ERC20)</option>
+                  <option value="INSTITUTIONAL_LEDGER">Instant Institutional Prime Credit</option>
+                </select>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDepositModal(false)}
+                  className="px-4 py-2 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  {isAr ? "إلغاء" : "Cancel"}
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold transition-all cursor-pointer shadow-md flex items-center gap-2"
+                >
+                  <Wallet className="w-4 h-4" />
+                  <span>{isAr ? "تأكيد الإيداع وشحن الحساب" : "Confirm Deposit"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
