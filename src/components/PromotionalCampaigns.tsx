@@ -18,17 +18,19 @@ import {
   TrendingUp,
   Cpu,
   BarChart3,
-  Globe2
+  Globe2,
+  Coins,
+  Scale
 } from "lucide-react";
 
-// Generated professional images from AI Studio
+// Professional Forex Broker advertising imagery
 const PROMO_IMAGES = {
-  grandPrix: "/src/assets/images/promo_grand_prix_trading_1793964724719.jpg",
-  primeLiquidity: "/src/assets/images/promo_prime_liquidity_servers_1793964725040.jpg",
-  capitalSecurity: "/src/assets/images/promo_capital_security_vault_1793964725362.jpg",
-  webTerminal: "/src/assets/images/promo_mobile_web_terminal_1793964725882.jpg",
+  goldBullion: "/src/assets/images/forex_trading_gold_bullion_1794041068046.jpg",
+  forexTraderDesk: "/src/assets/images/forex_currency_trader_desk_1794041068635.jpg",
+  swapFreeIslamic: "/src/assets/images/forex_swap_free_islamic_1794041069028.jpg",
+  mobileForex: "/src/assets/images/forex_mobile_execution_lifestyle_1794041069776.jpg",
   bullMarket: "/src/assets/images/promo_forex_crypto_bull_1794040561899.jpg",
-  quantStation: "/src/assets/images/promo_algo_execution_charts_1794040561094.jpg"
+  grandPrix: "/src/assets/images/promo_grand_prix_trading_1793964724719.jpg"
 };
 
 export interface PromotionalCampaignsProps {
@@ -57,208 +59,169 @@ export const PromotionalCampaigns: React.FC<PromotionalCampaignsProps> = ({
 
   const campaigns = [
     {
-      id: "bull_market",
-      badge: isAr ? "سيولة الأسواق العالمية 2026" : "GLOBAL MARKET LIQUIDITY 2026",
+      id: "gold_and_forex",
+      badge: isAr ? "وساطة فوركس وذهب مؤسسية" : "INSTITUTIONAL FOREX & GOLD",
       title: isAr
-        ? "تداول العملات والذهب والعملات المشفرة بأعلى سيولة مصرفية وفروقات تبدأ من صفر نقطة"
-        : "Trade Forex, Gold & Crypto with Institutional Liquidity and 0.0 Pip Spreads",
+        ? "تداول الذهب والعملات الأجنبية بفروقات أسعار خام تبدأ من 0.0 نقطة وبدون عمولات خفية"
+        : "Trade Gold & Major Forex Pairs with Raw 0.0 Pip Spreads and Zero Hidden Fees",
       subtitle: isAr
-        ? "استفد من تحركات الأسواق الصاعدة والهابطة برافعة مالية مرنة تصل إلى 1:100 وبدون رسوم خفية"
-        : "Capture bull & bear market momentum with flexible 1:100 leverage and 100% transparent pricing",
+        ? "اربط حسابك مباشرة بسيولة البنوك الاستثمارية الكبرى في لندن مع رافعة مالية مرنة تصل إلى 1:100"
+        : "Direct interbank STP liquidity routing with up to 1:100 flexible institutional leverage",
       description: isAr
-        ? "منصة Fast FX توفر لك بوابة متطورة لتداول أكثر من 100 أصل مالي عالمي مع أسعار حية مباشرة من بنوك الاستثمار العالمية من الفئة الأولى، مدعومة بسجل تداول SQL علائقي دقيق."
-        : "Fast FX delivers direct access to over 100 global instruments with live institutional pricing sourced from top Tier-1 investment banks and committed directly to an immutable ACID SQL ledger.",
-      image: PROMO_IMAGES.bullMarket,
-      altText: "Fast FX Institutional Bull Market Liquidity and Financial Data Tickers",
+        ? "تقدم Fast FX بيئة تداول متطورة لأسواق العملات الأجنبية (الفوركس) وتداول سبائك الذهب XAU/USD والنفط، بأقل هوامش في السوق العالمي وتنفيذ فوري بدون غرفة مقاصة، مع حماية معتمدة لرأس المال."
+        : "Fast FX delivers pure institutional ECN/STP execution across major currency pairs and Gold bullion (XAU/USD). Direct pricing from Tier-1 liquidity providers with guaranteed negative balance protection.",
+      image: PROMO_IMAGES.goldBullion,
+      altText: "Pure Gold Bullion Bars and Real-Time Financial Forex Rates in Vault",
       metrics: [
-        { value: "0.0 Pips", label: isAr ? "أدنى فارق سعري" : "Raw Spread" },
-        { value: "100+", label: isAr ? "أصول للتداول المباشر" : "Tradeable Assets" },
+        { value: "0.0 Pips", label: isAr ? "أدنى فارق سعري خام" : "Raw Spread from" },
+        { value: "XAU/USD", label: isAr ? "تداول الذهب اللحظي" : "Gold Spot Bullion" },
         { value: "1:100", label: isAr ? "الرافعة المالية القصوى" : "Max Leverage" },
         { value: "100%", label: isAr ? "حماية الرصيد السلبي" : "Negative Protection" }
       ],
       perks: isAr
         ? [
-            "تداول الذهب، النفط، العملات الرئيسية والكريبتو",
-            "تنفيذ فوري بدون وسيط (STP/ECN)",
-            "أمان مالي كامل وعزل لأموال المتداولين"
+            "تداول فوري لسبائك الذهب XAU/USD وأكثر من 80 زوج عملات",
+            "تنفيذ بنظام STP المباشر دون غرفة مقاصة وبدون انزلاق سعري",
+            "حسابات ائتمانية مفصولة 100% في بنوك بريطانية كبرى"
           ]
         : [
-            "Trade Gold, Crude Oil, Major FX & Crypto",
-            "Direct STP/ECN non-dealing desk execution",
-            "Complete segregation of all client funds"
+            "Spot Gold (XAU/USD) & 80+ global currency pairs",
+            "100% Direct STP routing without dealing desk markups",
+            "Segregated client trust accounts in top British banks"
           ],
-      primaryCta: isAr ? "فتح حساب تداول ممول" : "Open Funded Trading Account",
+      primaryCta: isAr ? "فتح حساب فوركس ممول" : "Open Funded FX Account",
       primaryAction: onOpenRegister,
-      secondaryCta: isAr ? "استعراض أسعار السوق" : "Explore Live Prices",
+      secondaryCta: isAr ? "استعراض أسعار العملات الحية" : "Explore Currency Rates",
       secondaryAction: onScrollToMarkets,
-      accentBorder: "border-amber-500/40",
-      accentGlow: "from-amber-500/20 via-sky-500/10 to-transparent",
-      icon: TrendingUp
+      accentBorder: "border-amber-500/50",
+      accentGlow: "from-amber-500/25 via-yellow-500/10 to-transparent",
+      icon: Coins
     },
     {
-      id: "quant_terminal",
-      badge: isAr ? "محطة التحليل والتداول الخوارزمي" : "QUANTITATIVE ALGORITHMIC TRADING",
+      id: "swap_free_islamic",
+      badge: isAr ? "تداول إسلامي خالي من الربا 100%" : "100% SWAP-FREE ISLAMIC FOREX",
       title: isAr
-        ? "شاشات تداول ذكية وتحليلات بيانية حية مع عمق السوق الكامل من المستوى الثاني (L2)"
-        : "Smart Trading Screens & Real-Time Depth of Market with Level 2 Order Flow",
+        ? "حسابات فوركس إسلامية معتمدة خالية تماماً من فوائد التبييت (Swap-Free)"
+        : "Certified Sharia-Compliant Islamic Forex Accounts with Zero Overnight Swaps",
       subtitle: isAr
-        ? "بيئة تداول احترافية مصممة لخبراء التداول اليومي والسكالبينج والمستشارين الآليين (EAs)"
-        : "Engineered specifically for active day traders, high-frequency scalpers, and automated expert advisors",
+        ? "احتفظ بصفقاتك مفتوحة لأي فترة دون احتساب أي فوائد ربوية أو رسوم إضافية وبشفافية كاملة"
+        : "Hold overnight positions indefinitely with zero interest rollover charges and full pricing transparency",
       description: isAr
-        ? "احصل على رؤية عميقة لحركات الأسعار عبر رسوم الشموع اليابانية التفاعلية، ومؤشرات التحليل الفني، ودفتر الأوامر اللحظي مع إمكانية تحديد أوامر جني الأرباح ووقف الخسارة بدقة متناهية."
-        : "Gain superior market visibility with interactive Candlestick charting, technical indicators, and real-time streaming order books with precision take-profit and stop-loss brackets.",
-      image: PROMO_IMAGES.quantStation,
-      altText: "Canary Wharf Institutional Multi-Screen Quantitative Trading Workstation",
+        ? "صُممت حساباتنا الإسلامية خصيصاً للمتداولين في العالم العربي والشرق الأوسط وفقاً لأحكام الشريعة الإسلامية. لا توجد أي فوائد تبييت أو رسوم مخفية، مع الحفاظ على نفس الفروقات السعرية الضيقة والسرعة الفائقة."
+        : "Engineered specifically for traders requiring strict Sharia compliance. Enjoy unrestricted overnight holding without rollover interest, with identical raw spreads and institutional execution speed.",
+      image: PROMO_IMAGES.swapFreeIslamic,
+      altText: "Luxury Sharia-Compliant Private Banking Atrium Dubai DIFC",
       metrics: [
-        { value: "< 1.2ms", label: isAr ? "سرعة إرسال الأوامر" : "Routing Latency" },
-        { value: "L2 Depth", label: isAr ? "عمق السوق الحقيقي" : "Book Transparency" },
-        { value: "0 Slippage", label: isAr ? "انزلاق سعري منعدم" : "Zero Slippage" },
-        { value: "24/7", label: isAr ? "استقرار الخوادم" : "Platform Uptime" }
+        { value: "0.0% Swap", label: isAr ? "فوائد تبييت منعدمة" : "Zero Rollover Fees" },
+        { value: "100%", label: isAr ? "متوافق مع الشريعة" : "Sharia Compliant" },
+        { value: "Instant", label: isAr ? "تفعيل فوري للحساب" : "Instant Activation" },
+        { value: "0.0 Pips", label: isAr ? "نفس السبريد القياسي" : "Identical Raw Spreads" }
       ],
       perks: isAr
         ? [
-            "رسوم بيانية متقدمة متعددة الأطر الزمنية",
-            "دعم كامل للتداول الآلي والسكالبينج",
-            "تنفيذ بنقرة واحدة داخل محطة التداول"
+            "انعدام كامل لرسوم التبييت (Swap) على أزواج العملات والذهب",
+            "فروقات أسعار ضيقة مطابقة للحسابات القياسية دون فروق خفية",
+            "تفعيل فوري بنقرة واحدة لجميع المتداولين في الشرق الأوسط"
           ]
         : [
-            "Advanced multi-timeframe charting tools",
-            "Unrestricted scalping & algorithmic trading",
-            "One-click execution inside trading terminal"
+            "Zero overnight interest on all Forex and Commodity pairs",
+            "Identical tight institutional spreads without hidden markups",
+            "Instant one-click Islamic account activation for Middle East traders"
           ],
-      primaryCta: isAr ? "الدخول إلى محطة التداول" : "Launch Trading Terminal",
+      primaryCta: isAr ? "فتح حساب إسلامي خالي من الفوائد" : "Open Islamic Swap-Free Account",
+      primaryAction: onOpenRegister,
+      secondaryCta: isAr ? "قراءة شروط الحساب الإسلامي" : "View Islamic Terms",
+      secondaryAction: onScrollToMarkets,
+      accentBorder: "border-emerald-500/50",
+      accentGlow: "from-emerald-500/25 via-teal-500/10 to-transparent",
+      icon: Scale
+    },
+    {
+      id: "london_equinix_exec",
+      badge: isAr ? "سرعة تنفيذ الألياف الضوئية لندن" : "LONDON EQUINIX LD4 FIBER SPEED",
+      title: isAr
+        ? "سرعة تنفيذ صفقات دون 1.2 ملي ثانية لخبراء السكالبينج والتداول الخوارزمي"
+        : "Sub-1.2ms Execution Latency Engineered for High-Frequency FX Scalpers & EAs",
+      subtitle: isAr
+        ? "اتصال فايبر مباشر بمركز بيانات Equinix لندن لضمان انعدام الانزلاق السعري وإعادة التسعير"
+        : "Direct optical cross-connects to global investment bank liquidity pools with zero re-quotes",
+      description: isAr
+        ? "تمتع بميزة السرعة التنافسية؛ خوادمنا موصولة مباشرة بأكبر مجمعات السيولة المصرفية العالمية في لندن، مما يمنحك سرعة استجابة مذهلة في فتح وإغلاق الصفقات، ودعماً كاملاً للسكالبينج والتداول الآلي."
+        : "Gain the speed edge with co-located matching engines inside Equinix London LD4. Sub-millisecond execution minimizes slippage and delivers pure execution stability for high-volume traders.",
+      image: PROMO_IMAGES.forexTraderDesk,
+      altText: "Executive Forex Trader Station in London with Curved Ultrawide Monitors",
+      metrics: [
+        { value: "1.18ms", label: isAr ? "متوسط سرعة التنفيذ" : "Average Fill Speed" },
+        { value: "0 Re-Quotes", label: isAr ? "انعدام إعادة التسعير" : "Zero Re-Quotes" },
+        { value: "99.99%", label: isAr ? "جاهزية الخوادم السحابية" : "Server Uptime" },
+        { value: "Direct ECN", label: isAr ? "اتصال مصرفي فوري" : "Direct Interbank" }
+      ],
+      perks: isAr
+        ? [
+            "دعم كامل للسكالبينج السريع والمستشارين الخبراء (EAs)",
+            "انعدام إعادة التسعير تماماً بفضل محرك المطابقة الذكي",
+            "عمق سوق كامل من المستوى الثاني L2 مع تدفق لحظي للأسعار"
+          ]
+        : [
+            "Unrestricted scalping, hedging & automated expert advisors",
+            "Zero re-quotes policy with smart liquidity aggregation",
+            "Full Level-2 order book market depth with real-time ticks"
+          ],
+      primaryCta: isAr ? "بدء التداول السريع" : "Start Low-Latency Trading",
       primaryAction: onNavigateToTrading,
-      secondaryCta: isAr ? "استعراض الأصول المتاحة" : "Browse Instruments",
+      secondaryCta: isAr ? "استعراض أزواج الفوركس" : "Browse FX Currency Pairs",
       secondaryAction: onScrollToMarkets,
-      accentBorder: "border-sky-500/40",
-      accentGlow: "from-sky-500/20 via-cyan-500/10 to-transparent",
-      icon: BarChart3
-    },
-    {
-      id: "grand_prix",
-      badge: isAr ? "البطولة المؤسسية الكبرى 2026" : "2026 GLOBAL TRADING GRAND PRIX",
-      title: isAr
-        ? "جوائز نقدية كبرى بقيمة 250,000$ في بطولة التداول العالمية الكبرى"
-        : "$250,000 Grand Prize Pool · Global Institutional Trading Championship",
-      subtitle: isAr
-        ? "تنافس مع نخبة المتداولين المؤسسيين في بيئة تداول حقيقية بأقل فروقات سعرية خام تبدأ من 0.0 نقطة"
-        : "Compete with elite global traders in ultra-low latency real execution with 0.0 pip raw spreads",
-      description: isAr
-        ? "انضم إلى أكبر تحدٍ سنوي في عالم الأسواق المالية. تُكافأ أفضل الاستراتيجيات بعوائد نقدية حقيقية مودعة مباشرة في رصيد الحساب الموثق مع سجلات تدقيق شفافة عبر قاعدة بيانات SQL."
-        : "Participate in our premier annual trading championship. Top algorithmic and discretionary traders earn direct withdrawable cash rewards deposited into verified accounts.",
-      image: PROMO_IMAGES.grandPrix,
-      altText: "Fast FX London Institutional Trading Floor Grand Prix",
-      metrics: [
-        { value: "$250,000", label: isAr ? "إجمالي الجوائز النقدية" : "Total Cash Pool" },
-        { value: "0.0 Pips", label: isAr ? "فروقات الأسعار للمشاركين" : "Raw Spread" },
-        { value: "1:100", label: isAr ? "الرافعة المالية القصوى" : "Max Leverage" },
-        { value: "15 Days", label: isAr ? "متبقي على انطلاق الجولة" : "Launch Countdown" }
-      ],
-      perks: isAr
-        ? [
-            "جوائز نقدية فورية قابلة للسحب دون قيود",
-            "بيئة تداول ECN حقيقية موصولة بـ Equinix LD4",
-            "لوحة متصدرين حية ومحدثة كل ثانية"
-          ]
-        : [
-            "Immediate withdrawable cash rewards without restrictions",
-            "True ECN direct market access via Equinix LD4 London",
-            "Real-time transparent live leaderboard"
-          ],
-      primaryCta: isAr ? "حجز مقعد في البطولة مجاناً" : "Register for Grand Prix Free",
-      primaryAction: onScrollToCountdown,
-      secondaryCta: isAr ? "استعراض تفاصيل المسابقة" : "View Competition Details",
-      secondaryAction: onScrollToCountdown,
-      accentBorder: "border-emerald-500/40",
-      accentGlow: "from-emerald-500/20 via-teal-500/10 to-transparent",
-      icon: Trophy
-    },
-    {
-      id: "prime_liquidity",
-      badge: isAr ? "بنية الألياف الضوئية لندن LD4" : "LONDON EQUINIX LD4 ULTRA FIBER",
-      title: isAr
-        ? "تنفيذ صفقات فائق السرعة دون 1.2 ملي ثانية مع سيولة بنكية مباشرة"
-        : "Sub-1.2ms Ultra-Low Latency Execution with Direct Tier-1 Bank Feeds",
-      subtitle: isAr
-        ? "اتصال فايبر مباشر مع كبرى البنوك العالمية بدون غرفة مقاصة وبدون انزلاق سعري"
-        : "Direct optical cross-connect with global tier-1 investment banks without dealing desk or re-quotes",
-      description: isAr
-        ? "احصل على أفضل أسعار البيع والشراء لحظياً من خلال تجميع السيولة الذكية متعددة المصادر. بنية مهيأة للمتداولين النشطين ومستشاري التداول الخوارزمي (EAs) والسكالبينج السريع."
-        : "Direct optical cross-connect to Tier-1 liquidity providers in London Equinix LD4. Zero dealing desk interference, zero markups, and pure institutional market depth.",
-      image: PROMO_IMAGES.primeLiquidity,
-      altText: "Equinix LD4 London Tier-4 Datacenter Ultra Low Latency Trading Servers",
-      metrics: [
-        { value: "1.18ms", label: isAr ? "متوسط سرعة التنفيذ الفعلي" : "Average Execution" },
-        { value: "99.999%", label: isAr ? "جاهزية الخوادم السحابية" : "Equinix Uptime" },
-        { value: "18+ Banks", label: isAr ? "مزودي السيولة من الفئة الأولى" : "Tier-1 Prime Banks" },
-        { value: "0 Re-quotes", label: isAr ? "انعدام إعادة التسعير تماماً" : "Zero Re-Quotes" }
-      ],
-      perks: isAr
-        ? [
-            "تنفيذ فوري بنظام STP/ECN المباشر",
-            "خوادم فائقة الاستجابة في Equinix لندن",
-            "دعم كامل للسكالبينج والتداول الخوارزمي"
-          ]
-        : [
-            "100% Direct STP/ECN Execution",
-            "Equinix LD4 London co-located fiber architecture",
-            "Unrestricted scalping & automated algorithmic trading"
-          ],
-      primaryCta: isAr ? "فتح حساب تداول فائق السرعة" : "Open Ultra-Fast Account",
-      primaryAction: onOpenRegister,
-      secondaryCta: isAr ? "استعراض الأسعار اللحظية" : "Check Live Rates",
-      secondaryAction: onScrollToMarkets,
-      accentBorder: "border-sky-500/40",
-      accentGlow: "from-sky-500/20 via-cyan-500/10 to-transparent",
+      accentBorder: "border-sky-500/50",
+      accentGlow: "from-sky-500/25 via-blue-500/10 to-transparent",
       icon: Zap
     },
     {
-      id: "capital_protection",
-      badge: isAr ? "أمان مصرفي بريطاني معتمد" : "BRITISH TIER-1 BANKING CUSTODY",
+      id: "mobile_web_fx",
+      badge: isAr ? "تطبيق تداول الفوركس الذكي" : "SMART MOBILE & WEB FX SUITE",
       title: isAr
-        ? "حسابات ائتمانية مفصولة 100% وحماية كاملة من الرصيد السلبي"
-        : "100% Segregated Trust Accounts with Negative Balance Protection",
+        ? "تحكم كامل بصفقات العملات ومحفظتك من هاتفك الذكي وحاسوبك بأعلى درجات المرونة"
+        : "Total Portfolio Control & Real-Time Forex Trading Across Mobile & Desktop",
       subtitle: isAr
-        ? "أموالك مودعة في بنوك بريطانية كبرى مع سجل تدقيق SQL علائقي غير قابل للتلاعب"
-        : "Your capital is held in segregated tier-1 British accounts, audited in real time via ACID SQL ledger",
+        ? "منصة سحابية متطورة تتيح فتح وإدارة الصفقات دون الحاجة لتحميل برامج مع إدارة مخاطر ذكية"
+        : "Zero-install web terminal with real-time candlestick charts, TP/SL brackets and instant deposit",
       description: isAr
-        ? "نلتزم بأعلى معايير الحوكمة المالية المؤسسية. أموال عملائنا معزولة تماماً عن أصول الشركة التشغيلية، ومؤمنة بالكامل مع استرداد فوري وتدقيق مستمر لنسب الاحتياطي."
-        : "We enforce strict institutional custody standards. Client funds are fully segregated from company operating capital with independent real-time solvency audits.",
-      image: PROMO_IMAGES.capitalSecurity,
-      altText: "Fast FX Institutional Private Vault Asset Custody and Security",
+        ? "راقب صفقاتك المفتوحة، تحركات أزواج العملات، وأرصدة محفظتك لحظة بلحظة. واجهة سريعة الاستجابة مصممة لتمنح المتداول تحكماً كاملاً بأوامر السوق والأوامر المعلقة من أي مكان في العالم."
+        : "Experience frictionless currency trading with intuitive position management, live tick charts, and instant multi-channel account funding on any smartphone, tablet, or desktop browser.",
+      image: PROMO_IMAGES.mobileForex,
+      altText: "Executive Monitoring Real-Time Forex Trading on Smartphone in London Office",
       metrics: [
-        { value: "100%", label: isAr ? "نسبة عزل أموال المتداولين" : "Segregation Ratio" },
-        { value: "1:1 Backed", label: isAr ? "احتياطيات نقدية حقيقية" : "Verified Reserves" },
-        { value: "256-Bit", label: isAr ? "تشفير سجلات SQL" : "Audit Encryption" },
-        { value: "Instant", label: isAr ? "معالجة طلبات السحب" : "Withdrawal SLA" }
+        { value: "Zero Install", label: isAr ? "يعمل مباشرة في المتصفح" : "Browser Native" },
+        { value: "< 50ms", label: isAr ? "استجابة الواجهة الفورية" : "UI Latency" },
+        { value: "80+ Pairs", label: isAr ? "أزواج عملات ومعادن" : "Forex & Metals" },
+        { value: "Instant", label: isAr ? "إيداع وسحب فوري" : "Instant Cashier" }
       ],
       perks: isAr
         ? [
-            "حسابات بنكية بريطانية مفصولة للمتداولين",
-            "حماية آلية متقدمة من الرصيد السلبي",
-            "سحب وإيداع فوري عبر عدة قنوات آمنة"
+            "شارت تفاعلي لحظي للشموع اليابانية مع مؤشرات فنية دقيقة",
+            "إيداع وسحب فوري متعدد القنوات (حوالة بنكية، USDT، بطاقات)",
+            "حماية آلية متقدمة من الرصيد السلبي لجميع المتداولين"
           ]
         : [
-            "Segregated client accounts in top UK banks",
-            "Automated negative balance protection",
-            "Instant multi-channel deposits and withdrawals"
+            "Interactive candlestick charting with live technical indicators",
+            "Instant multi-channel deposits and withdrawals (Wire, USDT)",
+            "Automated negative balance protection on all accounts"
           ],
-      primaryCta: isAr ? "سجل حسابك الموثق بأمان" : "Open Verified Protected Account",
-      primaryAction: onOpenRegister,
-      secondaryCta: isAr ? "قراءة معايير الأمان المصرفي" : "Read Security Standards",
+      primaryCta: isAr ? "دخول محطة التداول" : "Launch Trading Terminal",
+      primaryAction: onNavigateToTrading,
+      secondaryCta: isAr ? "استعراض الأسعار" : "Check Live Rates",
       secondaryAction: onScrollToMarkets,
-      accentBorder: "border-indigo-500/40",
-      accentGlow: "from-indigo-500/20 via-teal-500/10 to-transparent",
-      icon: Shield
+      accentBorder: "border-amber-400/50",
+      accentGlow: "from-amber-400/25 via-yellow-400/10 to-transparent",
+      icon: Smartphone
     }
   ];
 
-  // Auto-advance slideshow every 7 seconds unless hovered/paused
+  // Auto-advance slideshow every 7.5 seconds unless hovered/paused
   useEffect(() => {
     if (isPaused) return;
     const interval = setInterval(() => {
       setActiveSlide((prev) => (prev + 1) % campaigns.length);
-    }, 7000);
+    }, 7500);
     return () => clearInterval(interval);
   }, [isPaused, campaigns.length]);
 
@@ -272,42 +235,42 @@ export const PromotionalCampaigns: React.FC<PromotionalCampaignsProps> = ({
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Faint Heartbeat Ambient Aura behind advertising campaigns */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] bg-gradient-to-r from-sky-500/10 via-rose-500/10 to-amber-500/10 rounded-full blur-3xl pointer-events-none animate-heartbeat-glow -z-10" />
+      {/* Subtle Heartbeat Ambient Glow behind Forex campaigns */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[450px] bg-gradient-to-r from-amber-500/12 via-yellow-500/8 to-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-faint-bg-pulse -z-10" />
 
       {/* Section Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
         <div>
-          <div className="flex items-center gap-2 text-xs font-mono font-semibold tracking-wider text-sky-400 uppercase mb-2">
-            <span>OFFICIAL CAMPAIGNS & FINANCIAL PROMOTIONS</span>
-            <span aria-hidden="true" className="text-slate-600">·</span>
+          <div className="flex items-center gap-2 text-xs font-mono font-semibold tracking-wider text-amber-400 uppercase mb-2">
+            <span>PREMIER FOREX BROKERAGE ADVANTAGES</span>
+            <span aria-hidden="true" className="text-amber-600">·</span>
             <span>FAST FX 2026</span>
           </div>
           <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-            {isAr ? "عروض وحملات التداول المالي المؤسسي" : "Institutional Financial Trading Campaigns"}
+            {isAr ? "عروض وحملات شركة وساطة الفوركس الرائدة" : "Leading Forex Brokerage Campaigns & Offers"}
           </h2>
-          <p className="text-xs sm:text-sm text-slate-400 mt-2 max-w-2xl">
+          <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-2xl font-sans">
             {isAr
-              ? "استكشف أحدث المبادرات التنافسية، وحوافز السيولة المصرفية، وبنية الأمان فائقة السرعة المعتمدة دولياً."
-              : "Explore our flagship trading grand prix, zero-spread liquidity incentives, and verified institutional custody architecture."}
+              ? "فروقات أسعار خام تبدأ من 0.0 نقطة، وحسابات إسلامية خالية تماماً من التبييت، وسيولة بنكية مباشرة من كبرى البنوك العالمية."
+              : "Institutional raw spreads from 0.0 pips, 100% swap-free Islamic trading accounts, and direct Tier-1 bank execution."}
           </p>
         </div>
 
-        {/* Slide Selector Buttons (Tabs) */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800 self-start md:self-auto overflow-x-auto no-scrollbar max-w-full">
+        {/* Campaign Tabs */}
+        <div className="flex items-center gap-1.5 p-1 bg-[#121622] rounded-xl border border-amber-500/20 self-start md:self-auto overflow-x-auto no-scrollbar max-w-full shadow-lg">
           {campaigns.map((camp, idx) => {
             const Icon = camp.icon;
             return (
               <button
                 key={camp.id}
                 onClick={() => setActiveSlide(idx)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                   activeSlide === idx
-                    ? "bg-slate-800 text-white shadow-sm font-bold border border-slate-700"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800/40"
+                    ? "bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold shadow-md shadow-amber-500/20"
+                    : "text-slate-300 hover:text-white hover:bg-slate-800/50"
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${activeSlide === idx ? "text-sky-400" : "text-slate-500"}`} />
+                <Icon className={`w-3.5 h-3.5 ${activeSlide === idx ? "text-slate-950" : "text-amber-400"}`} />
                 <span className="hidden sm:inline">0{idx + 1}.</span>
                 <span>{camp.badge.split("·")[0]}</span>
               </button>
@@ -316,51 +279,51 @@ export const PromotionalCampaigns: React.FC<PromotionalCampaignsProps> = ({
         </div>
       </div>
 
-      {/* Main Spotlight Promotional Feature Card (Marquee Banner with High-Fidelity Photo) */}
-      <div className={`relative rounded-3xl bg-[#0c1322] border ${current.accentBorder} overflow-hidden shadow-2xl transition-all duration-500`}>
-        {/* Ambient Top Glow Line */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-500 via-amber-400 to-emerald-400" />
+      {/* Main Feature Marquee Card with Golden Accents */}
+      <div className={`relative rounded-3xl bg-[#0f131d] border ${current.accentBorder} overflow-hidden shadow-2xl transition-all duration-500`}>
+        {/* Top Gold & Amber Highlight Edge */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-yellow-400 to-emerald-400" />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch min-h-[500px]">
-          {/* Left Column (Content & Ad Copy): 7 Cols */}
+          {/* Left Column (Forex Ad Copy): 7 Cols */}
           <div className="lg:col-span-7 p-6 sm:p-10 lg:p-12 flex flex-col justify-between z-10 space-y-6">
             <div className="space-y-4">
-              {/* Campaign Category & Trust Markers (Zero-Pill Discipline) */}
+              {/* Category & Badge (Zero-Pill) */}
               <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-slate-400 tracking-wide">
                 <span className="text-amber-400 font-bold flex items-center gap-1.5">
                   <CurrentIcon className="w-4 h-4" />
                   {current.badge}
                 </span>
                 <span aria-hidden="true" className="text-slate-700">·</span>
-                <span>FAST FX GLOBAL</span>
+                <span className="text-slate-300">FAST FX INSTITUTIONAL</span>
                 <span aria-hidden="true" className="text-slate-700">·</span>
-                <span className="text-emerald-400 font-semibold">{isAr ? "عرض تداول نشط" : "LIVE CAMPAIGN"}</span>
+                <span className="text-emerald-400 font-semibold">{isAr ? "عرض نشط الآن" : "ACTIVE OFFER"}</span>
               </div>
 
-              {/* Headline */}
+              {/* Main Headline */}
               <h3
-                className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-snug"
+                className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-snug font-sans"
                 style={{ textWrap: "balance" }}
               >
                 {current.title}
               </h3>
 
-              {/* Sub-headline */}
-              <p className="text-sm sm:text-base font-medium text-sky-300 leading-relaxed">
+              {/* Sub-headline in Warm Amber */}
+              <p className="text-sm sm:text-base font-medium text-amber-300/90 leading-relaxed font-sans">
                 {current.subtitle}
               </p>
 
-              {/* Long Description Copy */}
+              {/* Ad Description */}
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
                 {current.description}
               </p>
 
-              {/* Key Highlights / Perks */}
+              {/* Forex Perks */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
                 {current.perks.map((perk, i) => (
                   <div
                     key={i}
-                    className="flex items-start gap-2 text-xs text-slate-200 bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl"
+                    className="flex items-start gap-2 text-xs text-slate-200 bg-[#161c2b] border border-slate-800 p-2.5 rounded-xl shadow-sm"
                   >
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                     <span className="leading-tight">{perk}</span>
@@ -369,22 +332,22 @@ export const PromotionalCampaigns: React.FC<PromotionalCampaignsProps> = ({
               </div>
             </div>
 
-            {/* 4 Quantitative Proof Metrics Strip */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-800/80 font-mono">
+            {/* 4 Performance Metric Indicators */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-800 font-mono">
               {current.metrics.map((m, idx) => (
-                <div key={idx} className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/60">
-                  <div className="text-lg sm:text-xl font-black text-white tabular-nums">{m.value}</div>
+                <div key={idx} className="bg-[#141926] p-2.5 rounded-xl border border-slate-800/80">
+                  <div className="text-lg sm:text-xl font-black text-amber-400 tabular-nums">{m.value}</div>
                   <div className="text-[11px] text-slate-400 font-sans mt-0.5">{m.label}</div>
                 </div>
               ))}
             </div>
 
-            {/* Action Buttons */}
+            {/* Call To Action Buttons */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
                 type="button"
                 onClick={current.primaryAction}
-                className="px-6 py-3 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white shadow-lg shadow-sky-500/25 transition-all flex items-center gap-2 cursor-pointer"
+                className="px-6 py-3 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-lg shadow-amber-500/25 transition-all flex items-center gap-2 cursor-pointer font-sans"
               >
                 <span>{current.primaryCta}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -393,18 +356,18 @@ export const PromotionalCampaigns: React.FC<PromotionalCampaignsProps> = ({
               <button
                 type="button"
                 onClick={current.secondaryAction}
-                className="px-5 py-3 rounded-xl font-semibold text-xs sm:text-sm bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-2"
+                className="px-5 py-3 rounded-xl font-semibold text-xs sm:text-sm bg-[#161c2a] border border-amber-500/30 hover:border-amber-400 text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-2 font-sans"
               >
                 <span>{current.secondaryCta}</span>
               </button>
             </div>
           </div>
 
-          {/* Right Column (High-Fidelity Visual Asset): 5 Cols */}
-          <div className="lg:col-span-5 relative min-h-[300px] lg:min-h-full overflow-hidden bg-slate-950 flex items-center justify-center">
+          {/* Right Column (High-Resolution Professional Forex Image): 5 Cols */}
+          <div className="lg:col-span-5 relative min-h-[320px] lg:min-h-full overflow-hidden bg-black flex items-center justify-center">
             {imageErrors[current.id] ? (
-              <div className="w-full h-full min-h-[300px] flex flex-col items-center justify-center p-8 text-center bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border-l border-slate-800">
-                <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-sky-400 mb-4">
+              <div className="w-full h-full min-h-[320px] flex flex-col items-center justify-center p-8 text-center bg-gradient-to-br from-[#121622] via-[#090b10] to-[#121622] border-l border-slate-800">
+                <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-4">
                   <CurrentIcon className="w-8 h-8" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">{current.title}</h4>
@@ -420,15 +383,15 @@ export const PromotionalCampaigns: React.FC<PromotionalCampaignsProps> = ({
                   className="w-full h-full object-cover object-center transition-all duration-700 hover:scale-105"
                 />
 
-                {/* Scrim Overlay Gradient for legibility and seamless blend */}
-                <div className="absolute inset-0 bg-gradient-to-t lg:bg-gradient-to-r from-[#0c1322] via-[#0c1322]/40 to-transparent pointer-events-none" />
+                {/* Scrim Overlay Gradients */}
+                <div className="absolute inset-0 bg-gradient-to-t lg:bg-gradient-to-r from-[#0f131d] via-[#0f131d]/40 to-transparent pointer-events-none" />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60 pointer-events-none" />
 
-                {/* Floating Image Attribution / Technology Stamp */}
-                <div className="absolute bottom-4 right-4 left-4 lg:left-auto p-3 rounded-xl bg-slate-900/90 backdrop-blur-md border border-slate-800 text-[11px] font-mono text-slate-300 flex items-center justify-between gap-3 shadow-xl">
+                {/* Floating Technology & Regulatory Stamp */}
+                <div className="absolute bottom-4 right-4 left-4 lg:left-auto p-3 rounded-xl bg-[#0f131e]/90 backdrop-blur-md border border-amber-500/30 text-[11px] font-mono text-slate-300 flex items-center justify-between gap-3 shadow-xl">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>LONDON EQUINIX LD4 · LIVE MARKET FEED</span>
+                    <span className="text-amber-300">TIER-1 INTERBANK FOREX POOL</span>
                   </div>
                   <span className="text-slate-400 tabular-nums">0{activeSlide + 1} / 0{campaigns.length}</span>
                 </div>
@@ -437,8 +400,8 @@ export const PromotionalCampaigns: React.FC<PromotionalCampaignsProps> = ({
           </div>
         </div>
 
-        {/* Carousel Navigation Arrows & Indicators */}
-        <div className="p-4 bg-slate-900/95 border-t border-slate-800/80 flex items-center justify-between">
+        {/* Carousel Pagination & Arrows */}
+        <div className="p-4 bg-[#0a0d14] border-t border-slate-800/80 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {campaigns.map((_, i) => (
               <button
@@ -446,7 +409,7 @@ export const PromotionalCampaigns: React.FC<PromotionalCampaignsProps> = ({
                 type="button"
                 onClick={() => setActiveSlide(i)}
                 className={`h-2 rounded-full transition-all cursor-pointer ${
-                  activeSlide === i ? "w-8 bg-sky-400" : "w-2 bg-slate-700 hover:bg-slate-500"
+                  activeSlide === i ? "w-8 bg-amber-400" : "w-2 bg-slate-700 hover:bg-slate-500"
                 }`}
                 aria-label={`Go to slide ${i + 1}`}
               />
@@ -457,7 +420,7 @@ export const PromotionalCampaigns: React.FC<PromotionalCampaignsProps> = ({
             <button
               type="button"
               onClick={() => setActiveSlide((prev) => (prev - 1 + campaigns.length) % campaigns.length)}
-              className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer border border-slate-700"
+              className="p-2 rounded-lg bg-[#161c2a] hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer border border-slate-700"
               aria-label="Previous Campaign"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -465,7 +428,7 @@ export const PromotionalCampaigns: React.FC<PromotionalCampaignsProps> = ({
             <button
               type="button"
               onClick={() => setActiveSlide((prev) => (prev + 1) % campaigns.length)}
-              className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer border border-slate-700"
+              className="p-2 rounded-lg bg-[#161c2a] hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer border border-slate-700"
               aria-label="Next Campaign"
             >
               <ChevronRight className="w-4 h-4" />
@@ -474,155 +437,155 @@ export const PromotionalCampaigns: React.FC<PromotionalCampaignsProps> = ({
         </div>
       </div>
 
-      {/* 4 Secondary Institutional Financial Trading Advertising Cards (Bento Showcase) */}
+      {/* 4 High-Impact Forex Broker Bento Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mt-8">
-        {/* Card 1: Multi-Asset Global Bull Liquidity */}
-        <div className="rounded-2xl bg-[#0c1322] border border-slate-800 overflow-hidden flex flex-col justify-between hover:border-slate-700 transition-all shadow-xl group">
-          <div className="relative h-44 overflow-hidden bg-slate-900">
+        {/* Card 1: Gold & Spot Bullion */}
+        <div className="rounded-2xl bg-[#0e121b] border border-amber-500/20 overflow-hidden flex flex-col justify-between hover:border-amber-500/50 transition-all shadow-xl group">
+          <div className="relative h-44 overflow-hidden bg-black">
             <img
-              src={PROMO_IMAGES.bullMarket}
-              alt="Fast FX Multi-Asset Bull Liquidity"
+              src={PROMO_IMAGES.goldBullion}
+              alt="Fast FX Spot Gold Bullion Trading"
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0c1322] via-[#0c1322]/40 to-transparent" />
-            <div className="absolute top-3 left-3 px-2.5 py-1 rounded bg-slate-900/90 border border-slate-700 text-amber-400 text-[11px] font-mono font-bold">
-              {isAr ? "سيولة عالمية" : "GLOBAL BULL"}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0e121b] via-[#0e121b]/40 to-transparent" />
+            <div className="absolute top-3 left-3 px-2.5 py-1 rounded bg-black/80 border border-amber-500/40 text-amber-400 text-[11px] font-mono font-bold">
+              {isAr ? "سبائك الذهب الخالص" : "XAU/USD SPOT GOLD"}
             </div>
             <div className="absolute bottom-2 left-3 right-3 text-white font-bold text-sm">
-              {isAr ? "تداول الفوركس والذهب والكريبتو" : "Forex, Gold & Crypto Liquidity"}
+              {isAr ? "تداول الذهب والسلع بفروقات خام" : "Raw Spread Gold Trading"}
             </div>
           </div>
           <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
             <p className="text-xs text-slate-300 leading-relaxed font-sans">
               {isAr
-                ? "فروقات أسعار خام تبدأ من 0.0 نقطة مع سيولة مصرفية مباشرة من كبرى البنوك الاستثمارية بدون عمولات خفية."
-                : "Raw institutional spreads from 0.0 pips with direct Tier-1 bank feeds and zero hidden commission markups."}
+                ? "فروقات أسعار فائقة الضيق لسبائك الذهب XAU/USD والفضة مع تنفيذ مباشر من كبرى أسواق لندن للسلع."
+                : "Ultra-tight spreads on Gold & Silver with direct matching against London bullion markets."}
             </p>
-            <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
-              <span className="text-[11px] font-mono text-emerald-400 font-bold">
+            <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+              <span className="text-[11px] font-mono text-amber-400 font-bold">
                 0.0 PIPS SPREAD
               </span>
               <button
                 type="button"
                 onClick={onOpenRegister}
-                className="text-xs font-bold text-sky-400 hover:text-sky-300 transition-colors flex items-center gap-1 cursor-pointer"
+                className="text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1 cursor-pointer"
               >
-                <span>{isAr ? "بدء التداول ←" : "Start Trading ←"}</span>
+                <span>{isAr ? "فتح حساب ذهب ←" : "Open Gold FX ←"}</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Card 2: Quant & Algo Trading Multi-Screen */}
-        <div className="rounded-2xl bg-[#0c1322] border border-slate-800 overflow-hidden flex flex-col justify-between hover:border-slate-700 transition-all shadow-xl group">
-          <div className="relative h-44 overflow-hidden bg-slate-900">
+        {/* Card 2: Islamic Swap-Free Account */}
+        <div className="rounded-2xl bg-[#0e121b] border border-emerald-500/20 overflow-hidden flex flex-col justify-between hover:border-emerald-500/50 transition-all shadow-xl group">
+          <div className="relative h-44 overflow-hidden bg-black">
             <img
-              src={PROMO_IMAGES.quantStation}
-              alt="Fast FX Quant Trading Terminal"
+              src={PROMO_IMAGES.swapFreeIslamic}
+              alt="Fast FX Sharia-Compliant Islamic Forex Trading"
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0c1322] via-[#0c1322]/40 to-transparent" />
-            <div className="absolute top-3 left-3 px-2.5 py-1 rounded bg-slate-900/90 border border-slate-700 text-sky-400 text-[11px] font-mono font-bold">
-              {isAr ? "تداول خوارزمي" : "QUANT SUITE"}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0e121b] via-[#0e121b]/40 to-transparent" />
+            <div className="absolute top-3 left-3 px-2.5 py-1 rounded bg-black/80 border border-emerald-500/40 text-emerald-400 text-[11px] font-mono font-bold">
+              {isAr ? "حساب إسلامي 100%" : "SWAP-FREE ISLAMIC"}
             </div>
             <div className="absolute bottom-2 left-3 right-3 text-white font-bold text-sm">
-              {isAr ? "شاشات تداول ذكية وعمق سوق L2" : "Smart Multi-Screen L2 Terminal"}
+              {isAr ? "خالي من أي فوائد تبييت ربوية" : "Zero Interest Rollover"}
             </div>
           </div>
           <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
             <p className="text-xs text-slate-300 leading-relaxed font-sans">
               {isAr
-                ? "رسوم بيانية متقدمة مع مؤشرات فنية دقيقة وأوامر وقف خسارة وجني أرباح آلية لحماية الصفقات."
-                : "Advanced Candlestick charts with technical indicators, dynamic order brackets, and automated TP/SL."}
+                ? "تداول العملات والذهب بثقة تامة وتوافق شرعي كامل مع الاحتفاظ بصفقاتك دون فوائد تبييت أو رسوم خفية."
+                : "Certified Sharia-compliant forex trading. Hold overnight positions with zero swap charges."}
             </p>
-            <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
+            <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+              <span className="text-[11px] font-mono text-emerald-400 font-bold">
+                0% ROLLEVER FEES
+              </span>
+              <button
+                type="button"
+                onClick={onOpenRegister}
+                className="text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <span>{isAr ? "تفعيل الحساب ←" : "Open Islamic ←"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Sub-1.2ms London Equinix Execution */}
+        <div className="rounded-2xl bg-[#0e121b] border border-sky-500/20 overflow-hidden flex flex-col justify-between hover:border-sky-500/50 transition-all shadow-xl group">
+          <div className="relative h-44 overflow-hidden bg-black">
+            <img
+              src={PROMO_IMAGES.forexTraderDesk}
+              alt="Fast FX Equinix London Direct Forex Execution"
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0e121b] via-[#0e121b]/40 to-transparent" />
+            <div className="absolute top-3 left-3 px-2.5 py-1 rounded bg-black/80 border border-sky-500/40 text-sky-400 text-[11px] font-mono font-bold">
+              {isAr ? "سرعة فايبر 1.18ms" : "EQUINIX LD4 FIBER"}
+            </div>
+            <div className="absolute bottom-2 left-3 right-3 text-white font-bold text-sm">
+              {isAr ? "تنفيذ فائق السرعة بدون وسيط" : "Direct ECN/STP Routing"}
+            </div>
+          </div>
+          <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+            <p className="text-xs text-slate-300 leading-relaxed font-sans">
+              {isAr
+                ? "خوادم فائقة التجاوب في Equinix لندن توفر سرعة استجابة دون 1.2 ملي ثانية مع انعدام إعادة التسعير."
+                : "Ultra-low latency execution direct to tier-1 banks with zero re-quotes and pure market depth."}
+            </p>
+            <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
               <span className="text-[11px] font-mono text-sky-400 font-bold">
-                L2 REAL-TIME BOOK
+                1.18ms EXECUTION
               </span>
               <button
                 type="button"
                 onClick={onNavigateToTrading}
                 className="text-xs font-bold text-sky-400 hover:text-sky-300 transition-colors flex items-center gap-1 cursor-pointer"
               >
-                <span>{isAr ? "دخول المنصة ←" : "Terminal ←"}</span>
+                <span>{isAr ? "محطة التداول ←" : "Terminal ←"}</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Card 3: 20% Liquidity Margin Boost */}
-        <div className="rounded-2xl bg-[#0c1322] border border-slate-800 overflow-hidden flex flex-col justify-between hover:border-slate-700 transition-all shadow-xl group">
-          <div className="relative h-44 overflow-hidden bg-slate-900">
+        {/* Card 4: Mobile & Multi-Device Control */}
+        <div className="rounded-2xl bg-[#0e121b] border border-amber-400/20 overflow-hidden flex flex-col justify-between hover:border-amber-400/50 transition-all shadow-xl group">
+          <div className="relative h-44 overflow-hidden bg-black">
             <img
-              src={PROMO_IMAGES.primeLiquidity}
-              alt="Fast FX Prime Liquidity 20% Margin Match"
+              src={PROMO_IMAGES.mobileForex}
+              alt="Fast FX Mobile Forex App and Trading Suite"
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0c1322] via-[#0c1322]/40 to-transparent" />
-            <div className="absolute top-3 left-3 px-2.5 py-1 rounded bg-slate-900/90 border border-slate-700 text-emerald-400 text-[11px] font-mono font-bold">
-              {isAr ? "حافز سيولة ترحيبي" : "WELCOME INCENTIVE"}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0e121b] via-[#0e121b]/40 to-transparent" />
+            <div className="absolute top-3 left-3 px-2.5 py-1 rounded bg-black/80 border border-amber-400/40 text-amber-300 text-[11px] font-mono font-bold">
+              {isAr ? "تطبيق ويب وهاتف" : "WEB & MOBILE FX"}
             </div>
             <div className="absolute bottom-2 left-3 right-3 text-white font-bold text-sm">
-              {isAr ? "بونص سيولة ترحيبي يصل إلى 20%" : "Up to 20% Margin Credit Boost"}
+              {isAr ? "تداول من أي شاشة بضغطة زر" : "One-Click Mobile Trading"}
             </div>
           </div>
           <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
             <p className="text-xs text-slate-300 leading-relaxed font-sans">
               {isAr
-                ? "عزز حجم وقوة تداولاتك بهامش إضافي عند فتح وشحن حسابك الممول الأول عبر أحدث تقنيات الإيداع الفوري."
-                : "Expand your trade capacity with institutional margin support on your first verified funded deposit."}
+                ? "تحكم كامل بصفقاتك ومحفظتك من هاتفك الذكي وحاسوبك مع إيداع وسحب فوري وأوامر جني الأرباح التلقائية."
+                : "Full control on any smartphone or laptop. Dynamic stop-loss brackets and multi-channel cashier."}
             </p>
-            <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
-              <span className="text-[11px] font-mono text-emerald-400 font-bold">
-                0% HIDDEN FEES
+            <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+              <span className="text-[11px] font-mono text-amber-400 font-bold">
+                INSTANT CASHIER
               </span>
               <button
                 type="button"
-                onClick={onOpenRegister}
-                className="text-xs font-bold text-sky-400 hover:text-sky-300 transition-colors flex items-center gap-1 cursor-pointer"
+                onClick={onNavigateToTrading}
+                className="text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1 cursor-pointer"
               >
-                <span>{isAr ? "تفعيل العرض ←" : "Claim Boost ←"}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 4: 100% Segregated Ledger Security Guarantee */}
-        <div className="rounded-2xl bg-[#0c1322] border border-slate-800 overflow-hidden flex flex-col justify-between hover:border-slate-700 transition-all shadow-xl group">
-          <div className="relative h-44 overflow-hidden bg-slate-900">
-            <img
-              src={PROMO_IMAGES.capitalSecurity}
-              alt="Fast FX Segregated Vault Banking Standard"
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0c1322] via-[#0c1322]/40 to-transparent" />
-            <div className="absolute top-3 left-3 px-2.5 py-1 rounded bg-slate-900/90 border border-slate-700 text-indigo-400 text-[11px] font-mono font-bold">
-              {isAr ? "أمان مصرفي بريطاني" : "BRITISH CUSTODY"}
-            </div>
-            <div className="absolute bottom-2 left-3 right-3 text-white font-bold text-sm">
-              {isAr ? "حسابات ائتمانية مفصولة 100%" : "100% Segregated Trust Accounts"}
-            </div>
-          </div>
-          <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-            <p className="text-xs text-slate-300 leading-relaxed font-sans">
-              {isAr
-                ? "أموال المتداولين معزولة تماماً في حسابات ثقة مستقلة في بنوك بريطانية كبرى مع سجل تدقيق SQL علائقي."
-                : "All trader deposits are isolated in independent custody trust accounts backed by an immutable SQL relational audit ledger."}
-            </p>
-            <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
-              <span className="text-[11px] font-mono text-indigo-400 font-bold">
-                1:1 AUDITED SOLVENCY
-              </span>
-              <button
-                type="button"
-                onClick={onScrollToMarkets}
-                className="text-xs font-bold text-sky-400 hover:text-sky-300 transition-colors flex items-center gap-1 cursor-pointer"
-              >
-                <span>{isAr ? "فحص الأمان ←" : "Audit Proof ←"}</span>
+                <span>{isAr ? "دخول المنصة ←" : "Launch App ←"}</span>
               </button>
             </div>
           </div>

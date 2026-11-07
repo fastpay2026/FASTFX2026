@@ -6,16 +6,18 @@
   --font-mono: "JetBrains Mono", monospace;
 }
 
-/* Institutional Design System Tokens */
+/* Luxury Institutional Forex Color Palette */
 :root {
-  --canvas-bg: #070b14;
-  --surface-primary: #0b1120;
-  --surface-secondary: #0f172a;
-  --surface-card: #131c31;
-  --surface-card-hover: #18233c;
-  --border-subtle: #1e293b;
-  --border-medium: #2a3a55;
-  --brand-blue: #0284c7;
+  --canvas-bg: #08090d;
+  --surface-primary: #0e111a;
+  --surface-secondary: #141824;
+  --surface-card: #171d2b;
+  --surface-card-hover: #1f273a;
+  --border-subtle: #232c3d;
+  --border-medium: #344055;
+  --brand-gold: #f59e0b;
+  --brand-amber: #d97706;
+  --brand-champagne: #fbbf24;
   --brand-cyan: #06b6d4;
   --profit-emerald: #10b981;
   --loss-rose: #f43f5e;
@@ -145,5 +147,32 @@
 .animate-ecg-trace {
   stroke-dasharray: 1200;
   animation: ecg-trace-sweep 3.5s linear infinite;
+}
+
+@keyframes faint-bg-heartbeat {
+  0%, 100% {
+    opacity: 0.07;
+    transform: scale(0.98);
+  }
+  14% {
+    opacity: 0.20;
+    transform: scale(1.05);
+  }
+  28% {
+    opacity: 0.10;
+    transform: scale(1.01);
+  }
+  42% {
+    opacity: 0.25;
+    transform: scale(1.08);
+  }
+  68% {
+    opacity: 0.07;
+    transform: scale(0.98);
+  }
+}
+
+.animate-faint-bg-pulse {
+  animation: faint-bg-heartbeat 3.2s cubic-bezier(0.25, 1, 0.5, 1) infinite;
 }
 

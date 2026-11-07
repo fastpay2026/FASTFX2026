@@ -130,7 +130,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => onViewChange("landing")}
               className={`whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                 activeView === "landing"
-                  ? "text-sky-400 font-semibold"
+                  ? "text-amber-400 font-semibold"
                   : "text-slate-300 hover:text-white"
               }`}
             >
@@ -141,7 +141,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => onViewChange("trading")}
               className={`whitespace-nowrap shrink-0 transition-colors cursor-pointer flex items-center gap-1.5 ${
                 activeView === "trading"
-                  ? "text-sky-400 font-semibold"
+                  ? "text-amber-400 font-semibold"
                   : "text-slate-300 hover:text-white"
               }`}
             >
@@ -310,7 +310,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
                 <button
                   onClick={() => openAuthModal("register")}
-                  className="px-4 py-2 text-xs font-semibold text-white bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 rounded-lg shadow-sm shadow-sky-500/20 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                  className="px-4 py-2 text-xs font-bold text-slate-950 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 rounded-lg shadow-sm shadow-amber-500/20 transition-all cursor-pointer whitespace-nowrap shrink-0"
                 >
                   {t.registerBtn}
                 </button>

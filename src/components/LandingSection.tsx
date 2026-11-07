@@ -21,7 +21,11 @@ import {
   Server,
   Layers,
   Sparkles,
-  Heart
+  Heart,
+  Coins,
+  Scale,
+  Award,
+  Wallet
 } from "lucide-react";
 import { PromotionalCampaigns } from "./PromotionalCampaigns";
 import { MarketHeartbeatLine } from "./MarketHeartbeatLine";
@@ -170,95 +174,144 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
   };
 
   return (
-    <div className="space-y-20 py-8 relative overflow-hidden">
-      {/* Faint Heartbeat Ambient Mesh Glows across the background */}
-      <div className="absolute top-16 left-1/2 -translate-x-1/2 w-[850px] h-[450px] bg-gradient-to-r from-sky-500/10 via-rose-500/12 to-indigo-500/10 rounded-full blur-3xl pointer-events-none animate-heartbeat-glow -z-10" />
-      <div className="absolute top-[38%] left-1/2 -translate-x-1/2 w-[900px] h-[450px] bg-gradient-to-tr from-rose-500/10 via-sky-500/10 to-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-heartbeat-glow -z-10" />
-      <div className="absolute top-[72%] left-1/2 -translate-x-1/2 w-[850px] h-[450px] bg-gradient-to-tr from-sky-500/10 via-rose-500/10 to-amber-500/10 rounded-full blur-3xl pointer-events-none animate-heartbeat-glow -z-10" />
+    <div className="space-y-20 py-8 relative overflow-hidden bg-[#08090d]">
+      {/* 
+        FAINT AMBIENT HEARTBEAT PULSES ACROSS THE ENTIRE CANVAS BACKGROUND 
+        (بالخلفية نبض خفيف وبألوان عصرية جديدة: Obsidian & Champagne Gold)
+      */}
+      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-gradient-to-r from-amber-500/10 via-yellow-500/8 to-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-faint-bg-pulse -z-10" />
+      <div className="absolute top-[35%] left-1/2 -translate-x-1/2 w-[950px] h-[480px] bg-gradient-to-tr from-amber-600/8 via-rose-500/8 to-sky-500/8 rounded-full blur-3xl pointer-events-none animate-faint-bg-pulse -z-10" />
+      <div className="absolute top-[68%] left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-gradient-to-tr from-emerald-500/8 via-amber-500/10 to-yellow-500/8 rounded-full blur-3xl pointer-events-none animate-faint-bg-pulse -z-10" />
 
-      {/* 1. Modern Institutional Hero Section */}
-      <section className="relative px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="max-w-4xl mx-auto text-center space-y-6">
-          {/* Institutional Metadata Line with subtle Heartbeat Indicator (Zero-Pill) */}
-          <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-slate-400 font-mono tracking-wide">
-            <span className="flex items-center gap-1.5 text-rose-400 font-semibold">
-              <Heart className="w-3.5 h-3.5 fill-rose-500/50 animate-faint-heartbeat" />
-              {isAr ? "نبض السوق المباشر نشط" : "LIVE MARKET PULSE"}
-            </span>
-            <span aria-hidden="true" className="text-slate-600">·</span>
-            <span>TIER-1 LIQUIDITY</span>
-            <span aria-hidden="true" className="text-slate-600">·</span>
-            <span>EQUINIX CROSS-CONNECT</span>
-            <span aria-hidden="true" className="text-slate-600">·</span>
-            <span>100% PROOF OF RESERVES</span>
+      {/* Streaming Live Forex Rates Ribbon Ticker */}
+      <div className="w-full bg-[#0a0d14] border-y border-amber-500/20 py-2.5 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-6 overflow-x-auto no-scrollbar text-xs font-mono">
+          <div className="flex items-center gap-2 text-amber-400 font-bold shrink-0">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>{isAr ? "أسعار الفوركس المباشرة ECN" : "LIVE INTERBANK FX"}</span>
           </div>
 
-          {/* Hero Headlines with text-wrap: balance */}
+          <div className="flex items-center gap-6 whitespace-nowrap text-[11px] text-slate-300">
+            <span className="flex items-center gap-1.5">
+              <span className="font-bold text-white">EUR/USD</span>
+              <span className="text-emerald-400 font-bold tabular-nums">1.0945</span>
+              <span className="text-slate-500 text-[10px]">(0.1 Pip)</span>
+            </span>
+            <span className="text-slate-700">|</span>
+            <span className="flex items-center gap-1.5">
+              <span className="font-bold text-white">GBP/USD</span>
+              <span className="text-emerald-400 font-bold tabular-nums">1.2721</span>
+              <span className="text-slate-500 text-[10px]">(0.2 Pip)</span>
+            </span>
+            <span className="text-slate-700">|</span>
+            <span className="flex items-center gap-1.5">
+              <span className="font-bold text-white">XAU/USD (ذهب)</span>
+              <span className="text-amber-400 font-bold tabular-nums">$2,648.50</span>
+              <span className="text-emerald-400 text-[10px]">+1.25%</span>
+            </span>
+            <span className="text-slate-700">|</span>
+            <span className="flex items-center gap-1.5">
+              <span className="font-bold text-white">USD/JPY</span>
+              <span className="text-rose-400 font-bold tabular-nums">154.62</span>
+              <span className="text-slate-500 text-[10px]">(0.1 Pip)</span>
+            </span>
+            <span className="text-slate-700">|</span>
+            <span className="flex items-center gap-1.5">
+              <span className="font-bold text-white">BTC/USD</span>
+              <span className="text-emerald-400 font-bold tabular-nums">$94,820</span>
+              <span className="text-emerald-400 text-[10px]">+3.4%</span>
+            </span>
+            <span className="text-slate-700">|</span>
+            <span className="text-amber-300/80 font-semibold">
+              {isAr ? "حسابات إسلامية 100% بدون عمولات تبييت" : "100% Sharia Swap-Free Accounts"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 1. New Modern Luxury Institutional Forex Hero Section */}
+      <section className="relative px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="max-w-4xl mx-auto text-center space-y-6">
+          {/* Institutional Metadata Line with Heartbeat and Gold Accent (Zero-Pill) */}
+          <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-slate-300 font-mono tracking-wide">
+            <span className="flex items-center gap-1.5 text-rose-400 font-semibold">
+              <Heart className="w-3.5 h-3.5 fill-rose-500/50 animate-faint-heartbeat" />
+              {isAr ? "نبض سوق الفوركس نشط" : "LIVE FOREX PULSE"}
+            </span>
+            <span aria-hidden="true" className="text-slate-600">·</span>
+            <span className="text-amber-400 font-semibold">0.0 PIPS RAW SPREAD</span>
+            <span aria-hidden="true" className="text-slate-600">·</span>
+            <span className="text-emerald-400 font-semibold">{isAr ? "حسابات إسلامية معتمدة" : "SWAP-FREE ISLAMIC"}</span>
+            <span aria-hidden="true" className="text-slate-600">·</span>
+            <span>EQUINIX LONDON LD4</span>
+          </div>
+
+          {/* New Luxury Headline in Champagne Gold & Crisp White */}
           <h1
-            className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.1]"
+            className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.1] font-sans"
             style={{ textWrap: "balance" }}
           >
-            <span>{t.heroLine1}</span>
-            <span className="block mt-2 bg-gradient-to-r from-sky-400 via-cyan-300 to-emerald-400 bg-clip-text text-transparent">
-              {t.heroLine2}
+            <span>{isAr ? "المنصة الرائدة لتداول الفوركس والذهب" : "Premier Institutional Forex & Gold Trading"}</span>
+            <span className="block mt-2 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent">
+              {isAr ? "بفروقات خام صفرية وتنفيذ فائق السرعة" : "Zero Raw Spreads & Sub-Millisecond Execution"}
             </span>
           </h1>
 
           <p
-            className="max-w-2xl mx-auto text-sm sm:text-base text-slate-300 leading-relaxed font-normal"
+            className="max-w-2xl mx-auto text-sm sm:text-base text-slate-300 leading-relaxed font-normal font-sans"
             style={{ textWrap: "balance" }}
           >
             {isAr
-              ? "منصة تداول مؤسسية متعددة الأصول تجمع بين الفوركس والعملات المشفرة والسلع مع زمن استجابة دون الميلي ثانية وسجلات تدقيق مالية متوافقة مع معايير SQL."
-              : "High-frequency multi-asset liquidity platform combining Forex, Cryptocurrencies, and Commodities with sub-millisecond execution and audited SQL relational settlement."}
+              ? "تداول العملات الأجنبية وسبائك الذهب الخالص بحسابات إسلامية خالية تماماً من فوائد التبييت (Swap-Free) وربط مباشر بسيولة بنوك الاستثمار العالمية من الفئة الأولى."
+              : "Trade foreign currencies, gold bullion, and commodities with 100% Sharia-compliant Swap-Free accounts and direct STP liquidity from global Tier-1 investment banks."}
           </p>
 
-          {/* Action CTAs (Exclusively Informative / Auth - No Direct Home Trade Placement) */}
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-4 font-sans">
             <button
               onClick={scrollToMarkets}
-              className="px-6 py-3 rounded-lg font-semibold text-sm bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white shadow-lg shadow-sky-500/20 transition-all flex items-center gap-2 cursor-pointer"
+              className="px-6 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 transition-all flex items-center gap-2 cursor-pointer"
             >
               <Activity className="w-4 h-4" />
-              <span>{isAr ? "استعراض أسعار السوق" : "Explore Market Quotes"}</span>
+              <span>{isAr ? "استعراض أسعار الفوركس اللحظية" : "Explore Live Forex Rates"}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
             {!isLoggedIn ? (
               <button
                 onClick={() => openAuthModal("register")}
-                className="px-6 py-3 rounded-lg font-semibold text-sm bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-100 hover:text-white transition-all cursor-pointer flex items-center gap-2"
+                className="px-6 py-3 rounded-xl font-semibold text-sm bg-[#121622] border border-amber-500/30 hover:border-amber-400 text-slate-100 hover:text-white transition-all cursor-pointer flex items-center gap-2 shadow-sm"
               >
-                <Lock className="w-3.5 h-3.5 text-sky-400" />
-                <span>{isAr ? "فتح حساب تداول ممول" : "Open Funded Account"}</span>
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <span>{isAr ? "فتح حساب فوركس إسلامي / ممول" : "Open Islamic / Funded FX Account"}</span>
               </button>
             ) : (
               <button
                 onClick={onNavigateToTrading}
-                className="px-6 py-3 rounded-lg font-semibold text-sm bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-100 hover:text-white transition-all cursor-pointer"
+                className="px-6 py-3 rounded-xl font-semibold text-sm bg-[#121622] border border-amber-500/30 hover:border-amber-400 text-slate-100 hover:text-white transition-all cursor-pointer"
               >
-                <span>{isAr ? "الدخول إلى محطة التداول" : "Go to Trading Terminal"}</span>
+                <span>{isAr ? "الانتقال إلى محطة التداول" : "Go to Trading Terminal"}</span>
               </button>
             )}
           </div>
 
-          {/* 4 Key Institutional Trust Metrics Strip */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-8 border-t border-slate-800/80 mt-10">
-            <div className="text-center p-3">
-              <div className="text-2xl sm:text-3xl font-black text-white font-mono tabular-nums">0.003ms</div>
-              <div className="text-xs text-slate-400 font-sans mt-1">{isAr ? "سرعة المطابقة الفائقة" : "Execution Latency"}</div>
+          {/* 4 Core Forex Metrics Strip */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-8 border-t border-slate-800/80 mt-10 font-mono">
+            <div className="text-center p-3 bg-[#0d1018] rounded-xl border border-slate-800/80">
+              <div className="text-2xl sm:text-3xl font-black text-amber-400 tabular-nums">0.0 Pips</div>
+              <div className="text-xs text-slate-400 font-sans mt-1">{isAr ? "فوارق أسعار خام" : "Raw FX Spreads"}</div>
             </div>
-            <div className="text-center p-3">
-              <div className="text-2xl sm:text-3xl font-black text-white font-mono tabular-nums">0.0 Pips</div>
-              <div className="text-xs text-slate-400 font-sans mt-1">{isAr ? "فوارق سعرية خام" : "Raw Institutional Spread"}</div>
+            <div className="text-center p-3 bg-[#0d1018] rounded-xl border border-slate-800/80">
+              <div className="text-2xl sm:text-3xl font-black text-white tabular-nums">0.003ms</div>
+              <div className="text-xs text-slate-400 font-sans mt-1">{isAr ? "سرعة المطابقة الفائقة" : "Equinix Execution"}</div>
             </div>
-            <div className="text-center p-3">
-              <div className="text-2xl sm:text-3xl font-black text-white font-mono tabular-nums">100%</div>
-              <div className="text-xs text-slate-400 font-sans mt-1">{isAr ? "إثبات احتياطيات موثق" : "Proof of Reserves (1:1)"}</div>
+            <div className="text-center p-3 bg-[#0d1018] rounded-xl border border-slate-800/80">
+              <div className="text-2xl sm:text-3xl font-black text-emerald-400 tabular-nums">100%</div>
+              <div className="text-xs text-slate-400 font-sans mt-1">{isAr ? "حسابات إسلامية خالية من الربا" : "Swap-Free Certified"}</div>
             </div>
-            <div className="text-center p-3">
-              <div className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono tabular-nums">$4.2B+</div>
-              <div className="text-xs text-slate-400 font-sans mt-1">{isAr ? "حجم التداول اليومي" : "24h Volume Liquidity"}</div>
+            <div className="text-center p-3 bg-[#0d1018] rounded-xl border border-slate-800/80">
+              <div className="text-2xl sm:text-3xl font-black text-amber-300 tabular-nums">1:100</div>
+              <div className="text-xs text-slate-400 font-sans mt-1">{isAr ? "رافعة مالية مرنة" : "Max Leverage"}</div>
             </div>
           </div>
         </div>
@@ -269,65 +322,61 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
         </div>
 
         {/* 15-Day Grand Prix Official Launch Countdown Card */}
-        <div id="grand-prix-countdown" className="mt-8 max-w-3xl mx-auto rounded-2xl bg-[#0c1322] border border-slate-800 p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-          {/* Subtle Corner Accent Highlight with faint heartbeat glow */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 rounded-full blur-2xl pointer-events-none animate-faint-heartbeat" />
+        <div id="grand-prix-countdown" className="mt-8 max-w-3xl mx-auto rounded-2xl bg-[#0f131e] border border-amber-500/30 p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+          {/* Subtle Corner Amber Glow with faint pulse */}
+          <div className="absolute top-0 right-0 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none animate-faint-bg-pulse" />
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-slate-800">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-sky-400">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
                 <Clock className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-base sm:text-lg font-bold text-white font-sans">
                   {t.countdownTitle}
                 </h3>
-                <div className="text-xs text-slate-400 font-mono">
-                  FAST FX GLOBAL TRADING GRAND PRIX · 15-DAY COUNTDOWN
+                <div className="text-xs text-amber-400/80 font-mono">
+                  FAST FX GLOBAL FOREX CHAMPIONSHIP · 15-DAY COUNTDOWN
                 </div>
               </div>
             </div>
-            <span className="text-xs font-mono font-semibold text-sky-400">
+            <span className="text-xs font-mono font-bold text-amber-400">
               {t.countdownBadge}
             </span>
           </div>
 
-          {/* Countdown Clock Digits */}
+          {/* Countdown Clock Digits in Golden Amber */}
           <div className="grid grid-cols-4 gap-3 sm:gap-4 my-6 font-mono">
-            {/* Days */}
-            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 sm:p-4 text-center">
+            <div className="bg-[#141926] border border-slate-800 rounded-xl p-3 sm:p-4 text-center">
               <div className="text-3xl sm:text-5xl font-black text-white tabular-nums">
                 {String(timeLeft.days).padStart(2, "0")}
               </div>
               <div className="text-[11px] text-slate-400 font-sans mt-1 uppercase tracking-wider">{t.days}</div>
             </div>
 
-            {/* Hours */}
-            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 sm:p-4 text-center">
+            <div className="bg-[#141926] border border-slate-800 rounded-xl p-3 sm:p-4 text-center">
               <div className="text-3xl sm:text-5xl font-black text-white tabular-nums">
                 {String(timeLeft.hours).padStart(2, "0")}
               </div>
               <div className="text-[11px] text-slate-400 font-sans mt-1 uppercase tracking-wider">{t.hours}</div>
             </div>
 
-            {/* Minutes */}
-            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 sm:p-4 text-center">
+            <div className="bg-[#141926] border border-slate-800 rounded-xl p-3 sm:p-4 text-center">
               <div className="text-3xl sm:text-5xl font-black text-white tabular-nums">
                 {String(timeLeft.minutes).padStart(2, "0")}
               </div>
               <div className="text-[11px] text-slate-400 font-sans mt-1 uppercase tracking-wider">{t.minutes}</div>
             </div>
 
-            {/* Seconds */}
-            <div className="bg-slate-900/90 border border-sky-500/40 rounded-xl p-3 sm:p-4 text-center shadow-lg shadow-sky-500/10">
-              <div className="text-3xl sm:text-5xl font-black text-sky-400 tabular-nums">
+            <div className="bg-[#141926] border border-amber-500/40 rounded-xl p-3 sm:p-4 text-center shadow-lg shadow-amber-500/10">
+              <div className="text-3xl sm:text-5xl font-black text-amber-400 tabular-nums">
                 {String(timeLeft.seconds).padStart(2, "0")}
               </div>
-              <div className="text-[11px] text-sky-400 font-sans mt-1 uppercase tracking-wider">{t.seconds}</div>
+              <div className="text-[11px] text-amber-400 font-sans mt-1 uppercase tracking-wider">{t.seconds}</div>
             </div>
           </div>
 
-          {/* Quick Registration Form to reserve priority allocation */}
+          {/* Quick Registration Form */}
           <div className="pt-4 border-t border-slate-800">
             <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2 max-w-xl mx-auto">
               <input
@@ -335,11 +384,11 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t.emailPlaceholder}
-                className="flex-1 bg-slate-900 border border-slate-700 focus:border-sky-400 text-white px-4 py-2.5 rounded-lg text-xs sm:text-sm focus:outline-none font-mono"
+                className="flex-1 bg-[#121622] border border-slate-700 focus:border-amber-400 text-white px-4 py-2.5 rounded-lg text-xs sm:text-sm focus:outline-none font-mono"
               />
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-lg font-semibold text-xs sm:text-sm bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white transition-all cursor-pointer whitespace-nowrap shadow-sm"
+                className="px-5 py-2.5 rounded-lg font-bold text-xs sm:text-sm bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 transition-all cursor-pointer whitespace-nowrap shadow-sm"
               >
                 {t.submitButton}
               </button>
@@ -355,7 +404,7 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
 
             <div className="mt-4 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 font-mono gap-2 pt-2">
               <div>
-                {t.countdownEndDateLabel} <span className="text-slate-200 font-bold">{targetDateFormatted}</span>
+                {t.countdownEndDateLabel} <span className="text-amber-300 font-bold">{targetDateFormatted}</span>
               </div>
               <div className="text-slate-500 text-[11px]">
                 EQUINIX LD4 · PRIME BROKERAGE ROUTING
@@ -365,7 +414,7 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
         </div>
       </section>
 
-      {/* 2. Official Promotional Campaigns & Flagship Advertising Showcases */}
+      {/* 2. Official Forex Broker Advertising Campaigns & Photo Showcases */}
       <PromotionalCampaigns
         lang={lang}
         onOpenRegister={() => openAuthModal("register")}
@@ -379,52 +428,42 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
 
       {/* 3. Institutional Live Markets Table (Exclusively Informational - No Trade Execution on Home Page) */}
       <section id="live-markets-section" className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="rounded-2xl bg-[#0c1322] border border-slate-800 p-5 sm:p-7 shadow-2xl">
+        <div className="rounded-2xl bg-[#0e121b] border border-amber-500/20 p-5 sm:p-7 shadow-2xl">
           {/* Header & Filter Controls */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-800">
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                  {isAr ? "استعراض أسعار الأسواق اللحظية" : "Live Market Rate Feed"}
+                <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight font-sans">
+                  {isAr ? "أسعار أزواج الفوركس والذهب اللحظية" : "Live Forex & Commodity Rates"}
                 </h2>
-                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                  {isAr ? "للعرض فقط" : "READ ONLY"}
+                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                  {isAr ? "للعرض فقط · ECN FEED" : "READ ONLY"}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-slate-400 mt-1 font-sans">
                 {isAr
                   ? "أسعار مباشرة بنظام الدفتر المزدوج. فتح الصفقات متاح حصرياً داخل محطة التداول بعد تسجيل الدخول وتوفر رصيد بالحساب."
-                  : "Streaming order book pricing. Trade execution is strictly restricted to authenticated accounts with funded balance inside the Terminal."}
+                  : "Streaming interbank pricing. Trade execution is strictly restricted to authenticated accounts with funded balance inside the Terminal."}
               </p>
             </div>
 
             {/* Segmented Filter Control */}
-            <div className="flex items-center gap-1 p-1 bg-slate-900 rounded-xl border border-slate-800 text-xs font-semibold overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-1 p-1 bg-[#121622] rounded-xl border border-slate-800 text-xs font-semibold overflow-x-auto no-scrollbar">
               <button
                 onClick={() => setMarketTab("hot")}
                 className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
                   marketTab === "hot"
-                    ? "bg-slate-800 text-white shadow-sm font-bold"
+                    ? "bg-amber-500 text-slate-950 shadow-sm font-bold"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
                 {t.marketHot}
               </button>
               <button
-                onClick={() => setMarketTab("crypto")}
-                className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
-                  marketTab === "crypto"
-                    ? "bg-slate-800 text-white shadow-sm font-bold"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                {t.marketCrypto}
-              </button>
-              <button
                 onClick={() => setMarketTab("forex")}
                 className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
                   marketTab === "forex"
-                    ? "bg-slate-800 text-white shadow-sm font-bold"
+                    ? "bg-amber-500 text-slate-950 shadow-sm font-bold"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
@@ -434,17 +473,27 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
                 onClick={() => setMarketTab("commodities")}
                 className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
                   marketTab === "commodities"
-                    ? "bg-slate-800 text-white shadow-sm font-bold"
+                    ? "bg-amber-500 text-slate-950 shadow-sm font-bold"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                {isAr ? "السلع" : "Commodities"}
+                {isAr ? "الذهب والسلع" : "Commodities"}
+              </button>
+              <button
+                onClick={() => setMarketTab("crypto")}
+                className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+                  marketTab === "crypto"
+                    ? "bg-amber-500 text-slate-950 shadow-sm font-bold"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                {t.marketCrypto}
               </button>
               <button
                 onClick={() => setMarketTab("gainers")}
                 className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
                   marketTab === "gainers"
-                    ? "bg-slate-800 text-white shadow-sm font-bold"
+                    ? "bg-amber-500 text-slate-950 shadow-sm font-bold"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
@@ -457,14 +506,14 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
           <div className="overflow-x-auto mt-4">
             <table className="w-full text-left text-xs font-mono">
               <thead>
-                <tr className="text-slate-400 border-b border-slate-800/80 text-[11px]">
-                  <th className="pb-3 font-semibold">{isAr ? "الأصل / الرمز" : "Instrument"}</th>
+                <tr className="text-slate-400 border-b border-slate-800 text-[11px]">
+                  <th className="pb-3 font-semibold">{isAr ? "الزوج / الأصل" : "Instrument"}</th>
                   <th className="pb-3 font-semibold">{t.currentPrice}</th>
                   <th className="pb-3 font-semibold">{isAr ? "تغير 24س" : "24h Change"}</th>
                   <th className="pb-3 font-semibold hidden md:table-cell">{isAr ? "أعلى / أدنى 24س" : "24h High / Low"}</th>
                   <th className="pb-3 font-semibold hidden sm:table-cell">{t.marketVolume}</th>
                   <th className="pb-3 font-semibold hidden lg:table-cell">{isAr ? "المسار السعري (7D)" : "7D Trend"}</th>
-                  <th className="pb-3 font-semibold text-right">{isAr ? "حالة السيولة" : "Liquidity Feed"}</th>
+                  <th className="pb-3 font-semibold text-right">{isAr ? "الفارق السعري ECN" : "Raw Spread"}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
@@ -478,7 +527,7 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
                       {/* Instrument Symbol & Full Name */}
                       <td className="py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-white text-xs">
+                          <div className="w-8 h-8 rounded-lg bg-[#141926] border border-amber-500/20 flex items-center justify-center font-bold text-amber-400 text-xs">
                             {pair.symbol.slice(0, 3)}
                           </div>
                           <div>
@@ -530,15 +579,15 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
                         </svg>
                       </td>
 
-                      {/* Informative Liquidity Status (No Trade Execution on Home Page) */}
+                      {/* Informative Liquidity Status */}
                       <td className="py-4 text-right">
                         <div className="flex items-center justify-end gap-2 text-slate-400 text-xs font-mono">
-                          <span className="text-[11px] text-emerald-400 font-semibold tabular-nums">
+                          <span className="text-[11px] text-amber-400 font-semibold tabular-nums">
                             {pair.spreadPips} Pips
                           </span>
-                          <span className="text-[10px] text-slate-500">·</span>
+                          <span className="text-[10px] text-slate-600">·</span>
                           <span className="text-[11px] text-slate-300">
-                            {isAr ? "مباشر" : "Live"}
+                            {isAr ? "سيولة مباشرة" : "Raw ECN"}
                           </span>
                         </div>
                       </td>
@@ -549,10 +598,10 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
             </table>
           </div>
 
-          {/* Institutional Compliance Notice at the bottom of the table */}
+          {/* Institutional Compliance Notice */}
           <div className="mt-4 pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 font-mono gap-2">
             <div className="flex items-center gap-2">
-              <Lock className="w-3.5 h-3.5 text-sky-400" />
+              <Lock className="w-3.5 h-3.5 text-amber-400" />
               <span>
                 {isAr
                   ? "فتح الصفقات يتطلب تسجيل الدخول ووجود رصيد متاح في الحساب (الحسابات ذات الرصيد صفر لا يمكنها فتح صفقات)"
@@ -562,14 +611,14 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
             {!isLoggedIn ? (
               <button
                 onClick={() => openAuthModal("login")}
-                className="text-sky-400 hover:text-sky-300 font-bold transition-colors cursor-pointer"
+                className="text-amber-400 hover:text-amber-300 font-bold transition-colors cursor-pointer"
               >
                 {isAr ? "تسجيل الدخول للمتابعة ←" : "Sign In to Trade ←"}
               </button>
             ) : (
               <button
                 onClick={onNavigateToTrading}
-                className="text-sky-400 hover:text-sky-300 font-bold transition-colors cursor-pointer"
+                className="text-amber-400 hover:text-amber-300 font-bold transition-colors cursor-pointer"
               >
                 {isAr ? "الانتقال إلى محطة التداول ←" : "Open Trading Terminal ←"}
               </button>
@@ -578,47 +627,46 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
         </div>
       </section>
 
-      {/* 3. Core Institutional Advantages & Proof of Reserves Section */}
-      {/* With the requested ORANGE HOVER GLOW from user request #1 */}
+      {/* 4. Core Institutional Advantages Section (With the requested ORANGE/GOLD HOVER GLOW) */}
       <section id="proof-of-reserves-section" className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <div className="text-xs font-mono font-semibold tracking-wider text-sky-400 uppercase mb-2">
-            INSTITUTIONAL GRADE TRANSPARENCY
+          <div className="text-xs font-mono font-semibold tracking-wider text-amber-400 uppercase mb-2">
+            PREMIER BROKERAGE STANDARDS
           </div>
-          <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+          <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight font-sans">
             {t.whyUsTitle}
           </h2>
-          <p className="text-xs sm:text-sm text-slate-400 mt-2">
+          <p className="text-xs sm:text-sm text-slate-400 mt-2 font-sans">
             {t.whyUsSubtitle}
           </p>
         </div>
 
         {/* 3 Core Cards with the Orange Hover Glow Effect requested in user prompt 1 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Card 1: 100% Proof of Reserves */}
-          <div className="card-hover-glow p-7 rounded-2xl bg-[#0c1322] border border-slate-800 space-y-4">
+          {/* Card 1: 100% Proof of Reserves & British Custody */}
+          <div className="card-hover-glow p-7 rounded-2xl bg-[#0e121b] border border-amber-500/20 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono text-slate-400 uppercase">PROOF OF RESERVES</span>
-              <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-emerald-400">
+              <span className="text-xs font-mono text-amber-400 uppercase">TIER-1 BANK CUSTODY</span>
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
                 <Shield className="w-5 h-5" />
               </div>
             </div>
             <div>
               <div className="text-3xl font-black text-white font-mono tabular-nums">
-                100% <span className="text-xs text-emerald-400 font-sans font-semibold">1:1 BACKED</span>
+                100% <span className="text-xs text-amber-400 font-sans font-semibold">SEGREGATED</span>
               </div>
               <h3 className="text-base font-bold text-white mt-2 font-sans">{t.proofOfReservesTitle}</h3>
-              <p className="text-xs text-slate-400 mt-2 leading-relaxed font-sans">
+              <p className="text-xs text-slate-300 mt-2 leading-relaxed font-sans">
                 {t.proofOfReservesDesc}
               </p>
             </div>
           </div>
 
           {/* Card 2: Sub-millisecond Execution Speed */}
-          <div className="card-hover-glow p-7 rounded-2xl bg-[#0c1322] border border-slate-800 space-y-4">
+          <div className="card-hover-glow p-7 rounded-2xl bg-[#0e121b] border border-amber-500/20 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono text-slate-400 uppercase">{t.pillar1Kicker}</span>
-              <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-amber-400">
+              <span className="text-xs font-mono text-amber-400 uppercase">{t.pillar1Kicker}</span>
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
                 <Zap className="w-5 h-5" />
               </div>
             </div>
@@ -627,24 +675,24 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
                 0.003ms <span className="text-xs text-slate-400 font-sans">/fill</span>
               </div>
               <h3 className="text-base font-bold text-white mt-2 font-sans">{t.ultraFastMatchingTitle}</h3>
-              <p className="text-xs text-slate-400 mt-2 leading-relaxed font-sans">
+              <p className="text-xs text-slate-300 mt-2 leading-relaxed font-sans">
                 {t.ultraFastMatchingDesc}
               </p>
             </div>
           </div>
 
           {/* Card 3: ACID Relational SQL Ledger Security */}
-          <div className="card-hover-glow p-7 rounded-2xl bg-[#0c1322] border border-slate-800 space-y-4">
+          <div className="card-hover-glow p-7 rounded-2xl bg-[#0e121b] border border-amber-500/20 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono text-slate-400 uppercase">AUDITED SETTLEMENT</span>
-              <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-sky-400">
+              <span className="text-xs font-mono text-amber-400 uppercase">AUDITED SETTLEMENT</span>
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-emerald-400">
                 <Database className="w-5 h-5" />
               </div>
             </div>
             <div>
               <div className="text-3xl font-black text-white font-mono tabular-nums">ACID SQL</div>
               <h3 className="text-base font-bold text-white mt-2 font-sans">{t.sqlSecurityTitle}</h3>
-              <p className="text-xs text-slate-400 mt-2 leading-relaxed font-sans">
+              <p className="text-xs text-slate-300 mt-2 leading-relaxed font-sans">
                 {t.sqlSecurityDesc}
               </p>
             </div>
