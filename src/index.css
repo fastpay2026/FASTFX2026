@@ -72,3 +72,78 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Faint Heartbeat & Market Vitality Pulse Animations */
+@keyframes faint-heartbeat {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.18;
+  }
+  14% {
+    transform: scale(1.06);
+    opacity: 0.38;
+  }
+  28% {
+    transform: scale(1.02);
+    opacity: 0.22;
+  }
+  42% {
+    transform: scale(1.10);
+    opacity: 0.45;
+  }
+  65% {
+    transform: scale(1);
+    opacity: 0.18;
+  }
+}
+
+@keyframes heartbeat-subtle-glow {
+  0%, 100% {
+    opacity: 0.12;
+    filter: blur(80px);
+    transform: scale(1);
+  }
+  15% {
+    opacity: 0.30;
+    filter: blur(95px);
+    transform: scale(1.08);
+  }
+  30% {
+    opacity: 0.16;
+    filter: blur(85px);
+    transform: scale(1.02);
+  }
+  45% {
+    opacity: 0.38;
+    filter: blur(105px);
+    transform: scale(1.14);
+  }
+  70% {
+    opacity: 0.12;
+    filter: blur(80px);
+    transform: scale(1);
+  }
+}
+
+@keyframes ecg-trace-sweep {
+  0% {
+    stroke-dashoffset: 1200;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-faint-heartbeat {
+  animation: faint-heartbeat 2.4s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+
+.animate-heartbeat-glow {
+  animation: heartbeat-subtle-glow 2.4s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+
+.animate-ecg-trace {
+  stroke-dasharray: 1200;
+  animation: ecg-trace-sweep 3.5s linear infinite;
+}
+

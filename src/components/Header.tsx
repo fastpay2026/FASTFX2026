@@ -165,6 +165,19 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => {
                 onViewChange("landing");
                 setTimeout(() => {
+                  const el = document.getElementById("promotional-campaigns-section");
+                  if (el) el.scrollIntoView({ behavior: "smooth" });
+                }, 50);
+              }}
+              className="whitespace-nowrap shrink-0 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            >
+              {isAr ? "العروض والحملات" : "Campaigns"}
+            </button>
+
+            <button
+              onClick={() => {
+                onViewChange("landing");
+                setTimeout(() => {
                   const el = document.getElementById("grand-prix-countdown");
                   if (el) el.scrollIntoView({ behavior: "smooth" });
                 }, 50);

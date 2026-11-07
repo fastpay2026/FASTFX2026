@@ -20,8 +20,11 @@ import {
   Globe2,
   Server,
   Layers,
-  Sparkles
+  Sparkles,
+  Heart
 } from "lucide-react";
+import { PromotionalCampaigns } from "./PromotionalCampaigns";
+import { MarketHeartbeatLine } from "./MarketHeartbeatLine";
 
 const COUNTDOWN_STORAGE_KEY = "fast_fx_countdown_target_15d";
 const FIFTEEN_DAYS_MS = 15 * 24 * 60 * 60 * 1000;
@@ -167,15 +170,22 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
   };
 
   return (
-    <div className="space-y-24 py-10">
+    <div className="space-y-20 py-8 relative overflow-hidden">
+      {/* Faint Heartbeat Ambient Mesh Glows across the background */}
+      <div className="absolute top-16 left-1/2 -translate-x-1/2 w-[850px] h-[450px] bg-gradient-to-r from-sky-500/10 via-rose-500/12 to-indigo-500/10 rounded-full blur-3xl pointer-events-none animate-heartbeat-glow -z-10" />
+      <div className="absolute top-[38%] left-1/2 -translate-x-1/2 w-[900px] h-[450px] bg-gradient-to-tr from-rose-500/10 via-sky-500/10 to-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-heartbeat-glow -z-10" />
+      <div className="absolute top-[72%] left-1/2 -translate-x-1/2 w-[850px] h-[450px] bg-gradient-to-tr from-sky-500/10 via-rose-500/10 to-amber-500/10 rounded-full blur-3xl pointer-events-none animate-heartbeat-glow -z-10" />
+
       {/* 1. Modern Institutional Hero Section */}
       <section className="relative px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        {/* Subtle Ambient Mesh Radial Behind Hero */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-gradient-to-tr from-sky-600/10 via-cyan-500/10 to-indigo-600/10 blur-3xl pointer-events-none -z-10" />
-
         <div className="max-w-4xl mx-auto text-center space-y-6">
-          {/* Institutional Metadata Line (Quiet inline text with separators - Zero-Pill) */}
-          <div className="flex items-center justify-center gap-2 text-xs text-slate-400 font-mono tracking-wide">
+          {/* Institutional Metadata Line with subtle Heartbeat Indicator (Zero-Pill) */}
+          <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-slate-400 font-mono tracking-wide">
+            <span className="flex items-center gap-1.5 text-rose-400 font-semibold">
+              <Heart className="w-3.5 h-3.5 fill-rose-500/50 animate-faint-heartbeat" />
+              {isAr ? "نبض السوق المباشر نشط" : "LIVE MARKET PULSE"}
+            </span>
+            <span aria-hidden="true" className="text-slate-600">·</span>
             <span>TIER-1 LIQUIDITY</span>
             <span aria-hidden="true" className="text-slate-600">·</span>
             <span>EQUINIX CROSS-CONNECT</span>
@@ -253,10 +263,15 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
           </div>
         </div>
 
+        {/* Live Market Heartbeat Pulse Component */}
+        <div className="mt-8">
+          <MarketHeartbeatLine lang={lang} />
+        </div>
+
         {/* 15-Day Grand Prix Official Launch Countdown Card */}
-        <div id="grand-prix-countdown" className="mt-14 max-w-3xl mx-auto rounded-2xl bg-[#0c1322] border border-slate-800 p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-          {/* Subtle Corner Accent Highlight */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 rounded-full blur-2xl pointer-events-none" />
+        <div id="grand-prix-countdown" className="mt-8 max-w-3xl mx-auto rounded-2xl bg-[#0c1322] border border-slate-800 p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+          {/* Subtle Corner Accent Highlight with faint heartbeat glow */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 rounded-full blur-2xl pointer-events-none animate-faint-heartbeat" />
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-slate-800">
             <div className="flex items-center gap-3">
@@ -350,7 +365,19 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
         </div>
       </section>
 
-      {/* 2. Institutional Live Markets Table (Exclusively Informational - No Trade Execution on Home Page) */}
+      {/* 2. Official Promotional Campaigns & Flagship Advertising Showcases */}
+      <PromotionalCampaigns
+        lang={lang}
+        onOpenRegister={() => openAuthModal("register")}
+        onNavigateToTrading={onNavigateToTrading}
+        onScrollToMarkets={scrollToMarkets}
+        onScrollToCountdown={() => {
+          const el = document.getElementById("grand-prix-countdown");
+          if (el) el.scrollIntoView({ behavior: "smooth" });
+        }}
+      />
+
+      {/* 3. Institutional Live Markets Table (Exclusively Informational - No Trade Execution on Home Page) */}
       <section id="live-markets-section" className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="rounded-2xl bg-[#0c1322] border border-slate-800 p-5 sm:p-7 shadow-2xl">
           {/* Header & Filter Controls */}
