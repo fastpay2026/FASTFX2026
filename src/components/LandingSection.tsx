@@ -174,17 +174,17 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
   };
 
   return (
-    <div className="space-y-20 py-8 relative overflow-hidden bg-[#08090d]">
+    <div className="space-y-20 py-8 relative overflow-hidden bg-[#070913]">
       {/* 
         FAINT AMBIENT HEARTBEAT PULSES ACROSS THE ENTIRE CANVAS BACKGROUND 
-        (بالخلفية نبض خفيف وبألوان عصرية جديدة: Obsidian & Champagne Gold)
+        (Harmonized with Fast FX Logo Colors: Royal Indigo, Electric Amber-Gold, Midnight Obsidian)
       */}
-      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-gradient-to-r from-amber-500/10 via-yellow-500/8 to-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-faint-bg-pulse -z-10" />
-      <div className="absolute top-[35%] left-1/2 -translate-x-1/2 w-[950px] h-[480px] bg-gradient-to-tr from-amber-600/8 via-rose-500/8 to-sky-500/8 rounded-full blur-3xl pointer-events-none animate-faint-bg-pulse -z-10" />
-      <div className="absolute top-[68%] left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-gradient-to-tr from-emerald-500/8 via-amber-500/10 to-yellow-500/8 rounded-full blur-3xl pointer-events-none animate-faint-bg-pulse -z-10" />
+      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-gradient-to-r from-amber-500/12 via-indigo-600/15 to-yellow-400/10 rounded-full blur-3xl pointer-events-none animate-faint-bg-pulse -z-10" />
+      <div className="absolute top-[35%] left-1/2 -translate-x-1/2 w-[950px] h-[480px] bg-gradient-to-tr from-indigo-700/12 via-amber-500/10 to-indigo-500/10 rounded-full blur-3xl pointer-events-none animate-faint-bg-pulse -z-10" />
+      <div className="absolute top-[68%] left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-gradient-to-tr from-emerald-500/8 via-amber-500/10 to-indigo-600/10 rounded-full blur-3xl pointer-events-none animate-faint-bg-pulse -z-10" />
 
       {/* Streaming Live Forex Rates Ribbon Ticker */}
-      <div className="w-full bg-[#0a0d14] border-y border-amber-500/20 py-2.5 overflow-hidden">
+      <div className="w-full bg-[#05060e] border-y border-indigo-900/40 py-2.5 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-6 overflow-x-auto no-scrollbar text-xs font-mono">
           <div className="flex items-center gap-2 text-amber-400 font-bold shrink-0">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -232,6 +232,23 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
       {/* 1. New Modern Luxury Institutional Forex Hero Section */}
       <section className="relative px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="max-w-4xl mx-auto text-center space-y-6">
+          {/* Official Logo Brand Pill Showcase */}
+          <div className="inline-flex items-center gap-3 p-1.5 pr-4 pl-2 bg-[#0d1224] rounded-2xl border border-amber-500/30 shadow-xl shadow-indigo-950/40 mb-2">
+            <div className="w-9 h-9 rounded-xl bg-white p-1 shadow-sm flex items-center justify-center">
+              <img
+                src="/assets/aistudio/image_832cc79a.png"
+                alt="FAST FX SINCE 2026"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <div className="flex items-center gap-2 text-xs font-mono">
+              <span className="font-bold text-white tracking-wide">FAST FX</span>
+              <span className="text-amber-400 font-bold">SINCE 2026</span>
+              <span className="text-slate-600">·</span>
+              <span className="text-indigo-400 font-semibold">⚡ ULTRA-FAST TRADING</span>
+            </div>
+          </div>
+
           {/* Institutional Metadata Line with Heartbeat and Gold Accent (Zero-Pill) */}
           <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-slate-300 font-mono tracking-wide">
             <span className="flex items-center gap-1.5 text-rose-400 font-semibold">

@@ -6,19 +6,20 @@
   --font-mono: "JetBrains Mono", monospace;
 }
 
-/* Luxury Institutional Forex Color Palette */
+/* Fast FX Official Brand Color System (Harmonized with Logo: Royal Indigo & Electric Amber-Gold) */
 :root {
-  --canvas-bg: #08090d;
-  --surface-primary: #0e111a;
-  --surface-secondary: #141824;
-  --surface-card: #171d2b;
-  --surface-card-hover: #1f273a;
-  --border-subtle: #232c3d;
-  --border-medium: #344055;
+  --canvas-bg: #070913;
+  --surface-primary: #0d1224;
+  --surface-secondary: #121830;
+  --surface-card: #151d38;
+  --surface-card-hover: #1c264a;
+  --border-subtle: #202b4d;
+  --border-medium: #2e3d6b;
   --brand-gold: #f59e0b;
   --brand-amber: #d97706;
-  --brand-champagne: #fbbf24;
-  --brand-cyan: #06b6d4;
+  --brand-yellow: #fbbf24;
+  --brand-indigo: #4f46e5;
+  --brand-royal: #3b4994;
   --profit-emerald: #10b981;
   --loss-rose: #f43f5e;
 }

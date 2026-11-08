@@ -66,9 +66,9 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#070b14]/90 backdrop-blur-md border-b border-slate-800/80">
+    <header className="sticky top-0 z-40 w-full bg-[#070913]/95 backdrop-blur-md border-b border-indigo-900/30">
       {/* Top Live Institutional Ticker Ribbon */}
-      <div className="bg-[#05080f] border-b border-slate-800/60 py-1 px-4 overflow-x-auto no-scrollbar">
+      <div className="bg-[#05060e] border-b border-indigo-950/70 py-1 px-4 overflow-x-auto no-scrollbar">
         <div className="max-w-7xl mx-auto flex items-center justify-between text-[11px] font-mono">
           <div className="flex items-center gap-5 min-w-max">
             <div className="flex items-center gap-2 text-slate-400 font-semibold text-[10px] uppercase">

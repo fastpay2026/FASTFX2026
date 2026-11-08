@@ -71,7 +71,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-md bg-[#0c1322] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
         {/* Top subtle highlight */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-500 via-cyan-400 to-emerald-400" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-yellow-400 to-indigo-600" />
 
         {/* Close button */}
         <button
@@ -207,7 +207,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ lang, onLoginSuccess }) =>
             {/* Primary Action Button */}
             <button
               type="submit"
-              className="w-full py-3 px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer mt-3 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white shadow-md shadow-sky-500/20"
+              className="w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer mt-3 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-md shadow-amber-500/25"
             >
               <span>
                 {activeAuthTab === "login"
