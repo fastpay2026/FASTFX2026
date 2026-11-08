@@ -13,7 +13,7 @@ export interface User {
   kycNotes?: string;
   country?: string;
   phone?: string;
-  status: "active" | "suspended";
+  status: "active" | "suspended" | "frozen";
   createdAt: string;
 }
 
@@ -48,7 +48,7 @@ export interface Transaction {
   id: string;
   userId: string;
   userEmail: string;
-  type: "DEPOSIT" | "WITHDRAWAL" | "TRADE_PROFIT" | "TRADE_LOSS" | "ADMIN_CREDIT";
+  type: "DEPOSIT" | "WITHDRAWAL" | "TRADE_PROFIT" | "TRADE_LOSS" | "ADMIN_CREDIT" | "TRANSFER_IN" | "TRANSFER_OUT";
   amount: number;
   balanceAfter: number;
   note: string;
@@ -64,10 +64,12 @@ export interface FundRequest {
   amount: number;
   paymentMethod: "BANK_WIRE" | "CRYPTO_USDT" | "SEPA" | "INSTITUTIONAL_LEDGER";
   txReference: string;
+  destinationAddress?: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
   createdAt: string;
   reviewedAt?: string;
   reviewNote?: string;
+  amountAlreadyDeducted?: boolean;
 }
 
 export interface ManagedMarketPair {

@@ -937,6 +937,167 @@ class SqlDatabaseEngine {
     }
   }
 
+  // --- 1. Add Balance to Client ---
+  public addBalanceToUser(userId: string, amountToAdd: number, note?: string): { success: boolean; newBalance?: number; error?: string } {
+    if (amountToAdd <= 0) {
+      return { success: false, error: "المبلغ المضاف يجب أن يكون أكبر من الصفر" };
+    }
+    const user = this.state.users.find((u) => u.id === userId);
+    if (!user) {
+      return { success: false, error: "المستخدم غير موجود" };
+    }
+
+    const prev = user.balance;
+    const newBal = Number((user.balance + amountToAdd).toFixed(2));
+    user.balance = newBal;
+    user.equity = newBal;
+
+    this.state.transactions.unshift({
+      id: `tx_${Date.now().toString(36)}`,
+      userId: user.id,
+      userEmail: user.email,
+      type: "ADMIN_CREDIT",
+      amount: amountToAdd,
+      balanceAfter: user.balance,
+      note: note || `إيداع إداري مباشر: +$${amountToAdd.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+      timestamp: new Date().toISOString()
+    });
+
+    this.addAuditLog(
+      SUPER_ADMIN_EMAIL,
+      "ADMIN_BALANCE_ADD",
+      `Credited $${amountToAdd} to ${user.email} (Previous: $${prev}, New: $${newBal}). Note: ${note || "Direct Credit"}`
+    );
+    this.saveToStorage();
+    return { success: true, newBalance: newBal };
+  }
+
+  // --- 2. Freeze / Unfreeze Client Account ---
+  public freezeUser(userId: string, reason?: string): { success: boolean; error?: string } {
+    const user = this.state.users.find((u) => u.id === userId);
+    if (!user) {
+      return { success: false, error: "المستخدم غير موجود" };
+    }
+    if (user.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) {
+      return { success: false, error: "لا يمكن تجميد حساب المدير الرئيسي" };
+    }
+
+    user.status = "frozen";
+    this.addAuditLog(
+      SUPER_ADMIN_EMAIL,
+      "USER_ACCOUNT_FROZEN",
+      `Account ${user.email} frozen by Admin. Reason: ${reason || "Compliance & Security Hold"}`
+    );
+    this.saveToStorage();
+    return { success: true };
+  }
+
+  public unfreezeUser(userId: string): { success: boolean; error?: string } {
+    const user = this.state.users.find((u) => u.id === userId);
+    if (!user) {
+      return { success: false, error: "المستخدم غير موجود" };
+    }
+
+    user.status = "active";
+    this.addAuditLog(
+      SUPER_ADMIN_EMAIL,
+      "USER_ACCOUNT_UNFROZEN",
+      `Account ${user.email} unfrozen and reactivated by Admin.`
+    );
+    this.saveToStorage();
+    return { success: true };
+  }
+
+  // --- 3. Transfer Balance Between Clients ---
+  public transferBalance(
+    fromUserId: string,
+    toUserId: string,
+    amount: number,
+    adminNote?: string
+  ): { success: boolean; error?: string; sourceBalance?: number; targetBalance?: number } {
+    if (!fromUserId || !toUserId) {
+      return { success: false, error: "يرجى تحديد حساب المرسل وحساب المستلم" };
+    }
+    if (fromUserId === toUserId) {
+      return { success: false, error: "لا يمكن تحويل الرصيد إلى نفس الحساب" };
+    }
+    if (amount <= 0 || isNaN(amount)) {
+      return { success: false, error: "مبلغ التحويل يجب أن يكون أكبر من الصفر" };
+    }
+
+    const fromUser = this.state.users.find((u) => u.id === fromUserId);
+    const toUser = this.state.users.find((u) => u.id === toUserId);
+
+    if (!fromUser) {
+      return { success: false, error: "حساب العميل المحول منه غير موجود" };
+    }
+    if (!toUser) {
+      return { success: false, error: "حساب العميل المحول إليه غير موجود" };
+    }
+
+    if (fromUser.status === "frozen") {
+      return { success: false, error: `حساب العميل المحول منه (${fromUser.name}) مُجمّد، لا يمكن التحويل منه` };
+    }
+
+    if (fromUser.balance < amount) {
+      return {
+        success: false,
+        error: `رصيد العميل المحول منه غير كافٍ. الرصيد المتاح: $${fromUser.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })} والمطلوب: $${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+      };
+    }
+
+    const cleanAmount = Number(amount.toFixed(2));
+    fromUser.balance = Number((fromUser.balance - cleanAmount).toFixed(2));
+    fromUser.equity = fromUser.balance;
+
+    toUser.balance = Number((toUser.balance + cleanAmount).toFixed(2));
+    toUser.equity = toUser.balance;
+
+    const timestamp = new Date().toISOString();
+
+    // 1. Transaction record for Source Client
+    this.state.transactions.unshift({
+      id: `tx_${Date.now().toString(36)}_out`,
+      userId: fromUser.id,
+      userEmail: fromUser.email,
+      type: "TRANSFER_OUT",
+      amount: cleanAmount,
+      balanceAfter: fromUser.balance,
+      note: adminNote
+        ? `تحويل إداري صادر إلى ${toUser.name} (${toUser.email}) - بيان: ${adminNote}`
+        : `تحويل إداري صادر إلى حساب ${toUser.name} (${toUser.email})`,
+      timestamp
+    });
+
+    // 2. Transaction record for Destination Client
+    this.state.transactions.unshift({
+      id: `tx_${Date.now().toString(36)}_in`,
+      userId: toUser.id,
+      userEmail: toUser.email,
+      type: "TRANSFER_IN",
+      amount: cleanAmount,
+      balanceAfter: toUser.balance,
+      note: adminNote
+        ? `تحويل إداري وارد من ${fromUser.name} (${fromUser.email}) - بيان: ${adminNote}`
+        : `تحويل إداري وارد من حساب ${fromUser.name} (${fromUser.email})`,
+      timestamp
+    });
+
+    // 3. Audit log
+    this.addAuditLog(
+      SUPER_ADMIN_EMAIL,
+      "ADMIN_CLIENT_TRANSFER",
+      `Transferred $${cleanAmount} from ${fromUser.email} to ${toUser.email}. Note: ${adminNote || "Direct Admin Transfer"}`
+    );
+
+    this.saveToStorage();
+    return {
+      success: true,
+      sourceBalance: fromUser.balance,
+      targetBalance: toUser.balance
+    };
+  }
+
   public updateUserKyc(userId: string, kycStatus: User["kycStatus"], kycNotes?: string, kycTier?: User["kycTier"]): void {
     const user = this.state.users.find((u) => u.id === userId);
     if (user) {
@@ -966,64 +1127,183 @@ class SqlDatabaseEngine {
     }
   }
 
-  // --- Fund Requests (Deposits & Withdrawals Workflow) ---
+  // --- Fund Requests (Deposits & 4. Withdrawals Workflow) ---
 
   public getFundRequests(): FundRequest[] {
     return [...this.state.fund_requests];
   }
 
-  public approveFundRequest(requestId: string, reviewNote?: string): void {
-    const req = this.state.fund_requests.find((r) => r.id === requestId);
-    if (req && req.status === "PENDING") {
-      req.status = "APPROVED";
-      req.reviewedAt = new Date().toISOString();
-      req.reviewNote = reviewNote || "Approved by institutional admin compliance officer";
-
-      const user = this.state.users.find((u) => u.id === req.userId);
-      if (user) {
-        if (req.type === "DEPOSIT") {
-          user.balance = Number((user.balance + req.amount).toFixed(2));
-          user.equity = user.balance;
-          this.state.transactions.unshift({
-            id: `tx_${Date.now().toString(36)}`,
-            userId: user.id,
-            userEmail: user.email,
-            type: "DEPOSIT",
-            amount: req.amount,
-            balanceAfter: user.balance,
-            note: `Approved deposit ref ${req.txReference}`,
-            timestamp: new Date().toISOString()
-          });
-        } else if (req.type === "WITHDRAWAL") {
-          user.balance = Number((user.balance - req.amount).toFixed(2));
-          user.equity = user.balance;
-          this.state.transactions.unshift({
-            id: `tx_${Date.now().toString(36)}`,
-            userId: user.id,
-            userEmail: user.email,
-            type: "WITHDRAWAL",
-            amount: req.amount,
-            balanceAfter: user.balance,
-            note: `Approved withdrawal ref ${req.txReference}`,
-            timestamp: new Date().toISOString()
-          });
-        }
-      }
-
-      this.addAuditLog(SUPER_ADMIN_EMAIL, "FUND_REQUEST_APPROVED", `Request ${req.id} (${req.type} $${req.amount}) approved for ${req.userEmail}`);
-      this.saveToStorage();
+  // Client or Admin requests a withdrawal
+  public requestWithdrawal(
+    userId: string,
+    amount: number,
+    paymentMethod: FundRequest["paymentMethod"],
+    destinationAddress: string,
+    note?: string
+  ): { success: boolean; error?: string; request?: FundRequest } {
+    const user = this.state.users.find((u) => u.id === userId);
+    if (!user) {
+      return { success: false, error: "المستخدم غير موجود" };
     }
+    if (user.status === "frozen") {
+      return { success: false, error: "هذا الحساب مجمّد حالياً من قِبل إدارة الامتثال، لا يمكن طلب السحب" };
+    }
+    if (user.status === "suspended") {
+      return { success: false, error: "الحساب موقوف، لا يمكن إتمام عمليات السحب" };
+    }
+    if (amount <= 0 || isNaN(amount)) {
+      return { success: false, error: "مبلغ السحب يجب أن يكون أكبر من صفر" };
+    }
+    if (user.balance < amount) {
+      return {
+        success: false,
+        error: `الرصيد المتاح ($${user.balance.toFixed(2)}) أقل من المبلغ المطلوب سحبه ($${amount.toFixed(2)})`
+      };
+    }
+
+    const cleanAmount = Number(amount.toFixed(2));
+
+    // Lock/Hold the withdrawal amount immediately from available balance
+    user.balance = Number((user.balance - cleanAmount).toFixed(2));
+    user.equity = user.balance;
+
+    const newRequest: FundRequest = {
+      id: `req_wdr_${Date.now().toString(36)}`,
+      userId: user.id,
+      userEmail: user.email,
+      userName: user.name,
+      type: "WITHDRAWAL",
+      amount: cleanAmount,
+      paymentMethod,
+      destinationAddress,
+      txReference: `WDR-${Date.now().toString(36).toUpperCase()}`,
+      status: "PENDING",
+      amountAlreadyDeducted: true,
+      reviewNote: note,
+      createdAt: new Date().toISOString()
+    };
+
+    this.state.fund_requests.unshift(newRequest);
+
+    this.state.transactions.unshift({
+      id: `tx_${Date.now().toString(36)}`,
+      userId: user.id,
+      userEmail: user.email,
+      type: "WITHDRAWAL",
+      amount: cleanAmount,
+      balanceAfter: user.balance,
+      note: `طلب سحب قيد المعالجة (${paymentMethod} -> ${destinationAddress || "N/A"})`,
+      timestamp: new Date().toISOString()
+    });
+
+    this.addAuditLog(
+      user.email,
+      "WITHDRAWAL_REQUESTED",
+      `Withdrawal requested: $${cleanAmount} via ${paymentMethod} to ${destinationAddress || "N/A"}`
+    );
+
+    this.saveToStorage();
+    return { success: true, request: newRequest };
   }
 
-  public rejectFundRequest(requestId: string, reviewNote: string): void {
+  // Admin Approves a Fund Request (Deposit or Withdrawal)
+  public approveFundRequest(requestId: string, reviewNote?: string): { success: boolean; error?: string } {
     const req = this.state.fund_requests.find((r) => r.id === requestId);
-    if (req && req.status === "PENDING") {
-      req.status = "REJECTED";
-      req.reviewedAt = new Date().toISOString();
-      req.reviewNote = reviewNote || "Rejected due to compliance or reference mismatch";
-      this.addAuditLog(SUPER_ADMIN_EMAIL, "FUND_REQUEST_REJECTED", `Request ${req.id} rejected for ${req.userEmail}: ${reviewNote}`);
-      this.saveToStorage();
+    if (!req) {
+      return { success: false, error: "طلب التحويل غير موجود" };
     }
+    if (req.status !== "PENDING") {
+      return { success: false, error: `الطلب تمت معالجته مسبقاً (${req.status})` };
+    }
+
+    req.status = "APPROVED";
+    req.reviewedAt = new Date().toISOString();
+    req.reviewNote = reviewNote || "تمت الموافقة والاعتماد من قِبل إدارة الامتثال والخزينة";
+
+    const user = this.state.users.find((u) => u.id === req.userId);
+    if (user) {
+      if (req.type === "DEPOSIT") {
+        user.balance = Number((user.balance + req.amount).toFixed(2));
+        user.equity = user.balance;
+        this.state.transactions.unshift({
+          id: `tx_${Date.now().toString(36)}`,
+          userId: user.id,
+          userEmail: user.email,
+          type: "DEPOSIT",
+          amount: req.amount,
+          balanceAfter: user.balance,
+          note: `إيداع معتمد: مرجع ${req.txReference}`,
+          timestamp: new Date().toISOString()
+        });
+      } else if (req.type === "WITHDRAWAL") {
+        // If not deducted yet (legacy/initial seeds), deduct now
+        if (!req.amountAlreadyDeducted) {
+          user.balance = Number((user.balance - req.amount).toFixed(2));
+          user.equity = user.balance;
+        }
+        this.state.transactions.unshift({
+          id: `tx_${Date.now().toString(36)}`,
+          userId: user.id,
+          userEmail: user.email,
+          type: "WITHDRAWAL",
+          amount: req.amount,
+          balanceAfter: user.balance,
+          note: `سحب معتمد نهائياً ومحوّل للعميل: ${req.txReference} (${reviewNote || req.paymentMethod})`,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+
+    this.addAuditLog(
+      SUPER_ADMIN_EMAIL,
+      req.type === "WITHDRAWAL" ? "WITHDRAWAL_APPROVED" : "DEPOSIT_APPROVED",
+      `Approved ${req.type} request ${req.id} ($${req.amount}) for ${req.userEmail}. Note: ${req.reviewNote}`
+    );
+    this.saveToStorage();
+    return { success: true };
+  }
+
+  // Admin Rejects a Fund Request (Refunds held funds if withdrawal)
+  public rejectFundRequest(requestId: string, reviewNote: string): { success: boolean; error?: string } {
+    const req = this.state.fund_requests.find((r) => r.id === requestId);
+    if (!req) {
+      return { success: false, error: "طلب التحويل غير موجود" };
+    }
+    if (req.status !== "PENDING") {
+      return { success: false, error: `الطلب تمت معالجته مسبقاً (${req.status})` };
+    }
+
+    req.status = "REJECTED";
+    req.reviewedAt = new Date().toISOString();
+    req.reviewNote = reviewNote || "تم رفض الطلب لعدم مطابقة بيانات التحقق والامتثال";
+
+    const user = this.state.users.find((u) => u.id === req.userId);
+    if (user) {
+      // If it was a withdrawal where funds were held/locked, REFUND them back to user!
+      if (req.type === "WITHDRAWAL" && req.amountAlreadyDeducted) {
+        user.balance = Number((user.balance + req.amount).toFixed(2));
+        user.equity = user.balance;
+
+        this.state.transactions.unshift({
+          id: `tx_${Date.now().toString(36)}`,
+          userId: user.id,
+          userEmail: user.email,
+          type: "ADMIN_CREDIT",
+          amount: req.amount,
+          balanceAfter: user.balance,
+          note: `استرجاع رصيد: تم رفض طلب السحب (${reviewNote || "مرفوض من الإدارة"})`,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+
+    this.addAuditLog(
+      SUPER_ADMIN_EMAIL,
+      req.type === "WITHDRAWAL" ? "WITHDRAWAL_REJECTED" : "DEPOSIT_REJECTED",
+      `Rejected ${req.type} request ${req.id} for ${req.userEmail}. Reason: ${req.reviewNote}`
+    );
+    this.saveToStorage();
+    return { success: true };
   }
 
   // --- Market Instruments Controls ---

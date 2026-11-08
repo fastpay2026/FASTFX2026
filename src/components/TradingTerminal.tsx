@@ -82,6 +82,13 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
   const [depositMethodInput, setDepositMethodInput] = useState<string>("BANK_WIRE");
   const [depositSuccessMsg, setDepositSuccessMsg] = useState<string | null>(null);
 
+  // Withdrawal modal state for client withdrawals
+  const [showWithdrawModal, setShowWithdrawModal] = useState<boolean>(false);
+  const [withdrawAmountInput, setWithdrawAmountInput] = useState<string>("1000");
+  const [withdrawMethodInput, setWithdrawMethodInput] = useState<"BANK_WIRE" | "CRYPTO_USDT" | "SEPA" | "INSTITUTIONAL_LEDGER">("CRYPTO_USDT");
+  const [withdrawDestinationInput, setWithdrawDestinationInput] = useState<string>("");
+  const [withdrawMsg, setWithdrawMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
+
   // Bottom Workstation Tab
   const [activeBottomTab, setActiveBottomTab] = useState<"positions" | "history" | "ledger">("positions");
 
@@ -278,6 +285,17 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
       return;
     }
 
+    // Condition 1.5: Account must not be frozen (تجميد حساب العميل)
+    if (currentUser.status === "frozen") {
+      setExecMessage({
+        text: isAr
+          ? "عذراً، هذا الحساب مُجمّد حالياً من قِبل إدارة الامتثال والرقابة. تم إيقاف إمكانية فتح أي صفقات جديدة."
+          : "Trade blocked: Your account has been frozen by regulatory compliance. New orders are blocked.",
+        type: "error"
+      });
+      return;
+    }
+
     // Condition 2: Account balance must be strictly > 0 (الحساب الذي رصيده صفر لا يستطيع فتح اي صفقة)
     if (currentUser.balance <= 0) {
       setExecMessage({
@@ -384,6 +402,72 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
       setDepositSuccessMsg(null);
       setShowDepositModal(false);
     }, 1800);
+  };
+
+  // Client Withdrawal Submission
+  const handleConfirmWithdraw = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) {
+      openAuthModal("login");
+      return;
+    }
+
+    if (currentUser.status === "frozen") {
+      setWithdrawMsg({
+        text: isAr
+          ? "عذراً، هذا الحساب مُجمّد حالياً من قِبل إدارة الامتثال، لا يمكنك طلب سحب الأموال."
+          : "Account Frozen: Withdrawals are blocked while your account is under compliance review.",
+        type: "error"
+      });
+      return;
+    }
+
+    const amount = parseFloat(withdrawAmountInput);
+    if (isNaN(amount) || amount <= 0) {
+      setWithdrawMsg({
+        text: isAr ? "يرجى إدخال مبلغ سحب صحيح أكبر من صفر" : "Please enter a valid withdrawal amount",
+        type: "error"
+      });
+      return;
+    }
+
+    if (amount > currentUser.balance) {
+      setWithdrawMsg({
+        text: isAr
+          ? `الرصيد المتاح ($${currentUser.balance.toFixed(2)}) غير كافٍ لسحب $${amount.toFixed(2)}`
+          : `Insufficient balance ($${currentUser.balance.toFixed(2)}) for withdrawal of $${amount.toFixed(2)}`,
+        type: "error"
+      });
+      return;
+    }
+
+    const res = sqlDb.requestWithdrawal(
+      currentUser.id,
+      amount,
+      withdrawMethodInput,
+      withdrawDestinationInput || "TRC20-0xClientDirectWithdrawalWallet",
+      "طلب سحب أرباح مباشر من محطة التداول"
+    );
+
+    if (res.success) {
+      setWithdrawMsg({
+        text: isAr
+          ? `تم تقديم طلب سحب $${amount.toLocaleString()} بنجاح وحجز المبلغ. الطلب بانتظار مراجعة الإدارة والموافقة.`
+          : `Withdrawal request of $${amount.toLocaleString()} queued successfully and pending admin approval.`,
+        type: "success"
+      });
+      refreshUser();
+      loadTrades();
+      setTimeout(() => {
+        setWithdrawMsg(null);
+        setShowWithdrawModal(false);
+      }, 2500);
+    } else {
+      setWithdrawMsg({
+        text: res.error || "Failed to process withdrawal",
+        type: "error"
+      });
+    }
   };
 
   const openPositions = userTrades.filter((t) => t.status === "OPEN");
@@ -515,7 +599,14 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
 
           {/* Account Balance Widget */}
           <div className="pl-3 border-l border-slate-800">
-            <div className="text-[10px] text-slate-400 uppercase">{t.balanceLabel}</div>
+            <div className="text-[10px] text-slate-400 uppercase flex items-center gap-1.5">
+              <span>{t.balanceLabel}</span>
+              {currentUser?.status === "frozen" && (
+                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                  {isAr ? "مُجمّد 🔒" : "FROZEN"}
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <span
                 className={`font-bold tabular-nums ${
@@ -524,21 +615,49 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
               >
                 ${currentUser ? currentUser.balance.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "0.00"}
               </span>
-              {(!currentUser || currentUser.balance <= 0) && (
+
+              {/* Deposit CTA */}
+              <button
+                onClick={() => {
+                  if (!currentUser) openAuthModal("login");
+                  else setShowDepositModal(true);
+                }}
+                className="px-2 py-0.5 rounded text-[10px] font-sans font-bold bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition-colors cursor-pointer"
+              >
+                {isAr ? "إيداع" : "Deposit"}
+              </button>
+
+              {/* Withdraw CTA (Available for funded active accounts) */}
+              {currentUser && currentUser.balance > 0 && currentUser.status !== "frozen" && (
                 <button
-                  onClick={() => {
-                    if (!currentUser) openAuthModal("login");
-                    else setShowDepositModal(true);
-                  }}
-                  className="px-2 py-0.5 rounded text-[10px] font-sans font-bold bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition-colors cursor-pointer"
+                  onClick={() => setShowWithdrawModal(true)}
+                  className="px-2 py-0.5 rounded text-[10px] font-sans font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-colors cursor-pointer flex items-center gap-1"
                 >
-                  {isAr ? "إيداع" : "Deposit"}
+                  <DollarSign className="w-2.5 h-2.5" />
+                  <span>{isAr ? "طلب سحب" : "Withdraw"}</span>
                 </button>
               )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Global Frozen Banner if Account is Under Compliance Hold */}
+      {currentUser?.status === "frozen" && (
+        <div className="p-3.5 rounded-xl bg-cyan-950/40 border border-cyan-500/40 text-cyan-200 text-xs flex items-center justify-between gap-3 animate-in fade-in shadow-lg">
+          <div className="flex items-center gap-2.5">
+            <Lock className="w-4 h-4 text-cyan-400 shrink-0" />
+            <div>
+              <span className="font-bold">{isAr ? "تنبيه أمني هام:" : "Security Notice:"}</span>{" "}
+              <span>
+                {isAr
+                  ? "تم تجميد هذا الحساب من قِبل إدارة الامتثال والرقابة. تم إيقاف إمكانية فتح أي صفقات جديدة أو سحب الأموال لحين مراجعة الحساب."
+                  : "This account has been frozen by regulatory compliance. Trading and withdrawals are temporarily halted."}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Trading Workstation Grid: Chart + Order Book + Order Ticket */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
@@ -1057,6 +1176,31 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
                 <span>{isAr ? "تسجيل الدخول أو فتح حساب لفتح الصفقات" : "Sign In or Register to Trade"}</span>
               </button>
             </div>
+          ) : currentUser.status === "frozen" ? (
+            /* Case 1.5: LOGGED IN BUT ACCOUNT IS FROZEN (تجميد حساب العميل) */
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-xl bg-cyan-950/40 border border-cyan-500/40 text-cyan-200 text-xs font-sans space-y-2">
+                <div className="flex items-center gap-2 font-bold text-cyan-300">
+                  <Lock className="w-4 h-4 shrink-0 text-cyan-400" />
+                  <span>{isAr ? "الحساب مُجمّد حالياً - التداول معطل" : "Account Frozen - Trading Disabled"}</span>
+                </div>
+                <p className="text-[11px] text-cyan-100/80 leading-relaxed font-sans">
+                  {isAr
+                    ? "تم تجميد هذا الحساب من قِبل إدارة الامتثال والرقابة. تم إيقاف إمكانية فتح أي صفقات جديدة أو سحب الأموال لحين مراجعة الحساب."
+                    : "This account has been frozen by regulatory compliance. Trade placement and withdrawals are blocked."}
+                </p>
+              </div>
+
+              {/* Disabled Order Button */}
+              <button
+                type="button"
+                disabled
+                className="w-full py-3 px-4 rounded-lg font-bold text-xs uppercase tracking-wider bg-slate-900 text-cyan-400/60 border border-cyan-500/30 cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Lock className="w-4 h-4" />
+                <span>{isAr ? "الحساب مُجمّد (مراجعة الإدارة)" : "Account Frozen (Compliance)"}</span>
+              </button>
+            </div>
           ) : currentUser.balance <= 0 ? (
             /* Case 2: LOGGED IN BUT ZERO BALANCE (الحساب الذي رصيده صفر لا يستطيع فتح اي صفقة) */
             <div className="space-y-3">
@@ -1425,6 +1569,130 @@ export const TradingTerminal: React.FC<TradingTerminalProps> = ({
                 >
                   <Wallet className="w-4 h-4" />
                   <span>{isAr ? "تأكيد الإيداع وشحن الحساب" : "Confirm Deposit"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- CLIENT WITHDRAWAL MODAL (طلب سحب أرباح) --- */}
+      {showWithdrawModal && currentUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-md bg-[#0c1322] border border-amber-500/40 rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                  <DollarSign className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    {isAr ? "طلب سحب الأرباح والرصيد" : "Request Fund Withdrawal"}
+                  </h3>
+                  <div className="text-[11px] text-slate-400">
+                    {currentUser.name} ({currentUser.email})
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowWithdrawModal(false);
+                  setWithdrawMsg(null);
+                }}
+                className="text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Current Balance Notice */}
+            <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl flex items-center justify-between text-xs font-mono">
+              <span className="text-slate-400">{isAr ? "الرصيد المتاح للسحب:" : "Available to Withdraw:"}</span>
+              <span className="text-amber-400 font-bold text-sm tabular-nums">
+                ${currentUser.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+
+            {withdrawMsg && (
+              <div
+                className={`p-3 rounded-xl text-xs flex items-center gap-2 font-mono ${
+                  withdrawMsg.type === "success"
+                    ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-300"
+                    : "bg-rose-500/15 border border-rose-500/30 text-rose-300"
+                }`}
+              >
+                {withdrawMsg.type === "success" ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                <span>{withdrawMsg.text}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleConfirmWithdraw} className="space-y-4 text-xs font-sans">
+              <div>
+                <label className="block text-slate-400 mb-1.5 font-medium">
+                  {isAr ? "المبلغ المطلوب سحبه ($)" : "Withdrawal Amount ($)"}
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="1"
+                  max={currentUser.balance}
+                  value={withdrawAmountInput}
+                  onChange={(e) => setWithdrawAmountInput(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-2.5 font-mono text-sm focus:outline-none focus:border-amber-400 tabular-nums"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1.5 font-medium">
+                  {isAr ? "قناة استلام الأموال" : "Receiving Method"}
+                </label>
+                <select
+                  value={withdrawMethodInput}
+                  onChange={(e) => setWithdrawMethodInput(e.target.value as any)}
+                  className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-2.5 focus:outline-none font-mono text-xs"
+                >
+                  <option value="CRYPTO_USDT">USDT Tether (TRC-20 / ERC-20)</option>
+                  <option value="BANK_WIRE">International Wire (SWIFT Transfer)</option>
+                  <option value="SEPA">SEPA European Bank Transfer</option>
+                  <option value="INSTITUTIONAL_LEDGER">Institutional Custody Escrow</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1.5 font-medium">
+                  {isAr ? "عنوان المحفظة أو رقم الآيبان (IBAN/Wallet Address):" : "Destination IBAN or Wallet Address:"}
+                </label>
+                <input
+                  type="text"
+                  value={withdrawDestinationInput}
+                  onChange={(e) => setWithdrawDestinationInput(e.target.value)}
+                  placeholder="e.g. TRC20: TLp7d... or IBAN: SA038..."
+                  className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-2.5 focus:outline-none focus:border-amber-400 font-mono text-xs"
+                  required
+                />
+              </div>
+
+              <div className="p-2.5 bg-slate-950/60 border border-slate-800 rounded-lg text-[11px] text-slate-400 space-y-1">
+                <div className="text-slate-300 font-semibold">{isAr ? "شروط معالجة السحب:" : "Withdrawal Processing Terms:"}</div>
+                <div>{isAr ? "• يتم حجز المبلغ المطلوب فوراً ويحال لمدير الامتثال في لوحة التحكم للموافقة أو الرفض." : "• Amount is reserved and sent to Admin Compliance for approval or rejection."}</div>
+                <div>{isAr ? "• في حال رفض الطلب، يُعاد الرصيد فوراً وبشكل تلقائي لحسابك." : "• If rejected, the full amount is instantly refunded to your balance."}</div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowWithdrawModal(false)}
+                  className="px-4 py-2 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  {isAr ? "إلغاء" : "Cancel"}
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 font-bold transition-all cursor-pointer shadow-md flex items-center gap-2"
+                >
+                  <DollarSign className="w-4 h-4" />
+                  <span>{isAr ? "إرسال طلب السحب" : "Submit Withdrawal Request"}</span>
                 </button>
               </div>
             </form>
