@@ -8,7 +8,11 @@ import {
   SqlQueryResult,
   FundRequest,
   ManagedMarketPair,
-  PlatformBroadcast
+  PlatformBroadcast,
+  ServerNode,
+  ServerStatus,
+  SystemLogLevel,
+  SystemLogEntry
 } from "../types";
 
 export const SUPER_ADMIN_EMAIL = "admin@fast-fx.uk";
@@ -24,6 +28,8 @@ interface DatabaseState {
   fund_requests: FundRequest[];
   market_instruments: ManagedMarketPair[];
   broadcasts: PlatformBroadcast[];
+  server_nodes: ServerNode[];
+  system_logs: SystemLogEntry[];
 }
 
 const initialMarketInstruments: ManagedMarketPair[] = [
@@ -222,6 +228,220 @@ const initialBroadcasts: PlatformBroadcast[] = [
     severity: "warning",
     active: true,
     createdAt: new Date(Date.now() - 24 * 3600 * 1000).toISOString()
+  }
+];
+
+const initialServerNodes: ServerNode[] = [
+  {
+    id: "srv_ld4_match_01",
+    name: "LD4-MATCH-CORE-01",
+    role: "Ultra-Low Latency Matching Engine",
+    region: "Europe West",
+    datacenter: "Equinix LD4 (London Slough, UK)",
+    ipAddress: "194.109.12.44",
+    cpuUsage: 34.2,
+    memoryUsage: 48.6,
+    diskUsage: 28.5,
+    networkLatencyMs: 0.12,
+    bandwidthGbps: 18.4,
+    uptimeHours: 3420,
+    activeConnections: 1840,
+    status: "ONLINE",
+    lastRebootedAt: new Date(Date.now() - 142 * 24 * 3600 * 1000).toISOString(),
+    version: "v4.19.4-fastfx-ld4"
+  },
+  {
+    id: "srv_ld4_fix_02",
+    name: "LD4-FIX-GATEWAY-02",
+    role: "Institutional FIX Protocol 4.4 Bridge",
+    region: "Europe West",
+    datacenter: "Equinix LD4 (London Slough, UK)",
+    ipAddress: "194.109.12.48",
+    cpuUsage: 22.8,
+    memoryUsage: 31.4,
+    diskUsage: 19.2,
+    networkLatencyMs: 0.18,
+    bandwidthGbps: 8.7,
+    uptimeHours: 2160,
+    activeConnections: 490,
+    status: "ONLINE",
+    lastRebootedAt: new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString(),
+    version: "v4.19.0-fix44"
+  },
+  {
+    id: "srv_fr2_stream_01",
+    name: "FR2-WS-FEED-01",
+    role: "High-Frequency WebSocket Price Streamer",
+    region: "Europe Central",
+    datacenter: "Equinix FR2 (Frankfurt, DE)",
+    ipAddress: "185.12.88.102",
+    cpuUsage: 41.5,
+    memoryUsage: 54.0,
+    diskUsage: 35.1,
+    networkLatencyMs: 0.42,
+    bandwidthGbps: 14.2,
+    uptimeHours: 1840,
+    activeConnections: 2450,
+    status: "ONLINE",
+    lastRebootedAt: new Date(Date.now() - 76 * 24 * 3600 * 1000).toISOString(),
+    version: "v4.19.3-ws-fast"
+  },
+  {
+    id: "srv_ny4_liq_03",
+    name: "NY4-LIQ-AGG-03",
+    role: "Tier-1 Multi-Bank LP Liquidity Router",
+    region: "North America East",
+    datacenter: "Equinix NY4 (Secaucus NJ, USA)",
+    ipAddress: "64.120.44.18",
+    cpuUsage: 29.1,
+    memoryUsage: 38.2,
+    diskUsage: 24.6,
+    networkLatencyMs: 0.74,
+    bandwidthGbps: 11.5,
+    uptimeHours: 4200,
+    activeConnections: 320,
+    status: "ONLINE",
+    lastRebootedAt: new Date(Date.now() - 175 * 24 * 3600 * 1000).toISOString(),
+    version: "v4.18.9-liq-agg"
+  },
+  {
+    id: "srv_ld4_sql_master",
+    name: "LD4-SQL-MASTER-01",
+    role: "Primary Relational Core Database (PostgreSQL)",
+    region: "Europe West",
+    datacenter: "Equinix LD4 (London Slough, UK)",
+    ipAddress: "10.240.40.10",
+    cpuUsage: 48.7,
+    memoryUsage: 68.3,
+    diskUsage: 52.8,
+    networkLatencyMs: 0.08,
+    bandwidthGbps: 6.2,
+    uptimeHours: 5120,
+    activeConnections: 128,
+    status: "ONLINE",
+    lastRebootedAt: new Date(Date.now() - 213 * 24 * 3600 * 1000).toISOString(),
+    version: "v16.3-fastfx-sql"
+  },
+  {
+    id: "srv_dx1_risk_02",
+    name: "DX1-RISK-GOV-02",
+    role: "Real-Time Pre-Trade Risk & Margin Governor",
+    region: "Middle East",
+    datacenter: "Equinix DX1 (Dubai DIFC, UAE)",
+    ipAddress: "195.229.110.22",
+    cpuUsage: 19.4,
+    memoryUsage: 26.8,
+    diskUsage: 16.0,
+    networkLatencyMs: 0.65,
+    bandwidthGbps: 4.8,
+    uptimeHours: 1420,
+    activeConnections: 640,
+    status: "ONLINE",
+    lastRebootedAt: new Date(Date.now() - 59 * 24 * 3600 * 1000).toISOString(),
+    version: "v4.19.1-risk-gov"
+  }
+];
+
+const initialSystemLogs: SystemLogEntry[] = [
+  {
+    id: "slog_101",
+    serverId: "srv_ld4_match_01",
+    serverName: "LD4-MATCH-CORE-01",
+    level: "INFO",
+    component: "MATCH-CORE",
+    message: "L2 Orderbook matching cycle completed. Core execution latency verified at 0.0028ms across 1,840 feeds.",
+    timestamp: new Date(Date.now() - 45 * 1000).toISOString(),
+    metadata: "latency=0.0028ms queue=0 drops=0"
+  },
+  {
+    id: "slog_102",
+    serverId: "srv_fr2_stream_01",
+    serverName: "FR2-WS-FEED-01",
+    level: "INFO",
+    component: "WS-STREAM",
+    message: "Broadcasted EUR/USD tick 1.0945 to 2,450 concurrent subscriber channels. Zero buffer lag.",
+    timestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+    metadata: "channels=2450 tickRate=1840/s"
+  },
+  {
+    id: "slog_103",
+    serverId: "srv_ld4_fix_02",
+    serverName: "LD4-FIX-GATEWAY-02",
+    level: "INFO",
+    component: "FIX-SESSION",
+    message: "Institutional Session FIX.4.4 logged on: CompID=BARCLAYS_LON_GW SeqNum=482109.",
+    timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+    metadata: "session=FIX44_LD4_09 heartbeat=30s"
+  },
+  {
+    id: "slog_104",
+    serverId: "srv_dx1_risk_02",
+    serverName: "DX1-RISK-GOV-02",
+    level: "INFO",
+    component: "MARGIN-CHECK",
+    message: "Pre-trade leverage check evaluated for 142 open positions. Fleet margin level safe at 348%.",
+    timestamp: new Date(Date.now() - 11 * 60 * 1000).toISOString(),
+    metadata: "riskLevel=SAFE margin=348%"
+  },
+  {
+    id: "slog_105",
+    serverId: "srv_ny4_liq_03",
+    serverName: "NY4-LIQ-AGG-03",
+    level: "WARN",
+    component: "LP-BRIDGE",
+    message: "JPMorgan Chase LP bridge returned momentary packet jitter (+1.8ms) during NY open rollover. Switched to primary dark pool route.",
+    timestamp: new Date(Date.now() - 22 * 60 * 1000).toISOString(),
+    metadata: "lp=JPM_NY4 latencyDelta=+1.8ms failover=OK"
+  },
+  {
+    id: "slog_106",
+    serverId: "srv_ld4_sql_master",
+    serverName: "LD4-SQL-MASTER-01",
+    level: "INFO",
+    component: "WAL-CHECKPOINT",
+    message: "PostgreSQL WAL archive sync checkpoint completed. 48MB flushed to NVMe mirror. IOPS=48,200.",
+    timestamp: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
+    metadata: "walSize=48MB flushTime=1.8ms"
+  },
+  {
+    id: "slog_107",
+    serverId: "srv_fr2_stream_01",
+    serverName: "FR2-WS-FEED-01",
+    level: "DEBUG",
+    component: "TLS-CIPHER",
+    message: "TLS 1.3 handshake negotiation completed with ECDHE-RSA-AES256-GCM-SHA384 for client IP 92.184.22.10.",
+    timestamp: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
+    metadata: "proto=TLS1.3 cert=valid"
+  },
+  {
+    id: "slog_108",
+    serverId: "srv_ld4_match_01",
+    serverName: "LD4-MATCH-CORE-01",
+    level: "INFO",
+    component: "SYNCHRONIZER",
+    message: "Clock drift NTP synchronization synchronized with PTP GPS Master clock at LD4. Drift: < 0.00004ms.",
+    timestamp: new Date(Date.now() - 75 * 60 * 1000).toISOString(),
+    metadata: "ntpServer=ld4-ptp-time.equinix.com offset=0.04us"
+  },
+  {
+    id: "slog_109",
+    serverId: "srv_dx1_risk_02",
+    serverName: "DX1-RISK-GOV-02",
+    level: "WARN",
+    component: "MAX-DRAWDOWN",
+    message: "High volatility threshold detected on XAU/USD gold pair. Auto-adjusted maximum B-book retention cap to $1,000,000.",
+    timestamp: new Date(Date.now() - 110 * 60 * 1000).toISOString(),
+    metadata: "symbol=XAU/USD volDelta=+24%"
+  },
+  {
+    id: "slog_110",
+    serverId: "srv_ld4_fix_02",
+    serverName: "LD4-FIX-GATEWAY-02",
+    level: "INFO",
+    component: "SECURITY",
+    message: "Automated DDOS scrub filter inspected 420,000 packets. 0 malicious signatures detected. All traffic clean.",
+    timestamp: new Date(Date.now() - 180 * 60 * 1000).toISOString(),
+    metadata: "scrubber=CleanPipe ruleSet=Strict"
   }
 ];
 
@@ -468,7 +688,9 @@ const defaultInitialState: DatabaseState = {
   },
   fund_requests: initialFundRequests,
   market_instruments: initialMarketInstruments,
-  broadcasts: initialBroadcasts
+  broadcasts: initialBroadcasts,
+  server_nodes: initialServerNodes,
+  system_logs: initialSystemLogs
 };
 
 type DbChangeListener = () => void;
@@ -510,7 +732,15 @@ class SqlDatabaseEngine {
           },
           fund_requests: parsed.fund_requests || defaultInitialState.fund_requests,
           market_instruments: parsed.market_instruments || defaultInitialState.market_instruments,
-          broadcasts: parsed.broadcasts || defaultInitialState.broadcasts
+          broadcasts: parsed.broadcasts || defaultInitialState.broadcasts,
+          server_nodes:
+            parsed.server_nodes && parsed.server_nodes.length > 0
+              ? parsed.server_nodes
+              : defaultInitialState.server_nodes,
+          system_logs:
+            parsed.system_logs && parsed.system_logs.length > 0
+              ? parsed.system_logs
+              : defaultInitialState.system_logs
         };
       }
     } catch (e) {
@@ -1622,6 +1852,119 @@ class SqlDatabaseEngine {
       );
     });
 
+    return lines.join("\n");
+  }
+
+  // --- Server Nodes & CRM Fleet Management ---
+
+  public getServerNodes(): ServerNode[] {
+    return [...this.state.server_nodes];
+  }
+
+  public getServerNodeById(id: string): ServerNode | undefined {
+    return this.state.server_nodes.find((s) => s.id === id);
+  }
+
+  public updateServerNode(node: ServerNode): void {
+    const idx = this.state.server_nodes.findIndex((s) => s.id === node.id);
+    if (idx !== -1) {
+      this.state.server_nodes[idx] = { ...node };
+      this.saveToStorage();
+    }
+  }
+
+  public async rebootServer(nodeId: string, mode: "graceful" | "force" = "graceful"): Promise<boolean> {
+    const node = this.state.server_nodes.find((s) => s.id === nodeId);
+    if (!node) return false;
+
+    // 1. Mark status as REBOOTING
+    node.status = "REBOOTING";
+    this.saveToStorage();
+
+    // 2. Add System Log Entry for reboot start
+    this.addSystemLog({
+      serverId: node.id,
+      serverName: node.name,
+      level: "WARN",
+      component: "SYSTEM-CONTROL",
+      message: `Admin initiated ${mode === "graceful" ? "graceful drain reboot" : "forced instant reboot"} sequence on node ${node.name}. Draining socket buffers.`,
+      metadata: `mode=${mode} initiatedBy=SuperAdmin`
+    });
+
+    // 3. Add to Audit Log
+    this.addAuditLog(
+      SUPER_ADMIN_EMAIL,
+      "SERVER_NODE_REBOOT",
+      `Reboot command issued for server node ${node.name} (${node.ipAddress}) in ${node.datacenter} [Mode: ${mode.toUpperCase()}]`
+    );
+
+    // 4. Return immediately for caller to show progress, background timer handles restore
+    setTimeout(() => {
+      const activeNode = this.state.server_nodes.find((s) => s.id === nodeId);
+      if (activeNode) {
+        activeNode.status = "ONLINE";
+        activeNode.uptimeHours = 0.1;
+        activeNode.lastRebootedAt = new Date().toISOString();
+        activeNode.cpuUsage = +(Math.random() * 15 + 12).toFixed(1);
+        activeNode.memoryUsage = +(Math.random() * 15 + 28).toFixed(1);
+        this.saveToStorage();
+
+        this.addSystemLog({
+          serverId: activeNode.id,
+          serverName: activeNode.name,
+          level: "INFO",
+          component: "SYSTEM-CONTROL",
+          message: `Node ${activeNode.name} completed reboot cycle successfully. Kernel v6.8.0-fastfx loaded, network sockets listening, hardware health verified OK.`,
+          metadata: `status=ONLINE bootDuration=3.42s latency=${activeNode.networkLatencyMs}ms`
+        });
+      }
+    }, 4500);
+
+    return true;
+  }
+
+  // --- System Logs Management ---
+
+  public getSystemLogs(): SystemLogEntry[] {
+    return [...this.state.system_logs].sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+  }
+
+  public addSystemLog(entry: Omit<SystemLogEntry, "id" | "timestamp">): SystemLogEntry {
+    const newLog: SystemLogEntry = {
+      id: `slog_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      timestamp: new Date().toISOString(),
+      ...entry
+    };
+    // Keep last 500 logs max
+    this.state.system_logs.unshift(newLog);
+    if (this.state.system_logs.length > 500) {
+      this.state.system_logs = this.state.system_logs.slice(0, 500);
+    }
+    this.saveToStorage();
+    return newLog;
+  }
+
+  public clearSystemLogs(): void {
+    this.state.system_logs = [];
+    this.saveToStorage();
+  }
+
+  public exportSystemLogs(): string {
+    const lines = [
+      `# FAST FX INSTITUTIONAL SYSTEM LOGS EXPORT`,
+      `# Export Timestamp: ${new Date().toISOString()}`,
+      `# Total Log Entries: ${this.state.system_logs.length}`,
+      `# Fleet Core: Equinix LD4 / FR2 / NY4 / DX1`,
+      `# -------------------------------------------------------------`,
+      ``
+    ];
+    this.state.system_logs.forEach((log) => {
+      lines.push(
+        `[${log.timestamp}] [${log.level}] [${log.serverName}] [${log.component}]: ${log.message} ${log.metadata ? `(${log.metadata})` : ""}`
+      );
+    });
     return lines.join("\n");
   }
 

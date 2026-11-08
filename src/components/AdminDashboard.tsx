@@ -11,7 +11,11 @@ import {
   FundRequest,
   ManagedMarketPair,
   PlatformBroadcast,
-  AuditLog
+  AuditLog,
+  ServerNode,
+  ServerStatus,
+  SystemLogLevel,
+  SystemLogEntry
 } from "../types";
 import {
   ShieldAlert,
@@ -61,7 +65,16 @@ import {
   Send,
   Check,
   MinusCircle,
-  HelpCircle
+  HelpCircle,
+  Server,
+  Cpu,
+  HardDrive,
+  Wifi,
+  RotateCw,
+  Power,
+  Filter,
+  Layers,
+  Globe
 } from "lucide-react";
 
 interface AdminDashboardProps {
@@ -75,7 +88,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
 
   // Navigation Tab inside Admin Dashboard
   const [activeTab, setActiveTab] = useState<
-    "users" | "funds" | "kyc" | "markets" | "risk" | "sql" | "audit" | "subscribers"
+    "users" | "funds" | "kyc" | "markets" | "risk" | "servers" | "sql" | "audit" | "subscribers"
   >("users");
 
   // State loaded from SQL DB
@@ -87,6 +100,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [settings, setSettings] = useState<PlatformSettings>(sqlDb.getSettings());
+  const [serverNodes, setServerNodes] = useState<ServerNode[]>(sqlDb.getServerNodes());
+  const [systemLogs, setSystemLogs] = useState<SystemLogEntry[]>(sqlDb.getSystemLogs());
+
+  // Server CRM & Fleet States
+  const [activeServerSubTab, setActiveServerSubTab] = useState<"cluster" | "logs">("cluster");
+  const [serverSearch, setServerSearch] = useState<string>("");
+  const [selectedServerForReboot, setSelectedServerForReboot] = useState<ServerNode | null>(null);
+  const [rebootMode, setRebootMode] = useState<"graceful" | "force">("graceful");
+  const [isRebooting, setIsRebooting] = useState<boolean>(false);
+  const [rebootProgress, setRebootProgress] = useState<number>(0);
+  const [rebootStageText, setRebootStageText] = useState<string>("");
+  const [logFilterLevel, setLogFilterLevel] = useState<SystemLogLevel | "ALL">("ALL");
+  const [logFilterServer, setLogFilterServer] = useState<string>("ALL");
+  const [logSearchQuery, setLogSearchQuery] = useState<string>("");
+  const [autoScrollLogs, setAutoScrollLogs] = useState<boolean>(true);
+  const [diagnosticsToast, setDiagnosticsToast] = useState<string | null>(null);
+  const [showInjectLogModal, setShowInjectLogModal] = useState<boolean>(false);
+  const [testLogLevel, setTestLogLevel] = useState<SystemLogLevel>("INFO");
+  const [testLogComponent, setTestLogComponent] = useState<string>("HEALTH-CHECK");
+  const [testLogServerId, setTestLogServerId] = useState<string>("srv_ld4_match_01");
+  const [testLogMessage, setTestLogMessage] = useState<string>("Diagnostic telemetry heartbeat verified normal operation.");
 
   // Search & Filters
   const [userSearch, setUserSearch] = useState<string>("");
@@ -165,6 +199,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
     setAuditLogs(sqlDb.getAuditLogs());
     setSubscribers(sqlDb.getSubscribers());
     setSettings(sqlDb.getSettings());
+    setServerNodes(sqlDb.getServerNodes());
+    setSystemLogs(sqlDb.getSystemLogs());
   };
 
   useEffect(() => {
@@ -457,6 +493,159 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
     showNotification(isAr ? "تم نشر الإشعار العام عبر المنصة" : "Broadcast announcement published platform-wide");
   };
 
+  // --- Server Fleet & CRM Handlers ---
+
+  const handleOpenRebootModal = (server: ServerNode) => {
+    setSelectedServerForReboot(server);
+    setRebootMode("graceful");
+    setIsRebooting(false);
+    setRebootProgress(0);
+    setRebootStageText("");
+  };
+
+  const handleConfirmReboot = async () => {
+    if (!selectedServerForReboot || isRebooting) return;
+    setIsRebooting(true);
+    setRebootProgress(10);
+    setRebootStageText(
+      isAr
+        ? "جاري إرسال إشارة الإدارة وعزل مسار التداول..."
+        : "Sending management signal & isolating trading routes..."
+    );
+
+    // Call database method which initiates the reboot sequence
+    await sqlDb.rebootServer(selectedServerForReboot.id, rebootMode);
+    refreshAll();
+
+    // Stage progression animation
+    setTimeout(() => {
+      setRebootProgress(35);
+      setRebootStageText(
+        isAr
+          ? "إفراغ مخازن المقابس وإغلاق جلسات FIX وWebSocket بشكل آمن..."
+          : "Flushing socket buffers and closing FIX/WS sessions..."
+      );
+    }, 900);
+
+    setTimeout(() => {
+      setRebootProgress(70);
+      setRebootStageText(
+        isAr
+          ? "إعادة تشغيل النواة وتحميل برامج تشغيل بطاقات الشبكة السريعة..."
+          : "Kernel reloading & high-speed NIC driver initialization..."
+      );
+    }, 2200);
+
+    setTimeout(() => {
+      setRebootProgress(92);
+      setRebootStageText(
+        isAr
+          ? "مزامنة ساعة PTP مع ساعة Equinix الذرية واختبار فحص الصحة..."
+          : "Synchronizing PTP clock with Equinix atomic master..."
+      );
+    }, 3400);
+
+    setTimeout(() => {
+      setRebootProgress(100);
+      setRebootStageText(
+        isAr
+          ? "اكتملت إعادة التشغيل بنجاح! الخادم متصل وجاهز للخدمة."
+          : "Reboot completed successfully! Node is ONLINE."
+      );
+      setTimeout(() => {
+        setIsRebooting(false);
+        setSelectedServerForReboot(null);
+        refreshAll();
+        showNotification(
+          isAr
+            ? `تمت إعادة تشغيل الخادم ${selectedServerForReboot.name} بنجاح واختبار جاهزيته`
+            : `Server node ${selectedServerForReboot.name} rebooted and verified online successfully`
+        );
+      }, 800);
+    }, 4500);
+  };
+
+  const handlePingDiagnostic = (server: ServerNode) => {
+    sqlDb.addSystemLog({
+      serverId: server.id,
+      serverName: server.name,
+      level: "INFO",
+      component: "TELEMETRY-PING",
+      message: `Diagnostic telemetry heartbeat ping received. RTT=${server.networkLatencyMs}ms, CPU=${server.cpuUsage}%, Mem=${server.memoryUsage}%. All microservices healthy.`,
+      metadata: `pingId=PNG_${Date.now()} status=HEALTHY_PASS`
+    });
+    refreshAll();
+    setDiagnosticsToast(
+      isAr
+        ? `تم فحص تشخيص الخادم ${server.name} بنجاح (زمن الاستجابة: ${server.networkLatencyMs}ms)`
+        : `Diagnostic ping for ${server.name} passed (Latency: ${server.networkLatencyMs}ms)`
+    );
+    setTimeout(() => setDiagnosticsToast(null), 3500);
+  };
+
+  const handleFleetPingAll = () => {
+    serverNodes.forEach((node) => {
+      sqlDb.addSystemLog({
+        serverId: node.id,
+        serverName: node.name,
+        level: "INFO",
+        component: "FLEET-AUDIT",
+        message: `Fleet-wide health telemetry ping executed. Latency=${node.networkLatencyMs}ms, Uptime=${node.uptimeHours}h. Status OK.`,
+        metadata: `dc=${node.datacenter}`
+      });
+    });
+    refreshAll();
+    showNotification(
+      isAr
+        ? `تم تنفيذ فحص التشخيص الشامل لجميع خوادم الأسطول (${serverNodes.length} خادم) بنجاح`
+        : `Fleet-wide diagnostics completed for all ${serverNodes.length} server nodes`
+    );
+  };
+
+  const handleClearLogs = () => {
+    if (
+      window.confirm(
+        isAr
+          ? "هل أنت متأكد من تفريغ كافة سجلات النظام؟"
+          : "Are you sure you want to clear all system logs?"
+      )
+    ) {
+      sqlDb.clearSystemLogs();
+      refreshAll();
+      showNotification(isAr ? "تم تفريغ سجلات النظام بنجاح" : "System logs cleared successfully");
+    }
+  };
+
+  const handleExportLogs = () => {
+    const content = sqlDb.exportSystemLogs();
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `fastfx-system-logs-${new Date().toISOString().slice(0, 10)}.log`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showNotification(isAr ? "تم تصدير ملف سجلات النظام بنجاح (.log)" : "System logs exported successfully (.log)");
+  };
+
+  const handleInjectCustomLog = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!testLogMessage.trim()) return;
+    const srv = serverNodes.find((s) => s.id === testLogServerId) || serverNodes[0];
+    sqlDb.addSystemLog({
+      serverId: srv ? srv.id : "srv_manual",
+      serverName: srv ? srv.name : "MANUAL-INJECT",
+      level: testLogLevel,
+      component: testLogComponent.trim().toUpperCase() || "MANUAL",
+      message: testLogMessage.trim(),
+      metadata: `operator=${SUPER_ADMIN_EMAIL} source=AdminCRM`
+    });
+    setShowInjectLogModal(false);
+    setTestLogMessage("");
+    refreshAll();
+    showNotification(isAr ? "تم تسجيل الحدث في سجلات النظام بنجاح" : "Custom log entry recorded successfully");
+  };
+
   // Risk summary metrics
   const riskSummary = useMemo(() => sqlDb.getRiskSummary(), [trades, users]);
 
@@ -522,6 +711,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
   const pendingDepositsCount = fundRequests.filter((r) => r.type === "DEPOSIT" && r.status === "PENDING").length;
   const pendingKycCount = users.filter((u) => u.kycStatus === "pending").length;
   const frozenUsersCount = users.filter((u) => u.status === "frozen").length;
+
+  const filteredServerNodes = serverNodes.filter(
+    (s) =>
+      s.name.toLowerCase().includes(serverSearch.toLowerCase()) ||
+      s.role.toLowerCase().includes(serverSearch.toLowerCase()) ||
+      s.datacenter.toLowerCase().includes(serverSearch.toLowerCase()) ||
+      s.ipAddress.includes(serverSearch)
+  );
+
+  const filteredSystemLogs = systemLogs.filter((log) => {
+    if (logFilterLevel !== "ALL" && log.level !== logFilterLevel) return false;
+    if (logFilterServer !== "ALL" && log.serverId !== logFilterServer) return false;
+    if (logSearchQuery.trim()) {
+      const q = logSearchQuery.toLowerCase();
+      const matchMsg = log.message.toLowerCase().includes(q);
+      const matchComp = log.component.toLowerCase().includes(q);
+      const matchServer = log.serverName.toLowerCase().includes(q);
+      const matchMeta = log.metadata?.toLowerCase().includes(q);
+      if (!matchMsg && !matchComp && !matchServer && !matchMeta) return false;
+    }
+    return true;
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-sans">
@@ -716,6 +927,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
         >
           <ShieldAlert className="w-4 h-4 text-rose-400" />
           <span>{isAr ? "إدارة المخاطر والصفقات" : "Risk & Exposure"}</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("servers")}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+            activeTab === "servers"
+              ? "bg-gradient-to-r from-amber-500/20 to-indigo-500/20 border border-amber-500/40 text-white font-bold shadow-sm"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <Server className="w-4 h-4 text-amber-400" />
+          <span>{isAr ? "إدارة الخوادم CRM" : "Server Fleet CRM"}</span>
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 font-bold">
+            {serverNodes.filter((s) => s.status === "ONLINE").length}/{serverNodes.length}
+          </span>
+          {serverNodes.some((s) => s.status === "REBOOTING") && (
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping inline-block" />
+          )}
         </button>
 
         <button
@@ -1512,6 +1741,636 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
               </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* --- TAB: SERVER INFRASTRUCTURE & CRM MANAGEMENT --- */}
+      {activeTab === "servers" && (
+        <div className="space-y-6">
+          {/* Diagnostics Flash Toast */}
+          {diagnosticsToast && (
+            <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-between shadow-lg animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span>{diagnosticsToast}</span>
+              </div>
+              <button
+                onClick={() => setDiagnosticsToast(null)}
+                className="text-emerald-400 hover:text-white cursor-pointer text-xs"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* 1. Fleet Executive KPI Telemetry Strip */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="bg-[#0c1322] border border-slate-800 rounded-xl p-4 shadow-lg relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-medium text-slate-400">
+                  {isAr ? "جاهزية أسطول الخوادم (SLA)" : "Fleet Status & SLA"}
+                </span>
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+              </div>
+              <div className="text-2xl font-black text-white font-mono tabular-nums mt-1 flex items-baseline gap-2">
+                <span>
+                  {serverNodes.filter((s) => s.status === "ONLINE").length}/{serverNodes.length}
+                </span>
+                <span className="text-xs font-bold text-emerald-400 font-sans">
+                  {isAr ? "متصل (100% جاهزية)" : "100% Online"}
+                </span>
+              </div>
+              <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5 font-mono">
+                <Globe className="w-3 h-3 text-amber-400 shrink-0" />
+                <span>LD4 · FR2 · NY4 · DX1</span>
+              </div>
+            </div>
+
+            <div className="bg-[#0c1322] border border-slate-800 rounded-xl p-4 shadow-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-medium text-slate-400">
+                  {isAr ? "متوسط زمن الاستجابة العالمي" : "Global Fleet Latency"}
+                </span>
+                <Activity className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div className="text-2xl font-black text-emerald-400 font-mono tabular-nums mt-1">
+                {(
+                  serverNodes.reduce((acc, s) => acc + s.networkLatencyMs, 0) / (serverNodes.length || 1)
+                ).toFixed(2)}{" "}
+                <span className="text-xs text-slate-400 font-sans">ms</span>
+              </div>
+              <div className="text-[11px] text-slate-400 mt-1 font-mono">
+                {isAr ? "توصيل PTP مباشر فائق السرعة" : "Sub-millisecond Direct Cross-Connect"}
+              </div>
+            </div>
+
+            <div className="bg-[#0c1322] border border-slate-800 rounded-xl p-4 shadow-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-medium text-slate-400">
+                  {isAr ? "النطاق الترددي التراكمي" : "Aggregate Throughput"}
+                </span>
+                <Cpu className="w-4 h-4 text-sky-400" />
+              </div>
+              <div className="text-2xl font-black text-sky-400 font-mono tabular-nums mt-1">
+                {serverNodes.reduce((acc, s) => acc + s.bandwidthGbps, 0).toFixed(1)}{" "}
+                <span className="text-xs text-slate-400 font-sans">Gbps</span>
+              </div>
+              <div className="text-[11px] text-slate-400 mt-1 font-mono">
+                {isAr ? "قنوات ألياف بصرية مخصصة" : "Dedicated Optical Dark Fibers"}
+              </div>
+            </div>
+
+            <div className="bg-[#0c1322] border border-slate-800 rounded-xl p-4 shadow-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-medium text-slate-400">
+                  {isAr ? "جلسات التداول النشطة" : "Active Sessions (FIX/WS)"}
+                </span>
+                <Radio className="w-4 h-4 text-indigo-400" />
+              </div>
+              <div className="text-2xl font-black text-indigo-400 font-mono tabular-nums mt-1">
+                {serverNodes.reduce((acc, s) => acc + s.activeConnections, 0).toLocaleString()}
+              </div>
+              <div className="text-[11px] text-slate-400 mt-1 font-mono">
+                {isAr ? "صفر تأخير في مخازن المقابس" : "Zero socket queue drops"}
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Control Toolbar & Sub-Tab Switcher */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#0c1322] border border-slate-800 p-3 rounded-xl shadow-lg">
+            <div className="flex items-center gap-1.5 p-1 bg-slate-900/80 rounded-lg border border-slate-800 text-xs font-semibold">
+              <button
+                onClick={() => setActiveServerSubTab("cluster")}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all cursor-pointer ${
+                  activeServerSubTab === "cluster"
+                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5 text-amber-400" />
+                <span>{isAr ? "شبكة الخوادم والعُقد" : "Server Cluster Nodes"}</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-300">
+                  {serverNodes.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveServerSubTab("logs")}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all cursor-pointer ${
+                  activeServerSubTab === "logs"
+                    ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Terminal className="w-3.5 h-3.5 text-indigo-400" />
+                <span>{isAr ? "سجلات النظام الحية" : "System Logs Console"}</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/40">
+                  {systemLogs.length}
+                </span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              <button
+                onClick={handleFleetPingAll}
+                className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-600 transition-colors cursor-pointer flex items-center gap-1.5"
+                title={isAr ? "فحص استجابة كافة الخوادم في الأسطول" : "Ping all server fleet nodes"}
+              >
+                <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{isAr ? "فحص أجهزة الأسطول" : "Fleet Ping All"}</span>
+              </button>
+
+              <button
+                onClick={handleExportLogs}
+                className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-600 transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5 text-sky-400" />
+                <span>{isAr ? "تصدير السجلات (.log)" : "Export Logs (.log)"}</span>
+              </button>
+
+              <button
+                onClick={() => setShowInjectLogModal(true)}
+                className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 font-bold transition-all cursor-pointer shadow-md shadow-amber-500/10 flex items-center gap-1.5"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>{isAr ? "تسجيل حدث يدوي" : "Inject Log Event"}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 3. SUB-TAB 1: SERVER CLUSTER NODES GRID */}
+          {activeServerSubTab === "cluster" && (
+            <div className="space-y-4">
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute right-3 top-3.5 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder={
+                    isAr
+                      ? "بحث سريع بالاسم، الدور الوظيفي، أو مركز البيانات (Equinix LD4 / FR2 / NY4)..."
+                      : "Search server by name, role, IP address, or datacenter..."
+                  }
+                  value={serverSearch}
+                  onChange={(e) => setServerSearch(e.target.value)}
+                  className="w-full bg-[#0c1322] border border-slate-800 text-white rounded-xl pr-10 pl-4 py-2.5 text-xs focus:outline-none focus:border-amber-400 placeholder:text-slate-500 transition-colors font-sans"
+                />
+              </div>
+
+              {/* Grid of Server Nodes */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {filteredServerNodes.map((server) => {
+                  const isOnline = server.status === "ONLINE";
+                  const isRebootingNow = server.status === "REBOOTING";
+
+                  // Role-specific icon
+                  const getRoleIcon = () => {
+                    if (server.role.includes("Matching")) return <Cpu className="w-5 h-5 text-amber-400" />;
+                    if (server.role.includes("FIX")) return <Radio className="w-5 h-5 text-sky-400" />;
+                    if (server.role.includes("WebSocket")) return <Wifi className="w-5 h-5 text-indigo-400" />;
+                    if (server.role.includes("Liquidity")) return <Globe className="w-5 h-5 text-emerald-400" />;
+                    if (server.role.includes("Database")) return <Database className="w-5 h-5 text-cyan-400" />;
+                    return <ShieldAlert className="w-5 h-5 text-rose-400" />;
+                  };
+
+                  return (
+                    <div
+                      key={server.id}
+                      className="bg-[#0c1322] border border-slate-800 hover:border-slate-700 rounded-2xl p-5 shadow-xl transition-all flex flex-col justify-between space-y-4 relative overflow-hidden"
+                    >
+                      {/* Ambient Accent Light */}
+                      <div
+                        className={`absolute top-0 right-0 left-0 h-1 ${
+                          isOnline
+                            ? "bg-gradient-to-r from-emerald-500 via-sky-500 to-indigo-500"
+                            : isRebootingNow
+                            ? "bg-amber-400 animate-pulse"
+                            : "bg-rose-500"
+                        }`}
+                      />
+
+                      {/* Header */}
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0">
+                              {getRoleIcon()}
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-bold text-white font-mono tracking-tight flex items-center gap-1.5">
+                                <span>{server.name}</span>
+                              </h3>
+                              <p className="text-[11px] text-slate-400 font-sans">{server.role}</p>
+                            </div>
+                          </div>
+
+                          {/* Status Badge */}
+                          <div className="shrink-0">
+                            {isOnline && (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                <span>ONLINE</span>
+                              </span>
+                            )}
+                            {isRebootingNow && (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                                <RotateCw className="w-3 h-3 text-amber-400 animate-spin" />
+                                <span>REBOOTING</span>
+                              </span>
+                            )}
+                            {server.status === "DEGRADED" && (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                                <AlertTriangle className="w-3 h-3" />
+                                <span>DEGRADED</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Location, IP, Version Metadata */}
+                        <div className="mt-3 pt-3 border-t border-slate-800/80 space-y-1 text-xs font-mono">
+                          <div className="flex items-center justify-between text-slate-400 text-[11px]">
+                            <span className="text-slate-500">{isAr ? "مركز البيانات:" : "Datacenter:"}</span>
+                            <span className="text-slate-300 text-right font-sans">{server.datacenter}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-slate-400 text-[11px]">
+                            <span className="text-slate-500">{isAr ? "عنوان IP والنظام:" : "IP / Kernel:"}</span>
+                            <span className="text-slate-300">
+                              {server.ipAddress} · <span className="text-slate-400">{server.version}</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Hardware Resource Utilization Progress Bars */}
+                      <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800/90 space-y-2.5">
+                        {/* CPU */}
+                        <div>
+                          <div className="flex items-center justify-between text-[11px] mb-1">
+                            <span className="text-slate-400 flex items-center gap-1">
+                              <Cpu className="w-3 h-3 text-slate-400" />
+                              <span>{isAr ? "معالج CPU" : "CPU Load"}</span>
+                            </span>
+                            <span
+                              className={`font-mono font-bold tabular-nums ${
+                                server.cpuUsage > 80
+                                  ? "text-rose-400"
+                                  : server.cpuUsage > 60
+                                  ? "text-amber-400"
+                                  : "text-emerald-400"
+                              }`}
+                            >
+                              {server.cpuUsage}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                server.cpuUsage > 80
+                                  ? "bg-rose-500"
+                                  : server.cpuUsage > 60
+                                  ? "bg-amber-400"
+                                  : "bg-emerald-400"
+                              }`}
+                              style={{ width: `${Math.min(server.cpuUsage, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Memory */}
+                        <div>
+                          <div className="flex items-center justify-between text-[11px] mb-1">
+                            <span className="text-slate-400 flex items-center gap-1">
+                              <Layers className="w-3 h-3 text-slate-400" />
+                              <span>{isAr ? "الذاكرة RAM" : "Memory"}</span>
+                            </span>
+                            <span className="font-mono text-sky-400 font-bold tabular-nums">
+                              {server.memoryUsage}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-sky-400 rounded-full transition-all duration-500"
+                              style={{ width: `${Math.min(server.memoryUsage, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* NVMe Disk */}
+                        <div>
+                          <div className="flex items-center justify-between text-[11px] mb-1">
+                            <span className="text-slate-400 flex items-center gap-1">
+                              <HardDrive className="w-3 h-3 text-slate-400" />
+                              <span>{isAr ? "مصفوفة NVMe" : "NVMe SSD"}</span>
+                            </span>
+                            <span className="font-mono text-indigo-400 font-bold tabular-nums">
+                              {server.diskUsage}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-indigo-400 rounded-full transition-all duration-500"
+                              style={{ width: `${Math.min(server.diskUsage, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Operational Telemetry Metrics (4 items) */}
+                      <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                        <div className="bg-slate-900/40 p-2 rounded-lg border border-slate-800">
+                          <div className="text-slate-500 text-[10px]">{isAr ? "زمن الاستجابة" : "Latency"}</div>
+                          <div className="text-white font-bold mt-0.5 text-xs text-emerald-400 tabular-nums">
+                            {server.networkLatencyMs} ms
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-900/40 p-2 rounded-lg border border-slate-800">
+                          <div className="text-slate-500 text-[10px]">{isAr ? "النطاق الترددي" : "Bandwidth"}</div>
+                          <div className="text-white font-bold mt-0.5 text-xs text-sky-400 tabular-nums">
+                            {server.bandwidthGbps} Gbps
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-900/40 p-2 rounded-lg border border-slate-800">
+                          <div className="text-slate-500 text-[10px]">{isAr ? "وقت التشغيل" : "Uptime"}</div>
+                          <div className="text-slate-300 font-bold mt-0.5 text-xs tabular-nums">
+                            {server.uptimeHours}h ({Math.floor(server.uptimeHours / 24)}d)
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-900/40 p-2 rounded-lg border border-slate-800">
+                          <div className="text-slate-500 text-[10px]">{isAr ? "جلسات نشطة" : "Sessions"}</div>
+                          <div className="text-amber-400 font-bold mt-0.5 text-xs tabular-nums">
+                            {server.activeConnections} FIX/WS
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons Footer */}
+                      <div className="flex items-center gap-2 pt-2 border-t border-slate-800/80">
+                        <button
+                          onClick={() => handleOpenRebootModal(server)}
+                          disabled={isRebootingNow}
+                          className="flex-1 py-2 px-3 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <RotateCw className={`w-3.5 h-3.5 ${isRebootingNow ? "animate-spin" : ""}`} />
+                          <span>{isAr ? "إعادة تشغيل" : "Reboot Node"}</span>
+                        </button>
+
+                        <button
+                          onClick={() => handlePingDiagnostic(server)}
+                          className="py-2 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1"
+                          title={isAr ? "فحص تشخيص فوري للخادم" : "Trigger diagnostic ping"}
+                        >
+                          <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>{isAr ? "فحص" : "Ping"}</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setActiveServerSubTab("logs");
+                            setLogFilterServer(server.id);
+                          }}
+                          className="py-2 px-3 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1"
+                          title={isAr ? "عرض سجلات هذا الخادم في الطرفية" : "Inspect logs for this server"}
+                        >
+                          <Terminal className="w-3.5 h-3.5 text-indigo-400" />
+                          <span>{isAr ? "السجلات" : "Logs"}</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 4. SUB-TAB 2: INTERACTIVE SYSTEM LOGS CONSOLE */}
+          {activeServerSubTab === "logs" && (
+            <div className="bg-[#0c1322] border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+              {/* Header & Controls Toolbar */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Terminal className="w-5 h-5 text-indigo-400" />
+                    <span>{isAr ? "طرفية سجلات النظام الحية (System Logs Console)" : "Real-Time System Logs Console"}</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {isAr
+                      ? "مراقبة مستمرة لأحداث محرك المطابقة، بروتوكول FIX، تدفقات الأسعار وإشارات الأمان"
+                      : "Live logging stream from matching cores, FIX protocol gateways, WebSocket price streams & risk guards"}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap text-xs">
+                  <button
+                    onClick={handleClearLogs}
+                    className="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/25 transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{isAr ? "تفريغ السجلات" : "Clear Logs"}</span>
+                  </button>
+
+                  <button
+                    onClick={() => setAutoScrollLogs(!autoScrollLogs)}
+                    className={`px-3 py-1.5 rounded-lg border transition-colors cursor-pointer flex items-center gap-1.5 ${
+                      autoScrollLogs
+                        ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/40"
+                        : "bg-slate-900 text-slate-400 border-slate-700 hover:text-white"
+                    }`}
+                  >
+                    <RotateCw className="w-3.5 h-3.5" />
+                    <span>{isAr ? "التمرير التلقائي" : "Auto-Scroll"}</span>
+                  </button>
+
+                  <button
+                    onClick={handleExportLogs}
+                    className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Download className="w-3.5 h-3.5 text-sky-400" />
+                    <span>{isAr ? "تصدير (.log)" : "Export (.log)"}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Filtering Controls Strip */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+                {/* Severity Level Filter Buttons */}
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+                  {(["ALL", "CRITICAL", "ERROR", "WARN", "INFO", "DEBUG"] as const).map((level) => {
+                    const count =
+                      level === "ALL"
+                        ? systemLogs.length
+                        : systemLogs.filter((l) => l.level === level).length;
+                    return (
+                      <button
+                        key={level}
+                        onClick={() => setLogFilterLevel(level)}
+                        className={`px-2.5 py-1 rounded-md font-mono text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                          logFilterLevel === level
+                            ? level === "CRITICAL"
+                              ? "bg-red-500/20 text-red-300 border border-red-500/40"
+                              : level === "ERROR"
+                              ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                              : level === "WARN"
+                              ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                              : level === "INFO"
+                              ? "bg-sky-500/20 text-sky-300 border border-sky-500/40"
+                              : level === "DEBUG"
+                              ? "bg-slate-800 text-slate-200 border border-slate-600"
+                              : "bg-indigo-500/20 text-indigo-300 border border-indigo-500/40"
+                            : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
+                        }`}
+                      >
+                        <span>{level}</span>
+                        <span className="text-[10px] opacity-80 tabular-nums">({count})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Server Selector and Search Query */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <select
+                    value={logFilterServer}
+                    onChange={(e) => setLogFilterServer(e.target.value)}
+                    className="bg-slate-900 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-amber-400 font-mono"
+                  >
+                    <option value="ALL">{isAr ? "كافة خوادم الأسطول" : "All Fleet Servers"}</option>
+                    {serverNodes.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder={isAr ? "تصفية بالكلمة..." : "Filter text..."}
+                      value={logSearchQuery}
+                      onChange={(e) => setLogSearchQuery(e.target.value)}
+                      className="bg-slate-900 border border-slate-700 text-white rounded-lg pr-8 pl-3 py-1.5 text-xs focus:outline-none focus:border-amber-400 placeholder:text-slate-500 font-mono w-44 sm:w-56"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Terminal Screen Console */}
+              <div className="bg-[#050811] border border-slate-800 rounded-xl overflow-hidden font-mono shadow-2xl">
+                {/* Terminal Window Header Bar */}
+                <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900/90 border-b border-slate-800 text-[11px]">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
+                    </div>
+                    <span className="text-slate-400 font-bold ml-2">
+                      fastfx-syslogd: unix:///run/fastfx/syslog.sock
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-slate-400 text-[10px]">
+                    <span>BUFFER: {filteredSystemLogs.length} entries</span>
+                    <span className="text-emerald-400 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>LIVE</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Console Log Lines Output */}
+                <div className="p-3 sm:p-4 max-h-[500px] overflow-y-auto space-y-1.5 text-xs text-slate-300 leading-relaxed font-mono">
+                  {filteredSystemLogs.length === 0 ? (
+                    <div className="py-12 text-center text-slate-500 space-y-2">
+                      <Terminal className="w-8 h-8 mx-auto opacity-40 text-slate-400" />
+                      <p>{isAr ? "لا توجد سجلات تطابق معايير التصفية المحددة." : "No logs match the current filter criteria."}</p>
+                    </div>
+                  ) : (
+                    filteredSystemLogs.map((log) => {
+                      const getLevelBadge = () => {
+                        switch (log.level) {
+                          case "CRITICAL":
+                            return (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-950 text-red-300 border border-red-800/80">
+                                CRITICAL
+                              </span>
+                            );
+                          case "ERROR":
+                            return (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-800/80">
+                                ERROR
+                              </span>
+                            );
+                          case "WARN":
+                            return (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-800/80">
+                                WARN
+                              </span>
+                            );
+                          case "INFO":
+                            return (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-950 text-sky-300 border border-sky-800/80">
+                                INFO
+                              </span>
+                            );
+                          case "DEBUG":
+                          default:
+                            return (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-900 text-slate-400 border border-slate-700">
+                                DEBUG
+                              </span>
+                            );
+                        }
+                      };
+
+                      return (
+                        <div
+                          key={log.id}
+                          className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2.5 py-1 px-2 rounded hover:bg-slate-900/50 transition-colors border border-transparent hover:border-slate-800/50 text-[11px]"
+                        >
+                          {/* Timestamp */}
+                          <span className="text-slate-500 shrink-0 select-none">
+                            {new Date(log.timestamp).toLocaleTimeString()}
+                          </span>
+
+                          {/* Level */}
+                          <div className="shrink-0">{getLevelBadge()}</div>
+
+                          {/* Server ID */}
+                          <span className="text-amber-400/90 shrink-0 font-bold">
+                            [{log.serverName}]
+                          </span>
+
+                          {/* Component */}
+                          <span className="text-indigo-400 shrink-0">
+                            [{log.component}]
+                          </span>
+
+                          {/* Message */}
+                          <span className="text-slate-200 flex-1 break-words">
+                            {log.message}
+                          </span>
+
+                          {/* Metadata */}
+                          {log.metadata && (
+                            <span className="text-slate-500 text-[10px] shrink-0 font-mono bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-800">
+                              {log.metadata}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -2649,6 +3508,254 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
                   className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 font-bold transition-all cursor-pointer shadow-lg shadow-amber-500/20"
                 >
                   {isAr ? "إنشاء طلب السحب" : "Create Withdrawal"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL 10: SERVER REBOOT & DRAIN SEQUENCE (إعادة تشغيل الخادم) --- */}
+      {selectedServerForReboot && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-lg bg-[#0c1322] border border-amber-500/40 rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <Power className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">
+                  {isAr ? "تأكيد إعادة تشغيل الخادم" : "Confirm Server Reboot"}
+                </h3>
+                <p className="text-xs text-slate-400 font-mono">
+                  {selectedServerForReboot.name} · {selectedServerForReboot.ipAddress}
+                </p>
+              </div>
+            </div>
+
+            {/* Target Node Overview Box */}
+            <div className="p-3.5 bg-slate-900/90 rounded-xl border border-slate-800 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">{isAr ? "الدور الوظيفي:" : "Node Role:"}</span>
+                <span className="text-white font-medium">{selectedServerForReboot.role}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">{isAr ? "مركز البيانات والمنطقة:" : "Datacenter:"}</span>
+                <span className="text-slate-300 font-mono text-[11px]">{selectedServerForReboot.datacenter}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">{isAr ? "الجلسات النشطة المتأثرة:" : "Active Sessions:"}</span>
+                <span className="text-amber-400 font-bold font-mono">
+                  {selectedServerForReboot.activeConnections} FIX/WS Channels
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">{isAr ? "وقت التشغيل المتواصل:" : "Current Uptime:"}</span>
+                <span className="text-slate-300 font-mono">{selectedServerForReboot.uptimeHours} Hours</span>
+              </div>
+            </div>
+
+            {/* Execution / In-Progress State */}
+            {isRebooting ? (
+              <div className="p-4 bg-slate-900 border border-amber-500/40 rounded-xl space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-amber-400 font-bold flex items-center gap-2">
+                    <RotateCw className="w-4 h-4 animate-spin" />
+                    <span>{isAr ? "جارٍ تنفيذ دورة إعادة التشغيل..." : "Reboot sequence executing..."}</span>
+                  </span>
+                  <span className="font-mono text-white font-bold">{rebootProgress}%</span>
+                </div>
+
+                <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all duration-300"
+                    style={{ width: `${rebootProgress}%` }}
+                  />
+                </div>
+
+                <p className="text-[11px] text-slate-300 font-mono bg-black/40 p-2.5 rounded border border-slate-800 animate-pulse">
+                  &gt; {rebootStageText}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Mode Selector */}
+                <div>
+                  <label className="block text-slate-300 mb-2 font-medium text-xs">
+                    {isAr ? "اختر نمط إعادة التشغيل:" : "Select Reboot Mode:"}
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setRebootMode("graceful")}
+                      className={`p-3 rounded-xl border text-right transition-all cursor-pointer ${
+                        rebootMode === "graceful"
+                          ? "bg-amber-500/15 border-amber-500/50 text-white"
+                          : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      <div className="font-bold text-amber-300 flex items-center gap-1.5 mb-1">
+                        <Check className="w-3.5 h-3.5" />
+                        <span>{isAr ? "إعادة تشغيل متزنة" : "Graceful Drain"}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-normal">
+                        {isAr
+                          ? "إفراغ مخازن المقابس وإعادة توجيه الصفقات لقنوات الاحتياط (موصى بها)"
+                          : "Drain active buffers and failover trades cleanly"}
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setRebootMode("force")}
+                      className={`p-3 rounded-xl border text-right transition-all cursor-pointer ${
+                        rebootMode === "force"
+                          ? "bg-rose-500/15 border-rose-500/50 text-white"
+                          : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      <div className="font-bold text-rose-300 flex items-center gap-1.5 mb-1">
+                        <Power className="w-3.5 h-3.5" />
+                        <span>{isAr ? "إعادة تشغيل قسرية" : "Hard Force"}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-normal">
+                        {isAr
+                          ? "إعادة ضبط فورية لمتحكمات الأجهزة والذاكرة (حالات الطوارئ)"
+                          : "Immediate hardware reset and kernel flush"}
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Audit Warning */}
+                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-300/90 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                  <span>
+                    {isAr
+                      ? "تنبيه أمني: سيتم تسجيل هذا الإجراء تلقائياً في سجل تدقيق العمليات وسجلات النظام الحية مع ختم وقت دقيق وحساب المسؤول."
+                      : "Security notice: This operation will be logged to system syslog and administrative audit trail with timestamp."}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedServerForReboot(null)}
+                    className="px-4 py-2 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer text-xs"
+                  >
+                    {isAr ? "إلغاء" : "Cancel"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmReboot}
+                    className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 font-bold text-xs transition-all cursor-pointer shadow-lg shadow-amber-500/20 flex items-center gap-1.5"
+                  >
+                    <Power className="w-3.5 h-3.5" />
+                    <span>{isAr ? "بدء إعادة التشغيل الآمنة" : "Execute Safe Reboot"}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL 11: INJECT CUSTOM SYSTEM LOG (تسجيل حدث يدوي) --- */}
+      {showInjectLogModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-md bg-[#0c1322] border border-amber-500/40 rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                <Terminal className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">
+                  {isAr ? "تسجيل حدث تشغيلي في سجلات النظام" : "Inject System Log Event"}
+                </h3>
+                <p className="text-xs text-slate-400">
+                  {isAr ? "تسجيل حدث في الطرفية الحية لغايات التشخيص أو التوثيق" : "Emit a structured syslog entry for diagnostics"}
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleInjectCustomLog} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-slate-300 mb-1 font-medium">
+                  {isAr ? "الخادم المستهدف:" : "Target Node:"}
+                </label>
+                <select
+                  value={testLogServerId}
+                  onChange={(e) => setTestLogServerId(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-2.5 focus:outline-none focus:border-amber-400 font-mono text-xs"
+                >
+                  {serverNodes.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-slate-300 mb-1 font-medium">
+                    {isAr ? "مستوى الخطورة:" : "Severity Level:"}
+                  </label>
+                  <select
+                    value={testLogLevel}
+                    onChange={(e) => setTestLogLevel(e.target.value as any)}
+                    className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-2.5 focus:outline-none focus:border-amber-400 font-mono text-xs"
+                  >
+                    <option value="INFO">INFO (معلومات)</option>
+                    <option value="WARN">WARN (تحذير)</option>
+                    <option value="ERROR">ERROR (خطأ)</option>
+                    <option value="CRITICAL">CRITICAL (حرج)</option>
+                    <option value="DEBUG">DEBUG (تشخيص)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 mb-1 font-medium">
+                    {isAr ? "المكون البرمجي:" : "Component:"}
+                  </label>
+                  <input
+                    type="text"
+                    value={testLogComponent}
+                    onChange={(e) => setTestLogComponent(e.target.value)}
+                    placeholder="e.g. FIX-GATE, DB-SYNC"
+                    className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-2.5 focus:outline-none focus:border-amber-400 font-mono text-xs uppercase"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 mb-1 font-medium">
+                  {isAr ? "نص الرسالة والحدث:" : "Log Message:"}
+                </label>
+                <textarea
+                  rows={3}
+                  value={testLogMessage}
+                  onChange={(e) => setTestLogMessage(e.target.value)}
+                  placeholder={isAr ? "اكتب تفاصيل الحدث..." : "Describe the event details..."}
+                  className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-2.5 focus:outline-none focus:border-amber-400 font-mono text-xs"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowInjectLogModal(false)}
+                  className="px-4 py-2 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  {isAr ? "إلغاء" : "Cancel"}
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-indigo-500 to-sky-600 text-white font-bold transition-all cursor-pointer shadow-lg shadow-indigo-500/20"
+                >
+                  {isAr ? "تسجيل الحدث" : "Emit Log Entry"}
                 </button>
               </div>
             </form>

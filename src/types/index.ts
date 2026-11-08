@@ -148,3 +148,38 @@ export interface SqlQueryResult {
   error?: string;
   statementType?: "SELECT" | "INSERT" | "UPDATE" | "DELETE" | "CREATE" | "DROP" | "OTHER";
 }
+
+export type ServerStatus = "ONLINE" | "REBOOTING" | "MAINTENANCE" | "DEGRADED" | "OFFLINE";
+
+export interface ServerNode {
+  id: string;
+  name: string;
+  role: string;
+  region: string;
+  datacenter: string;
+  ipAddress: string;
+  cpuUsage: number;
+  memoryUsage: number;
+  diskUsage: number;
+  networkLatencyMs: number;
+  bandwidthGbps: number;
+  uptimeHours: number;
+  activeConnections: number;
+  status: ServerStatus;
+  lastRebootedAt?: string;
+  version: string;
+}
+
+export type SystemLogLevel = "INFO" | "WARN" | "ERROR" | "DEBUG" | "CRITICAL";
+
+export interface SystemLogEntry {
+  id: string;
+  serverId: string;
+  serverName: string;
+  level: SystemLogLevel;
+  component: string;
+  message: string;
+  timestamp: string;
+  metadata?: string;
+}
+
