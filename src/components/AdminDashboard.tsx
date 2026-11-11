@@ -2696,9 +2696,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
             <h3 className="text-lg font-bold text-white">
               {isAr ? "مراجعة وتعديل توثيق KYC" : "Review Trader KYC Compliance"}
             </h3>
-            <p className="text-xs text-slate-400 font-mono">
-              {selectedUserForKyc.name} ({selectedUserForKyc.email})
-            </p>
+            <div className="flex items-center justify-between text-xs text-slate-400 font-mono pb-2 border-b border-slate-800">
+              <span>{selectedUserForKyc.name}</span>
+              <span className="text-amber-400">{selectedUserForKyc.email}</span>
+            </div>
+
+            {selectedUserForKyc.kycDocumentType && (
+              <div className="p-3 rounded-xl bg-slate-900/90 border border-amber-500/30 text-xs space-y-2">
+                <div className="flex items-center justify-between text-[11px] text-amber-400 font-bold uppercase tracking-wider">
+                  <span>{isAr ? "وثائق الهوية المرفوعة" : "Submitted Credentials"}</span>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {selectedUserForKyc.kycSubmittedAt ? new Date(selectedUserForKyc.kycSubmittedAt).toLocaleString() : ""}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div>
+                    <span className="text-slate-500 block text-[10px]">{isAr ? "نوع الوثيقة:" : "Doc Type:"}</span>
+                    <span className="text-white font-medium capitalize">{selectedUserForKyc.kycDocumentType.replace("_", " ")}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px]">{isAr ? "رقم الوثيقة:" : "Doc Number:"}</span>
+                    <span className="text-amber-300 font-mono font-bold">{selectedUserForKyc.kycDocumentNumber || "N/A"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px]">{isAr ? "بلد الإصدار:" : "Country:"}</span>
+                    <span className="text-slate-200">{selectedUserForKyc.kycIssuingCountry || "N/A"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px]">{isAr ? "إثبات العنوان:" : "Proof of Address:"}</span>
+                    <span className="text-slate-200 capitalize">{(selectedUserForKyc.kycProofOfAddressType || "N/A").replace("_", " ")}</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleSaveKyc} className="space-y-4 text-xs font-sans">
               <div>

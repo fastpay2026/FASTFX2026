@@ -11,10 +11,28 @@ export interface User {
   kycStatus: "verified" | "pending" | "unverified" | "rejected";
   kycTier?: "TIER_1_STANDARD" | "TIER_2_INSTITUTIONAL" | "TIER_3_UNLIMITED";
   kycNotes?: string;
+  kycDocumentType?: "PASSPORT" | "NATIONAL_ID" | "DRIVERS_LICENSE";
+  kycDocumentNumber?: string;
+  kycIssuingCountry?: string;
+  kycSubmittedAt?: string;
+  kycReviewedAt?: string;
+  kycProofOfAddressType?: "BANK_STATEMENT" | "UTILITY_BILL" | "GOV_TAX_LETTER";
   country?: string;
   phone?: string;
   status: "active" | "suspended" | "frozen";
   createdAt: string;
+  twoFactorEnabled?: boolean;
+  apiKey?: string;
+  apiSecret?: string;
+  vipRank?: "STANDARD" | "GOLD" | "PLATINUM" | "BLACK_DIAMOND";
+}
+
+export interface KycSubmissionPayload {
+  documentType: "PASSPORT" | "NATIONAL_ID" | "DRIVERS_LICENSE";
+  documentNumber: string;
+  issuingCountry: string;
+  proofOfAddressType: "BANK_STATEMENT" | "UTILITY_BILL" | "GOV_TAX_LETTER";
+  notes?: string;
 }
 
 export type OrderType = "MARKET" | "LIMIT";

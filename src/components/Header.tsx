@@ -16,11 +16,12 @@ import {
   Wallet,
   Layers,
   Database,
-  ArrowRight
+  ArrowRight,
+  ArrowRightLeft
 } from "lucide-react";
 import { MarketPair } from "../types";
 
-export type ActiveView = "landing" | "trading" | "admin";
+export type ActiveView = "landing" | "trading" | "admin" | "profile";
 
 interface HeaderProps {
   lang: Language;
@@ -187,6 +188,20 @@ export const Header: React.FC<HeaderProps> = ({
               {isAr ? "سباق الـ 15 يوماً" : "15-Day Grand Prix"}
             </button>
 
+            {isLoggedIn && (
+              <button
+                onClick={() => onViewChange("profile")}
+                className={`whitespace-nowrap shrink-0 transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  activeView === "profile"
+                    ? "text-amber-400 font-semibold"
+                    : "text-slate-300 hover:text-white"
+                }`}
+              >
+                <UserIcon className="w-3.5 h-3.5 text-amber-400" />
+                <span>{isAr ? "حسابي والتحويلات" : "My Account & Transfers"}</span>
+              </button>
+            )}
+
             {/* Admin Portal Tab - strictly shown only when logged in as admin */}
             {isAdmin && (
               <button
@@ -261,6 +276,28 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
 
                     <div className="space-y-1">
+                      <button
+                        onClick={() => {
+                          onViewChange("profile");
+                          setProfileDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-2.5 py-2 text-amber-300 hover:text-white hover:bg-amber-500/10 rounded-lg transition-colors cursor-pointer text-left font-semibold"
+                      >
+                        <UserIcon className="w-3.5 h-3.5 text-amber-400" />
+                        <span>{isAr ? "الملف الشخصي وإدارة الحساب" : "My Profile & Account Portal"}</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          onViewChange("profile");
+                          setProfileDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-2.5 py-2 text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg transition-colors cursor-pointer text-left"
+                      >
+                        <ArrowRightLeft className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>{isAr ? "التحويل بين العملاء (0% عمولة)" : "Client-to-Client Transfer"}</span>
+                      </button>
+
                       <button
                         onClick={() => {
                           onViewChange("trading");
@@ -339,6 +376,17 @@ export const Header: React.FC<HeaderProps> = ({
             <CandlestickChart className="w-3.5 h-3.5" />
             <span>{t.navTrade}</span>
           </button>
+          {isLoggedIn && (
+            <button
+              onClick={() => onViewChange("profile")}
+              className={`flex items-center gap-1.5 py-1 px-2.5 rounded-lg ${
+                activeView === "profile" ? "text-amber-300 font-semibold bg-amber-500/20" : "text-slate-400"
+              }`}
+            >
+              <UserIcon className="w-3.5 h-3.5" />
+              <span>{isAr ? "حسابي" : "Account"}</span>
+            </button>
+          )}
           {isAdmin && (
             <button
               onClick={() => onViewChange("admin")}

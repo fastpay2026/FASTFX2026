@@ -4,6 +4,7 @@ import { Header, ActiveView } from "./components/Header";
 import { TradingTerminal } from "./components/TradingTerminal";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { LandingSection } from "./components/LandingSection";
+import { UserProfilePortal } from "./components/UserProfilePortal";
 import { AuthModal } from "./components/AuthModal";
 import { BrandLogo } from "./components/BrandLogo";
 import { translations, Language } from "./translations";
@@ -200,6 +201,14 @@ function AppContent() {
 
         {activeView === "admin" && (
           <AdminDashboard lang={lang} />
+        )}
+
+        {activeView === "profile" && (
+          <UserProfilePortal
+            lang={lang}
+            onNavigateToTrading={() => setActiveView("trading")}
+            onNavigateToLanding={() => setActiveView("landing")}
+          />
         )}
       </main>
 

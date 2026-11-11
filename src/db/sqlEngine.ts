@@ -12,7 +12,8 @@ import {
   ServerNode,
   ServerStatus,
   SystemLogLevel,
-  SystemLogEntry
+  SystemLogEntry,
+  KycSubmissionPayload
 } from "../types";
 
 export const SUPER_ADMIN_EMAIL = "admin@fast-fx.uk";
@@ -1332,11 +1333,116 @@ class SqlDatabaseEngine {
     const user = this.state.users.find((u) => u.id === userId);
     if (user) {
       user.kycStatus = kycStatus;
+      user.kycReviewedAt = new Date().toISOString();
       if (kycNotes) user.kycNotes = kycNotes;
       if (kycTier) user.kycTier = kycTier;
       this.addAuditLog(SUPER_ADMIN_EMAIL, "KYC_UPDATE", `User ${user.email} KYC set to ${kycStatus} (${kycTier || "N/A"})`);
       this.saveToStorage();
     }
+  }
+
+  // --- Client KYC Verification Request Submission ---
+  public submitKycVerificationRequest(userId: string, payload: KycSubmissionPayload): { success: boolean; error?: string } {
+    const user = this.state.users.find((u) => u.id === userId);
+    if (!user) {
+      return { success: false, error: "المستخدم غير موجود" };
+    }
+    if (user.status === "frozen") {
+      return { success: false, error: "الحساب مجمد حالياً، يرجى مراجعة إدارة الامتثال" };
+    }
+    if (!payload.documentNumber || !payload.issuingCountry) {
+      return { success: false, error: "يرجى استكمال جميع بيانات وثيقة إثبات الهوية" };
+    }
+
+    user.kycStatus = "pending";
+    user.kycDocumentType = payload.documentType;
+    user.kycDocumentNumber = payload.documentNumber.trim();
+    user.kycIssuingCountry = payload.issuingCountry.trim();
+    user.kycProofOfAddressType = payload.proofOfAddressType;
+    user.kycSubmittedAt = new Date().toISOString();
+    user.kycNotes = payload.notes
+      ? `طلب توثيق العميل: [${payload.documentType}] رقم ${payload.documentNumber} (${payload.issuingCountry}) - ملاحظات: ${payload.notes}`
+      : `طلب توثيق العميل: [${payload.documentType}] رقم ${payload.documentNumber} (${payload.issuingCountry})`;
+
+    // Log to audit log
+    this.addAuditLog(
+      user.email,
+      "KYC_REQUEST_SUBMITTED",
+      `Submitted ${payload.documentType} (${payload.documentNumber}, ${payload.issuingCountry}) with ${payload.proofOfAddressType}`
+    );
+
+    // Also add to system logs so it shows in server CRM terminal
+    this.addSystemLog({
+      serverId: "srv_dx1_risk_02",
+      serverName: "DX1-RISK-GOV-02",
+      level: "INFO",
+      component: "KYC-COMPLIANCE",
+      message: `New KYC verification request queued for trader ${user.email}. Document: ${payload.documentType} #${payload.documentNumber}. Awaiting compliance review.`,
+      metadata: `userId=${user.id} docType=${payload.documentType}`
+    });
+
+    this.saveToStorage();
+    return { success: true };
+  }
+
+  // --- Search Users for Client-to-Client Transfer ---
+  public searchUsersForTransfer(query: string, excludeUserId?: string): Array<{ id: string; name: string; email: string; kycStatus: string }> {
+    const q = (query || "").trim().toLowerCase();
+    return this.state.users
+      .filter((u) => {
+        if (excludeUserId && u.id === excludeUserId) return false;
+        if (!q) return true;
+        return (
+          u.email.toLowerCase().includes(q) ||
+          u.name.toLowerCase().includes(q) ||
+          u.id.toLowerCase().includes(q)
+        );
+      })
+      .slice(0, 8)
+      .map((u) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        kycStatus: u.kycStatus
+      }));
+  }
+
+  public refillDemoBalance(userId: string, amount: number = 50000): { success: boolean; newDemoBalance?: number } {
+    const user = this.state.users.find((u) => u.id === userId);
+    if (!user) return { success: false };
+    user.demoBalance = amount;
+    this.saveToStorage();
+    return { success: true, newDemoBalance: user.demoBalance };
+  }
+
+  public toggle2FA(userId: string): { success: boolean; enabled: boolean } {
+    const user = this.state.users.find((u) => u.id === userId);
+    if (!user) return { success: false, enabled: false };
+    user.twoFactorEnabled = !user.twoFactorEnabled;
+    this.addAuditLog(
+      user.email,
+      "SECURITY_2FA_TOGGLE",
+      `Two-factor authentication ${user.twoFactorEnabled ? "activated" : "deactivated"}`
+    );
+    this.saveToStorage();
+    return { success: true, enabled: user.twoFactorEnabled };
+  }
+
+  public generateApiCredentials(userId: string): { apiKey: string; apiSecret: string } {
+    const user = this.state.users.find((u) => u.id === userId);
+    const apiKey = `fastfx_live_${Math.random().toString(36).substring(2)}${Date.now().toString(36)}`;
+    const apiSecret = `sec_${Math.random().toString(36).substring(2)}${Math.random().toString(36).substring(2)}`;
+    if (user) {
+      user.apiKey = apiKey;
+      user.apiSecret = apiSecret;
+      this.addAuditLog(
+        user.email,
+        "API_KEYS_GENERATED",
+        `Institutional FIX/REST API credentials generated for user ${user.email}`
+      );
+      this.saveToStorage();
+    }
+    return { apiKey, apiSecret };
   }
 
   public toggleUserStatus(userId: string): void {
