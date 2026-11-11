@@ -233,19 +233,19 @@ export const LandingSection: React.FC<LandingSectionProps> = ({
       <section className="relative px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="max-w-4xl mx-auto text-center space-y-6">
           {/* Official Logo Brand Pill Showcase */}
-          <div className="inline-flex items-center gap-3 p-1.5 pr-4 pl-2 bg-[#0d1224] rounded-2xl border border-amber-500/30 shadow-xl shadow-indigo-950/40 mb-2">
-            <div className="w-9 h-9 rounded-xl bg-white p-1 shadow-sm flex items-center justify-center">
+          <div className="inline-flex items-center gap-3 p-1.5 pr-4 pl-2 bg-[#090e1c] rounded-2xl border border-amber-500/40 shadow-xl shadow-amber-500/10 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-[#060a14] p-0.5 border border-amber-500/30 shadow-inner flex items-center justify-center overflow-hidden">
               <img
-                src="/assets/aistudio/image_832cc79a.png"
-                alt="FAST FX SINCE 2026"
-                className="w-full h-full object-contain"
+                src="/assets/brand/fast_fx_lightning_logo.jpg"
+                alt="FAST FX - Lightning Speed"
+                className="w-full h-full object-cover rounded-lg"
               />
             </div>
             <div className="flex items-center gap-2 text-xs font-mono">
               <span className="font-bold text-white tracking-wide">FAST FX</span>
-              <span className="text-amber-400 font-bold">SINCE 2026</span>
+              <span className="text-amber-400 font-bold">⚡ ERA OF SPEED</span>
               <span className="text-slate-600">·</span>
-              <span className="text-indigo-400 font-semibold">⚡ ULTRA-FAST TRADING</span>
+              <span className="text-indigo-400 font-semibold">SINCE 2026</span>
             </div>
           </div>
 

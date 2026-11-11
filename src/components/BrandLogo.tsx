@@ -47,22 +47,24 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 
   return (
     <div className={`flex items-center ${dimensions.gap} select-none ${className}`}>
-      {/* Official Uploaded Logo Emblem Badge (Lightning Bolt with Speed Streaks & Since 2026) */}
+      {/* Official Lightning Speed Emblem */}
       <div
-        className={`relative shrink-0 ${dimensions.box} rounded-xl bg-white p-1 shadow-md shadow-indigo-950/40 border border-amber-400/30 overflow-hidden flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:border-amber-400 group-hover:shadow-amber-500/20`}
+        className={`relative shrink-0 ${dimensions.box} rounded-xl bg-[#070b14] p-0.5 shadow-lg shadow-amber-500/10 border border-amber-500/30 overflow-hidden flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:border-amber-400 group-hover:shadow-amber-500/25`}
       >
         <img
-          src="/assets/aistudio/image_832cc79a.png"
-          alt="FAST FX SINCE 2026"
-          className="w-full h-full object-contain"
+          src="/assets/brand/fast_fx_lightning_logo.jpg"
+          alt="FAST FX - Lightning Speed Broker"
+          className="w-full h-full object-cover rounded-[10px]"
         />
+        {/* Speed pulse aura */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/15 via-transparent to-indigo-500/20 pointer-events-none rounded-[10px]" />
       </div>
 
       {/* Brand Typography Wordmark matching Logo Colors (Royal Indigo & Amber Gold) */}
       {!iconOnly && (
         <div className="flex flex-col leading-none">
           <div className="flex items-center gap-1.5 tracking-tight font-sans">
-            {/* FAST in Royal Indigo / Crisp White on dark */}
+            {/* FAST in Crisp White / Royal Indigo on dark */}
             <span
               className={`font-black text-white ${dimensions.text} tracking-tight font-sans drop-shadow-sm`}
               style={{ letterSpacing: "-0.03em" }}
@@ -84,13 +86,13 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
               <span
                 className={`text-amber-400 font-bold uppercase tracking-[0.2em] ${dimensions.sub}`}
               >
-                SINCE 2026
+                LIGHTNING SPEED
               </span>
               <span className="text-slate-600 text-[8px]">·</span>
               <span
                 className={`text-indigo-400 font-semibold tracking-wider ${dimensions.sub}`}
               >
-                ⚡ ULTRA-FAST
+                SINCE 2026
               </span>
             </div>
           )}
