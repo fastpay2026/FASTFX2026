@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { sqlDb, SUPER_ADMIN_EMAIL } from "../db/sqlEngine";
 import { translations, Language } from "../translations";
-import { User, Transaction, KycSubmissionPayload } from "../types";
+import { User, Transaction, KycSubmissionPayload, FundRequest } from "../types";
 import {
   User as UserIcon,
   ShieldCheck,
@@ -42,7 +42,16 @@ import {
   FileCheck,
   Award,
   UploadCloud,
-  ChevronRight
+  ChevronRight,
+  CreditCard,
+  Server,
+  Zap,
+  CheckCheck,
+  X,
+  SlidersHorizontal,
+  ChevronDown,
+  Activity,
+  Shield
 } from "lucide-react";
 
 interface UserProfilePortalProps {
@@ -50,6 +59,15 @@ interface UserProfilePortalProps {
   onNavigateToTrading: () => void;
   onNavigateToLanding: () => void;
 }
+
+type TabType =
+  | "portfolio"
+  | "transfer"
+  | "kyc"
+  | "ledger"
+  | "funding"
+  | "security"
+  | "specs";
 
 export const UserProfilePortal: React.FC<UserProfilePortalProps> = ({
   lang,
@@ -60,14 +78,30 @@ export const UserProfilePortal: React.FC<UserProfilePortalProps> = ({
   const t = translations[lang];
   const isAr = lang === "ar";
 
-  // Active Tab inside User Portal
-  const [activeTab, setActiveTab] = useState<"overview" | "transfer" | "kyc" | "ledger" | "security">("overview");
+  // Active Tab
+  const [activeTab, setActiveTab] = useState<TabType>("portfolio");
 
   // Notifications & Copy state
   const [notification, setNotification] = useState<{ text: string; type: "success" | "error" } | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // Transfer State
+  // Quick Action Modals
+  const [showDepositModal, setShowDepositModal] = useState<boolean>(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState<boolean>(false);
+
+  // Deposit Form State
+  const [depositAmount, setDepositAmount] = useState<string>("1000");
+  const [depositMethod, setDepositMethod] = useState<"USDT_TRC20" | "VISA_MASTERCARD" | "BANK_WIRE" | "APPLE_PAY">("USDT_TRC20");
+  const [isDepositing, setIsDepositing] = useState<boolean>(false);
+
+  // Withdrawal Form State
+  const [withdrawAmount, setWithdrawAmount] = useState<string>("");
+  const [withdrawMethod, setWithdrawMethod] = useState<"CRYPTO" | "BANK_WIRE" | "CARD">("CRYPTO");
+  const [withdrawAddress, setWithdrawAddress] = useState<string>("");
+  const [withdrawNote, setWithdrawNote] = useState<string>("");
+  const [isSubmittingWithdrawal, setIsSubmittingWithdrawal] = useState<boolean>(false);
+
+  // P2P Transfer State
   const [transferRecipientQuery, setTransferRecipientQuery] = useState<string>("");
   const [selectedRecipient, setSelectedRecipient] = useState<{ id: string; name: string; email: string; kycStatus: string } | null>(null);
   const [transferAmount, setTransferAmount] = useState<string>("");
@@ -78,7 +112,7 @@ export const UserProfilePortal: React.FC<UserProfilePortalProps> = ({
   // KYC Verification Form State
   const [kycDocType, setKycDocType] = useState<"PASSPORT" | "NATIONAL_ID" | "DRIVERS_LICENSE">("PASSPORT");
   const [kycDocNumber, setKycDocNumber] = useState<string>("");
-  const [kycCountry, setKycCountry] = useState<string>(currentUser?.country || "المملكة العربية السعودية");
+  const [kycCountry, setKycCountry] = useState<string>(currentUser?.country || (isAr ? "المملكة العربية السعودية" : "Saudi Arabia"));
   const [kycAddressType, setKycAddressType] = useState<"BANK_STATEMENT" | "UTILITY_BILL" | "GOV_TAX_LETTER">("BANK_STATEMENT");
   const [kycNotes, setKycNotes] = useState<string>("");
   const [kycSimulatedFileName, setKycSimulatedFileName] = useState<string>("");
@@ -88,11 +122,15 @@ export const UserProfilePortal: React.FC<UserProfilePortalProps> = ({
   const [showApiSecret, setShowApiSecret] = useState<boolean>(false);
   const [twoFactorModalOpen, setTwoFactorModalOpen] = useState<boolean>(false);
 
-  // Transaction Ledger Filters
+  // Transaction Ledger Filters & Receipt Modal
   const [ledgerTypeFilter, setLedgerTypeFilter] = useState<string>("ALL");
   const [ledgerSearch, setLedgerSearch] = useState<string>("");
+  const [selectedReceiptTx, setSelectedReceiptTx] = useState<Transaction | null>(null);
 
-  // Show alert banner
+  // Demo Balance Refill Loading
+  const [isRefillingDemo, setIsRefillingDemo] = useState<boolean>(false);
+
+  // Alert handler
   const showAlert = (text: string, type: "success" | "error" = "success") => {
     setNotification({ text, type });
     setTimeout(() => setNotification(null), 4500);
@@ -138,52 +176,177 @@ export const UserProfilePortal: React.FC<UserProfilePortalProps> = ({
     return sqlDb.getTrades(currentUser.id);
   }, [currentUser]);
 
-  const closedTrades = userTrades.filter((t) => t.status === "CLOSED");
-  const winningTrades = closedTrades.filter((t) => t.pnl > 0);
-  const winRate = closedTrades.length > 0 ? ((winningTrades.length / closedTrades.length) * 100).toFixed(1) : "0.0";
-  const netPnL = closedTrades.reduce((acc, t) => acc + t.pnl, 0);
+  const closedTrades = useMemo(() => {
+    return userTrades.filter((t) => t.status === "closed");
+  }, [userTrades]);
+
+  const winRate = useMemo(() => {
+    if (closedTrades.length === 0) return 0;
+    const winningTrades = closedTrades.filter((t) => (t.pnl || 0) > 0);
+    return Math.round((winningTrades.length / closedTrades.length) * 100);
+  }, [closedTrades]);
+
+  const netPnL = useMemo(() => {
+    return closedTrades.reduce((acc, t) => acc + (t.pnl || 0), 0);
+  }, [closedTrades]);
+
+  // Pending withdrawals
+  const userFundRequests = useMemo(() => {
+    if (!currentUser) return [];
+    const all = sqlDb.getFundRequests();
+    return all.filter((r) => r.userId === currentUser.id);
+  }, [currentUser]);
 
   // VIP Rank calculation
   const vipRankBadge = useMemo(() => {
-    if (!currentUser) return { label: "Standard", color: "text-slate-300", bg: "bg-slate-800" };
-    if (currentUser.role === "admin") {
-      return { label: isAr ? "المدير العام (Super Admin)" : "Super Admin", color: "text-amber-300", bg: "bg-amber-500/20 border-amber-500/40" };
+    if (!currentUser) return { label: "Standard", color: "text-slate-400", bg: "bg-slate-800" };
+    const b = currentUser.balance;
+    if (b >= 250000) {
+      return {
+        label: isAr ? "عضوية سيادية (Sovereign VIP)" : "Sovereign VIP",
+        color: "text-amber-400",
+        border: "border-amber-400/50",
+        glow: "shadow-amber-500/20"
+      };
     }
-    if (currentUser.balance >= 100000) {
-      return { label: isAr ? "عضوية ماسية (Black Diamond VIP)" : "Black Diamond VIP", color: "text-amber-400", bg: "bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border-amber-500/50" };
+    if (b >= 50000) {
+      return {
+        label: isAr ? "عضوية ماسية (Black Diamond)" : "Black Diamond",
+        color: "text-sky-400",
+        border: "border-sky-400/50",
+        glow: "shadow-sky-500/20"
+      };
     }
-    if (currentUser.balance >= 25000) {
-      return { label: isAr ? "عضوية بلاتينية مؤسسية (Institutional Platinum)" : "Platinum Elite", color: "text-sky-300", bg: "bg-sky-500/20 border-sky-500/40" };
+    if (b >= 10000) {
+      return {
+        label: isAr ? "عضوية بلاتينية (Platinum VIP)" : "Platinum VIP",
+        color: "text-indigo-400",
+        border: "border-indigo-400/50",
+        glow: "shadow-indigo-500/20"
+      };
     }
-    return { label: isAr ? "عضوية ذهبية قياسية (Gold Trader)" : "Gold Trader", color: "text-indigo-300", bg: "bg-indigo-500/20 border-indigo-500/40" };
+    return {
+      label: isAr ? "حساب متداول معتمد" : "Standard Trader",
+      color: "text-slate-300",
+      border: "border-slate-700",
+      glow: ""
+    };
   }, [currentUser, isAr]);
 
-  // Handle Demo Balance Refill
+  // Handle Demo Refill
   const handleRefillDemo = () => {
     if (!currentUser) return;
-    const res = sqlDb.refillDemoBalance(currentUser.id, 50000);
-    if (res.success) {
-      refreshUser();
-      showAlert(isAr ? "تمت إعادة تعبئة رصيد الحساب التجريبي بمبلغ $50,000 بنجاح" : "Demo balance refilled with $50,000 successfully");
-    }
+    setIsRefillingDemo(true);
+    setTimeout(() => {
+      const res = sqlDb.refillDemoBalance(currentUser.id, 50000);
+      setIsRefillingDemo(false);
+      if (res.success) {
+        refreshUser();
+        showAlert(
+          isAr
+            ? "تمت إعادة تعبئة رصيد الحساب التجريبي بمبلغ $50,000 بنجاح"
+            : "Demo account refilled with $50,000 successfully",
+          "success"
+        );
+      } else {
+        showAlert(isAr ? "فشلت إعادة التعبئة" : "Refill failed", "error");
+      }
+    }, 400);
   };
 
-  // Handle Client-to-Client Transfer Submission
+  // Handle Direct Deposit
+  const handleExecuteDeposit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    const numAmount = parseFloat(depositAmount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      showAlert(isAr ? "يرجى إدخال مبلغ إيداع صحيح" : "Please enter a valid deposit amount", "error");
+      return;
+    }
+
+    setIsDepositing(true);
+    setTimeout(() => {
+      const res = sqlDb.depositFunds(currentUser.id, numAmount, depositMethod);
+      setIsDepositing(false);
+      if (res.success) {
+        refreshUser();
+        setShowDepositModal(false);
+        showAlert(
+          isAr
+            ? `تم إيداع $${numAmount.toLocaleString()} بنجاح في محفظتك عبر ${depositMethod}`
+            : `Successfully deposited $${numAmount.toLocaleString()} via ${depositMethod}`,
+          "success"
+        );
+      } else {
+        showAlert(res.error || (isAr ? "فشلت عملية الإيداع" : "Deposit failed"), "error");
+      }
+    }, 600);
+  };
+
+  // Handle Withdrawal Request
+  const handleExecuteWithdrawal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    const numAmount = parseFloat(withdrawAmount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      showAlert(isAr ? "يرجى إدخال مبلغ سحب صحيح" : "Please enter a valid withdrawal amount", "error");
+      return;
+    }
+    if (numAmount > currentUser.balance) {
+      showAlert(
+        isAr
+          ? `رصيدك الحالي ($${currentUser.balance.toLocaleString()}) أقل من المبلغ المطلوب سحبه`
+          : `Insufficient balance. Available: $${currentUser.balance.toLocaleString()}`,
+        "error"
+      );
+      return;
+    }
+    if (!withdrawAddress.trim()) {
+      showAlert(isAr ? "يرجى تحديد عنوان المحفظة أو الحساب البنكي" : "Please provide destination address / IBAN", "error");
+      return;
+    }
+
+    setIsSubmittingWithdrawal(true);
+    setTimeout(() => {
+      const res = sqlDb.requestWithdrawal(
+        currentUser.id,
+        numAmount,
+        withdrawMethod,
+        withdrawAddress.trim(),
+        withdrawNote.trim() || undefined
+      );
+      setIsSubmittingWithdrawal(false);
+      if (res.success) {
+        refreshUser();
+        setShowWithdrawModal(false);
+        setWithdrawAmount("");
+        setWithdrawAddress("");
+        setWithdrawNote("");
+        showAlert(
+          isAr
+            ? `تم إرسال طلب سحب بمبلغ $${numAmount.toLocaleString()} بنجاح وهو قيد معالجة الامتثال`
+            : `Withdrawal request for $${numAmount.toLocaleString()} submitted for compliance review`,
+          "success"
+        );
+      } else {
+        showAlert(res.error || (isAr ? "فشل طلب السحب" : "Withdrawal request failed"), "error");
+      }
+    }, 600);
+  };
+
+  // Handle P2P Transfer Execution
   const handleExecuteTransfer = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
-
     if (!selectedRecipient) {
-      showAlert(isAr ? "يرجى تحديد العميل المستلم للتحويل" : "Please select a valid recipient", "error");
+      showAlert(isAr ? "يرجى اختيار العميل المستلم للتحويل" : "Please select a recipient", "error");
       return;
     }
-
     const numAmount = parseFloat(transferAmount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      showAlert(isAr ? "يرجى إدخال مبلغ تحويل صالح أكبر من صفر" : "Please enter a valid transfer amount", "error");
+      showAlert(isAr ? "يرجى إدخال مبلغ تحويل صحيح أكبر من صفر" : "Please enter a valid transfer amount", "error");
       return;
     }
-
     if (numAmount > currentUser.balance) {
       showAlert(
         isAr
@@ -195,7 +358,6 @@ export const UserProfilePortal: React.FC<UserProfilePortalProps> = ({
     }
 
     setIsSubmittingTransfer(true);
-
     setTimeout(() => {
       const res = sqlDb.transferBalance(
         currentUser.id,
@@ -208,7 +370,6 @@ export const UserProfilePortal: React.FC<UserProfilePortalProps> = ({
 
       if (res.success) {
         refreshUser();
-        // Get the newly created outgoing transfer transaction
         const updatedTxs = sqlDb.getTransactions(currentUser.id);
         const latestTx = updatedTxs[0] || null;
         setCompletedTransferReceipt(latestTx);
@@ -234,18 +395,20 @@ export const UserProfilePortal: React.FC<UserProfilePortalProps> = ({
   const handleSubmitKycForm = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
-
     if (!kycDocNumber.trim()) {
-      showAlert(isAr ? "يرجى كتابة رقم وثيقة إثبات الهوية" : "Please enter your document identification number", "error");
+      showAlert(isAr ? "يرجى كتابة رقم الوثيقة الرسمية" : "Please enter the official document number", "error");
+      return;
+    }
+    if (!kycCountry.trim()) {
+      showAlert(isAr ? "يرجى تحديد دولة إصدار الوثيقة" : "Please specify issuing country", "error");
       return;
     }
 
     setIsSubmittingKyc(true);
-
     setTimeout(() => {
       const payload: KycSubmissionPayload = {
         documentType: kycDocType,
-        documentNumber: kycDocNumber.trim(),
+        documentNumber: kycDocNumber.trim().toUpperCase(),
         issuingCountry: kycCountry.trim(),
         proofOfAddressType: kycAddressType,
         notes: kycNotes.trim() || undefined
@@ -258,1302 +421,1880 @@ export const UserProfilePortal: React.FC<UserProfilePortalProps> = ({
         refreshUser();
         showAlert(
           isAr
-            ? "تم إرسال طلب توثيق الحساب بنجاح! فريق الامتثال في Fast FX يراجع طلبك الآن."
-            : "KYC verification request submitted successfully! London compliance is reviewing your documents.",
+            ? "تم إرسال مستندات التوثيق بنجاح وهي قيد التدقيق لدى مسؤولي الامتثال"
+            : "KYC credentials submitted successfully. Under review by compliance team.",
           "success"
         );
       } else {
-        showAlert(res.error || (isAr ? "فشل تقديم طلب التوثيق" : "KYC submission failed"), "error");
+        showAlert(res.error || (isAr ? "فشل تقديم طلب التوثيق" : "Submission failed"), "error");
       }
-    }, 700);
+    }, 600);
   };
 
-  // Handle 2FA Toggle
+  // Toggle 2FA
   const handleToggle2FA = () => {
     if (!currentUser) return;
     const res = sqlDb.toggle2FA(currentUser.id);
-    refreshUser();
-    showAlert(
-      res.enabled
-        ? (isAr ? "تم تفعيل التحقق بخطوتين (2FA) بنجاح لحماية حسابك" : "2FA protection activated successfully")
-        : (isAr ? "تم تعطيل التحقق بخطوتين (2FA)" : "2FA protection deactivated")
-    );
-    setTwoFactorModalOpen(false);
+    if (res.success) {
+      refreshUser();
+      setTwoFactorModalOpen(false);
+      showAlert(
+        res.enabled
+          ? (isAr ? "تم تفعيل المصادقة الثنائية (2FA) بنجاح" : "2FA enabled successfully")
+          : (isAr ? "تم تعطيل المصادقة الثنائية" : "2FA disabled successfully"),
+        "success"
+      );
+    }
   };
 
-  // Handle API Key Generation
-  const handleGenerateApiKeys = () => {
+  // Generate Algorithmic API Keys
+  const handleRegenerateApi = () => {
     if (!currentUser) return;
-    sqlDb.generateApiCredentials(currentUser.id);
-    refreshUser();
-    showAlert(isAr ? "تم توليد مفاتيح التداول المؤسسي البرمجي (FIX/REST) بنجاح" : "Institutional API trading keys generated successfully");
+    const res = sqlDb.generateApiCredentials(currentUser.id);
+    if (res.apiKey) {
+      refreshUser();
+      showAlert(
+        isAr ? "تم إصدار مفاتيح الربط البرمجي (FIX / REST API) بنجاح" : "Generated new FIX / REST API credentials",
+        "success"
+      );
+    }
   };
 
-  // If user is not logged in, show an institutional gateway card to sign in
+  // If user is not logged in
   if (!isLoggedIn || !currentUser) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-20 font-sans">
-        <div className="bg-[#0c1322] border border-amber-500/30 rounded-3xl p-8 sm:p-12 text-center shadow-2xl relative overflow-hidden">
-          <div className="w-20 h-20 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto mb-6 text-amber-400">
-            <Lock className="w-10 h-10" />
-          </div>
-
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-3">
-            {isAr ? "بوابة حساب العميل المحمية" : "Client Account Portal Access"}
-          </h2>
-          <p className="text-sm text-slate-400 max-w-lg mx-auto mb-8 leading-relaxed">
+      <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-6 font-sans">
+        <div className="w-20 h-20 mx-auto rounded-3xl bg-[#090e1a] border border-amber-500/30 flex items-center justify-center shadow-2xl">
+          <Lock className="w-10 h-10 text-amber-400" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl sm:text-3xl font-black text-white">
+            {isAr ? "بوابة حساب العميل المؤسسي" : "Institutional Client Portal"}
+          </h1>
+          <p className="text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
             {isAr
-              ? "يرجى تسجيل الدخول إلى حسابك للوصول إلى محفظتك المالية، التحويل المباشر بين العملاء، وإدارة توثيق الهوية والامتثال المؤسسي."
-              : "Please sign in to access your financial vault, instant peer-to-peer balance transfers, and official KYC verification."}
+              ? "يرجى تسجيل الدخول للوصول إلى لوحة إدارة الحساب، التحويل بين العملاء، التوثيق الرسمي، ومفاتيح التداول."
+              : "Please sign in to access your institutional account management, client transfers, KYC compliance, and trading keys."}
           </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <button
-              onClick={() => openAuthModal("login")}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 hover:opacity-95 shadow-xl shadow-amber-500/20 transition-all cursor-pointer flex items-center justify-center gap-2"
-            >
-              <UserIcon className="w-4 h-4" />
-              <span>{isAr ? "تسجيل الدخول إلى حسابي" : "Sign In to Account"}</span>
-            </button>
-            <button
-              onClick={() => openAuthModal("register")}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-xl font-bold text-sm bg-slate-900 border border-slate-700 text-white hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              <span>{isAr ? "فتح حساب جديد" : "Open New Account"}</span>
-            </button>
-          </div>
+        </div>
+        <div className="flex items-center justify-center gap-3 pt-4">
+          <button
+            onClick={() => openAuthModal("login")}
+            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-bold text-xs hover:opacity-95 shadow-lg shadow-amber-500/20 cursor-pointer"
+          >
+            {isAr ? "تسجيل الدخول الآن" : "Sign In Now"}
+          </button>
+          <button
+            onClick={() => openAuthModal("register")}
+            className="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs transition-colors cursor-pointer"
+          >
+            {isAr ? "فتح حساب جديد" : "Create Account"}
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-sans">
-      {/* Flash Alert Banner */}
-      {notification && (
-        <div
-          className={`p-3.5 rounded-xl text-xs font-semibold flex items-center justify-between shadow-xl transition-all animate-in fade-in ${
-            notification.type === "success"
-              ? "bg-emerald-500/15 border border-emerald-500/40 text-emerald-300"
-              : "bg-rose-500/15 border border-rose-500/40 text-rose-300"
-          }`}
-        >
-          <div className="flex items-center gap-2.5">
-            {notification.type === "success" ? (
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-            ) : (
-              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
-            )}
-            <span>{notification.text}</span>
-          </div>
-          <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white cursor-pointer">
-            ✕
-          </button>
-        </div>
-      )}
-
-      {/* 1. Prestigious Hero Client Profile Card */}
-      <div className="bg-[#0c1322] border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-        {/* Subtle Ambient Pulse Accent */}
-        <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-amber-500 via-indigo-500 to-sky-500" />
-
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          {/* Identity & Badges */}
-          <div className="flex items-start sm:items-center gap-4 sm:gap-5">
-            {/* Avatar / Initials */}
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-amber-500/20 via-indigo-600/30 to-slate-900 border border-amber-500/40 flex items-center justify-center text-amber-400 text-2xl sm:text-3xl font-black font-mono shadow-inner shrink-0 relative">
-              {currentUser.name.slice(0, 2).toUpperCase()}
-              {currentUser.kycStatus === "verified" && (
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow-lg border-2 border-[#0c1322]">
-                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                  {currentUser.name}
-                </h1>
-                {/* VIP Rank Chip */}
-                <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-md border ${vipRankBadge.bg} ${vipRankBadge.color} font-mono`}>
-                  {vipRankBadge.label}
-                </span>
-              </div>
-
-              {/* Account Metadata Row (Zero-Pill Typography) */}
-              <div className="flex items-center gap-2 text-xs text-slate-400 font-mono flex-wrap">
-                <span className="text-amber-400 font-bold">
-                  ID: #{currentUser.id.slice(-8).toUpperCase()}
-                </span>
-                <span aria-hidden="true">·</span>
-                <span className="text-slate-300">{currentUser.email}</span>
-                <span aria-hidden="true">·</span>
-                <span>{currentUser.country || "Global Institutional"}</span>
-                <span aria-hidden="true">·</span>
-                <span className="text-emerald-400">
-                  {currentUser.status === "frozen" ? "🔒 مُجمّد" : "100% نشط"}
-                </span>
-              </div>
-
-              {/* KYC Status Indicator */}
-              <div className="flex items-center gap-2 pt-1 text-xs">
-                <span className="text-slate-400">{isAr ? "حالة توثيق الهوية (KYC):" : "Verification Status:"}</span>
-                {currentUser.kycStatus === "verified" && (
-                  <span className="inline-flex items-center gap-1.5 text-emerald-400 font-bold font-mono">
-                    <BadgeCheck className="w-4 h-4" />
-                    <span>{isAr ? "حساب موثق رسمياً (Verified Institutional)" : "Verified Institutional"}</span>
-                    <span className="text-[10px] text-slate-400 font-normal">
-                      · {currentUser.kycTier?.replace(/_/g, " ") || "TIER 2"}
-                    </span>
-                  </span>
-                )}
-                {currentUser.kycStatus === "pending" && (
-                  <span className="inline-flex items-center gap-1.5 text-amber-400 font-bold font-mono">
-                    <Clock className="w-4 h-4 animate-pulse" />
-                    <span>{isAr ? "قيد المراجعة والتدقيق (Under Compliance Review)" : "Under Review"}</span>
-                  </span>
-                )}
-                {(currentUser.kycStatus === "unverified" || !currentUser.kycStatus) && (
-                  <button
-                    onClick={() => setActiveTab("kyc")}
-                    className="inline-flex items-center gap-1 text-sky-400 hover:text-sky-300 font-semibold cursor-pointer underline text-xs"
-                  >
-                    <span>{isAr ? "طلب التوثيق الآن (Verify Now)" : "Verify Now"}</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                )}
-                {currentUser.kycStatus === "rejected" && (
-                  <button
-                    onClick={() => setActiveTab("kyc")}
-                    className="inline-flex items-center gap-1 text-rose-400 hover:text-rose-300 font-semibold cursor-pointer underline text-xs"
-                  >
-                    <span>{isAr ? "مرفوض - إعادة تقديم المستندات" : "Rejected - Resubmit KYC"}</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            </div>
+    <div className="min-h-screen bg-[#060911] text-slate-200 font-sans pb-16">
+      {/* 1. Contextual Institutional Top Header Bar */}
+      <div className="border-b border-slate-800/80 bg-[#070b14]/90 backdrop-blur-md sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
+          {/* Breadcrumb Context */}
+          <div className="flex items-center gap-2 text-xs font-mono text-slate-400 truncate">
+            <span className="text-amber-400 font-bold tracking-wider">FAST FX</span>
+            <span className="text-slate-600">/</span>
+            <span className="text-slate-300 font-medium">
+              {isAr ? "لوحة العميل" : "CLIENT WORKSTATION"}
+            </span>
+            <span className="text-slate-600">/</span>
+            <span className="text-slate-400 font-bold truncate">
+              #{currentUser.id.slice(-8).toUpperCase()}
+            </span>
           </div>
 
-          {/* Quick Actions (Open Terminal, Copy ID) */}
-          <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Institutional Telemetry & Live Fast Actions */}
+          <div className="flex items-center gap-3 shrink-0">
+            {/* Equinix Latency */}
+            <div className="hidden md:flex items-center gap-2 text-[11px] font-mono text-slate-400 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800">
+              <Server className="w-3.5 h-3.5 text-emerald-400" />
+              <span>LD4 LONDON</span>
+              <span className="text-emerald-400 font-bold">11.8ms</span>
+            </div>
+
+            {/* Quick Deposit Button */}
             <button
-              onClick={() => handleCopy(currentUser.id, "userId")}
-              className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-600 text-xs font-mono transition-colors cursor-pointer flex items-center gap-2"
-              title={isAr ? "نسخ كود الحساب الفريد" : "Copy Account ID"}
+              onClick={() => setShowDepositModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-semibold transition-all cursor-pointer"
             >
-              {copiedKey === "userId" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{isAr ? "نسخ معرّف الحساب" : "Copy Account ID"}</span>
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>{isAr ? "إيداع" : "Deposit"}</span>
             </button>
 
+            {/* Quick Withdraw Button */}
+            <button
+              onClick={() => setShowWithdrawModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-semibold transition-all cursor-pointer"
+            >
+              <ArrowUpRight className="w-3.5 h-3.5" />
+              <span>{isAr ? "سحب" : "Withdraw"}</span>
+            </button>
+
+            {/* Open Trading Terminal CTA */}
             <button
               onClick={onNavigateToTrading}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 font-bold text-xs transition-all cursor-pointer shadow-lg shadow-amber-500/20 flex items-center gap-1.5"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 text-xs font-bold shadow-md shadow-amber-500/20 hover:opacity-95 transition-all cursor-pointer"
             >
-              <CandlestickChart className="w-4 h-4" />
-              <span>{isAr ? "فتح منصة التداول" : "Open Trading Terminal"}</span>
+              <CandlestickChart className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{isAr ? "منصة التداول" : "Trading Terminal"}</span>
             </button>
           </div>
         </div>
+      </div>
 
-        {/* 2. Financial Treasury & Liquidity Strip (4 Blocks) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-8 pt-6 border-t border-slate-800/80">
-          {/* Real Balance */}
-          <div className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
-            <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-              <span>{isAr ? "الرصيد الحقيقي المتاح" : "Real Vault Balance"}</span>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
+        {/* Flash Alert Notification */}
+        {notification && (
+          <div
+            className={`p-3.5 rounded-xl text-xs font-semibold flex items-center justify-between shadow-xl transition-all animate-in fade-in ${
+              notification.type === "success"
+                ? "bg-emerald-500/15 border border-emerald-500/40 text-emerald-300"
+                : "bg-rose-500/15 border border-rose-500/40 text-rose-300"
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              {notification.type === "success" ? (
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+              ) : (
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+              )}
+              <span>{notification.text}</span>
+            </div>
+            <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white cursor-pointer">
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* 2. Executive Treasury Command Strip (4 High-Density Blocks) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Real Balance Card */}
+          <div className="bg-[#0b101d] p-4 sm:p-5 rounded-2xl border border-slate-800/90 relative overflow-hidden group hover:border-slate-700 transition-colors">
+            <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5">
+              <span className="font-medium">{isAr ? "الرصيد الحقيقي المتاح" : "Real Available Balance"}</span>
               <Wallet className="w-4 h-4 text-emerald-400" />
             </div>
-            <div className="text-2xl font-black text-emerald-400 font-mono tabular-nums">
+            <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono tabular-nums tracking-tight">
               ${currentUser.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
-            <div className="text-[10px] text-slate-400 mt-1 font-mono">
-              {isAr ? "محمي بوديعة مصرفية 1:1" : "Audited 1:1 Reserves"}
-            </div>
-          </div>
-
-          {/* Equity & Leverage */}
-          <div className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
-            <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-              <span>{isAr ? "رأس المال وقوة الرافعة" : "Equity & Leverage"}</span>
-              <TrendingUp className="w-4 h-4 text-sky-400" />
-            </div>
-            <div className="text-2xl font-black text-white font-mono tabular-nums">
-              ${(currentUser.equity || currentUser.balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <div className="text-[10px] text-sky-400 mt-1 font-mono">
-              {isAr ? "رافعة مالية تصل 1:500" : "Max Leverage 1:500"}
-            </div>
-          </div>
-
-          {/* Demo Trading Balance */}
-          <div className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
-            <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-              <span>{isAr ? "رصيد الحساب التجريبي" : "Demo Balance"}</span>
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
+              <span className="text-slate-500">{isAr ? "حفظ منفصل Tier-1" : "Segregated Custody"}</span>
               <button
-                onClick={handleRefillDemo}
-                className="text-[10px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer"
-                title={isAr ? "إعادة تعبئة $50,000 مجاناً" : "Refill $50,000"}
+                onClick={() => setShowDepositModal(true)}
+                className="text-amber-400 hover:text-amber-300 font-bold transition-colors cursor-pointer"
               >
-                <RefreshCw className="w-3 h-3" />
-                <span>{isAr ? "تعبئة" : "Refill"}</span>
+                + {isAr ? "إيداع" : "Deposit"}
               </button>
             </div>
-            <div className="text-2xl font-black text-amber-400 font-mono tabular-nums">
-              ${(currentUser.demoBalance || 50000).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </div>
+
+          {/* Equity & Leverage Card */}
+          <div className="bg-[#0b101d] p-4 sm:p-5 rounded-2xl border border-slate-800/90 relative overflow-hidden group hover:border-slate-700 transition-colors">
+            <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5">
+              <span className="font-medium">{isAr ? "رأس المال والرافعة" : "Equity & Leverage"}</span>
+              <TrendingUp className="w-4 h-4 text-sky-400" />
             </div>
-            <div className="text-[10px] text-slate-400 mt-1 font-mono">
-              {isAr ? "بيئة محاكاة فوركس حية" : "Live Simulated Environment"}
+            <div className="text-xl sm:text-2xl font-black text-white font-mono tabular-nums tracking-tight">
+              ${currentUser.equity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
+              <span className="text-sky-400 font-semibold">1:500 {isAr ? "رافعة مؤسسية" : "Leverage"}</span>
+              <span className="text-slate-500">Raw 0.0 Pips</span>
             </div>
           </div>
 
-          {/* Trading Performance KPI */}
-          <div className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
-            <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-              <span>{isAr ? "أداء التداول ونسبة النجاح" : "Win Rate & PnL"}</span>
+          {/* Demo Balance Card with 1-Click Refill */}
+          <div className="bg-[#0b101d] p-4 sm:p-5 rounded-2xl border border-slate-800/90 relative overflow-hidden group hover:border-slate-700 transition-colors">
+            <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5">
+              <span className="font-medium">{isAr ? "الرصيد التجريبي (Demo)" : "Practice Demo Balance"}</span>
+              <CandlestickChart className="w-4 h-4 text-amber-400" />
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-amber-300 font-mono tabular-nums tracking-tight">
+              ${(currentUser.demoBalance ?? 50000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
+              <span className="text-slate-500">{isAr ? "محاكاة واقعية" : "Live Feed"}</span>
+              <button
+                onClick={handleRefillDemo}
+                disabled={isRefillingDemo}
+                className="text-amber-400 hover:text-amber-300 font-bold transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3 h-3 ${isRefillingDemo ? "animate-spin" : ""}`} />
+                <span>{isAr ? "شحن $50k" : "Refill"}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Win Rate & Performance Card */}
+          <div className="bg-[#0b101d] p-4 sm:p-5 rounded-2xl border border-slate-800/90 relative overflow-hidden group hover:border-slate-700 transition-colors">
+            <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5">
+              <span className="font-medium">{isAr ? "أداء التداول ونسبة النجاح" : "Win Rate & Realized PnL"}</span>
               <Award className="w-4 h-4 text-indigo-400" />
             </div>
-            <div className="text-2xl font-black text-white font-mono tabular-nums flex items-baseline gap-2">
+            <div className="text-xl sm:text-2xl font-black text-white font-mono tabular-nums tracking-tight flex items-baseline gap-2">
               <span>{winRate}%</span>
               <span className={`text-xs font-bold ${netPnL >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                 ({netPnL >= 0 ? "+" : ""}${netPnL.toFixed(2)})
               </span>
             </div>
-            <div className="text-[10px] text-slate-400 mt-1 font-mono">
-              {closedTrades.length} {isAr ? "صفقة مكتملة" : "Closed Trades"}
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-800/80 text-[11px] font-mono text-slate-500">
+              <span>{closedTrades.length} {isAr ? "صفقة مكتملة" : "Closed Trades"}</span>
+              <span className="text-emerald-400 font-semibold">{isAr ? "بدون عمولات" : "0% Fee"}</span>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* 3. Primary Segmented Navigation Tabs */}
-      <div className="flex items-center gap-2 p-1.5 bg-[#0c1322] rounded-2xl border border-slate-800 text-xs font-semibold overflow-x-auto no-scrollbar shadow-lg">
-        <button
-          onClick={() => setActiveTab("overview")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-            activeTab === "overview"
-              ? "bg-slate-800 text-white font-bold shadow-md"
-              : "text-slate-400 hover:text-white"
-          }`}
-        >
-          <Layers className="w-4 h-4 text-sky-400" />
-          <span>{isAr ? "نظرة عامة ومزايا الحساب" : "Account Overview"}</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("transfer")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-            activeTab === "transfer"
-              ? "bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 border border-amber-500/40 font-bold shadow-md"
-              : "text-slate-400 hover:text-white"
-          }`}
-        >
-          <ArrowRightLeft className="w-4 h-4 text-amber-400" />
-          <span>{isAr ? "التحويل الفوري بين العملاء" : "Client-to-Client Transfer"}</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 font-mono font-bold">
-            0% {isAr ? "عمولة" : "Fee"}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("kyc")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-            activeTab === "kyc"
-              ? "bg-gradient-to-r from-indigo-500/20 to-sky-500/20 text-indigo-300 border border-indigo-500/40 font-bold shadow-md"
-              : "text-slate-400 hover:text-white"
-          }`}
-        >
-          <FileCheck className="w-4 h-4 text-indigo-400" />
-          <span>{isAr ? "طلب توثيق الحساب والامتثال" : "KYC Verification"}</span>
-          {currentUser.kycStatus === "pending" && (
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping inline-block" />
-          )}
-        </button>
-
-        <button
-          onClick={() => setActiveTab("ledger")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-            activeTab === "ledger"
-              ? "bg-slate-800 text-white font-bold shadow-md"
-              : "text-slate-400 hover:text-white"
-          }`}
-        >
-          <FileText className="w-4 h-4 text-emerald-400" />
-          <span>{isAr ? "سجل المعاملات والتحويلات" : "Financial Ledger"}</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-400 font-mono">
-            {userTransactions.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("security")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-            activeTab === "security"
-              ? "bg-slate-800 text-white font-bold shadow-md"
-              : "text-slate-400 hover:text-white"
-          }`}
-        >
-          <Key className="w-4 h-4 text-purple-400" />
-          <span>{isAr ? "الأمان والمفاتيح المؤسسية" : "Security & API Keys"}</span>
-        </button>
-      </div>
-
-      {/* 4. Tab 1: Account Overview & Institutional Benefits */}
-      {activeTab === "overview" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left 2 Cols: Tier Benefits & Specifications */}
-          <div className="lg:col-span-2 bg-[#0c1322] border border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xl space-y-6">
-            <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-amber-400" />
-                <span>{isAr ? "مواصفات ومزايا الحساب المؤسسي" : "Institutional Tier Specifications"}</span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                {isAr
-                  ? "حسابك مجهز بأحدث معايير التداول المنخفض الكمون عبر ربط مباشر بمراكز Equinix LD4 في لندن."
-                  : "Your account is provisioned with ultra-low latency direct access to Equinix LD4 London."}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-                <div className="text-amber-400 font-bold text-xs flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{isAr ? "فروق أسعار خام (Raw Spreads)" : "Raw Spreads from 0.0 Pips"}</span>
+        {/* 3. Workstation Two-Column Grid (Sidebar Navigation + Main Content Canvas) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Navigation Rail (lg:col-span-3) */}
+          <div className="lg:col-span-3 space-y-4">
+            {/* Client Profile Identity Card */}
+            <div className="bg-[#0b101d] border border-slate-800/90 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
+              <div className="flex items-center gap-3">
+                {/* Visual Avatar */}
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 via-indigo-600/30 to-slate-900 border border-amber-500/40 flex items-center justify-center text-amber-400 text-lg font-black font-mono shadow-inner shrink-0 relative">
+                  {currentUser.name.slice(0, 2).toUpperCase()}
+                  {currentUser.kycStatus === "verified" && (
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow-md">
+                      <Check className="w-2.5 h-2.5 stroke-[3]" />
+                    </div>
+                  )}
                 </div>
-                <p className="text-slate-400 text-xs leading-relaxed">
-                  {isAr
-                    ? "تداول بفروق أسعار تبدأ من 0.0 نقطة على أزواج العملات والذهب بفضل سيولة البنوك الكبرى مباشرة."
-                    : "Access tier-1 liquidity pricing with zero markup on major currencies and gold."}
-                </p>
+
+                <div className="min-w-0 flex-1">
+                  <div className="text-white font-bold text-sm truncate flex items-center gap-1.5">
+                    <span className="truncate">{currentUser.name}</span>
+                  </div>
+                  <div className="text-slate-400 text-xs font-mono truncate">{currentUser.email}</div>
+                  <div className="text-[11px] font-mono text-amber-400 font-semibold mt-0.5">
+                    {vipRankBadge.label}
+                  </div>
+                </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-                <div className="text-sky-400 font-bold text-xs flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{isAr ? "تنفيذ فائق السرعة (< 0.003ms)" : "Execution Speed (< 0.003ms)"}</span>
+              {/* Zero-Pill Account Specs Metadata */}
+              <div className="pt-3 border-t border-slate-800/80 space-y-2 text-xs font-mono">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span>{isAr ? "معرّف الحساب:" : "Account ID:"}</span>
+                  <button
+                    onClick={() => handleCopy(currentUser.id, "account_id")}
+                    className="text-white hover:text-amber-400 flex items-center gap-1 font-bold transition-colors cursor-pointer"
+                  >
+                    <span>#{currentUser.id.slice(-8).toUpperCase()}</span>
+                    {copiedKey === "account_id" ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                  </button>
                 </div>
-                <p className="text-slate-400 text-xs leading-relaxed">
-                  {isAr
-                    ? "محرك مطابقة أوامر مؤسسي يعمل في أجزاء من الميكروثانية دون إعادة تسعير أو انزلاق سعري."
-                    : "Zero slippage and sub-millisecond fill times powered by our LD4 matching engine."}
-                </p>
-              </div>
 
-              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-                <div className="text-emerald-400 font-bold text-xs flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{isAr ? "تحويل فوري بين العملاء (0% عمولة)" : "Instant P2P Client Transfers"}</span>
+                <div className="flex items-center justify-between text-slate-400">
+                  <span>{isAr ? "حالة الحساب:" : "Account Status:"}</span>
+                  <span className={currentUser.status === "frozen" ? "text-rose-400 font-bold" : "text-emerald-400 font-bold"}>
+                    {currentUser.status === "frozen" ? (isAr ? "مُجمّد" : "Frozen") : (isAr ? "نشط ومفعل" : "Active")}
+                  </span>
                 </div>
-                <p className="text-slate-400 text-xs leading-relaxed">
-                  {isAr
-                    ? "أرسل واستقبل الأموال بين أي حسابين في Fast FX بشكل فوري عبر المقاصة الداخلية بدون رسوم."
-                    : "Send and receive funds between any Fast FX trader accounts instantly with 0% fee."}
-                </p>
-              </div>
 
-              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-                <div className="text-indigo-400 font-bold text-xs flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{isAr ? "حسابات إسلامية خالية من التبييت (Swap-Free)" : "100% Swap-Free Islamic Accounts"}</span>
+                <div className="flex items-center justify-between text-slate-400">
+                  <span>{isAr ? "توثيق KYC:" : "KYC Status:"}</span>
+                  <span
+                    className={`font-semibold ${
+                      currentUser.kycStatus === "verified"
+                        ? "text-emerald-400"
+                        : currentUser.kycStatus === "pending"
+                        ? "text-amber-400"
+                        : "text-slate-400"
+                    }`}
+                  >
+                    {currentUser.kycStatus === "verified"
+                      ? (isAr ? "موثق معتمد" : "Verified")
+                      : currentUser.kycStatus === "pending"
+                      ? (isAr ? "قيد المراجعة" : "Under Review")
+                      : (isAr ? "غير موثق" : "Unverified")}
+                  </span>
                 </div>
-                <p className="text-slate-400 text-xs leading-relaxed">
-                  {isAr
-                    ? "تداول متوافق مع أحكام الشريعة بدون أي رسوم تبييت أو فوائد ربوية مخفية."
-                    : "Completely Sharia-compliant trading with zero overnight interest or carry fees."}
-                </p>
               </div>
             </div>
 
-            {/* Quick Action Buttons */}
-            <div className="pt-4 border-t border-slate-800 flex items-center gap-3 flex-wrap">
+            {/* Main Navigation Tabs */}
+            <div className="bg-[#0b101d] border border-slate-800/90 rounded-2xl p-2 space-y-1 shadow-xl">
+              <button
+                onClick={() => setActiveTab("portfolio")}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === "portfolio"
+                    ? "bg-slate-800 text-white font-bold shadow-sm"
+                    : "text-slate-400 hover:text-white hover:bg-slate-900/60"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Layers className="w-4 h-4 text-sky-400" />
+                  <span>{isAr ? "المحفظة والسيولة" : "Portfolio & Balances"}</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+              </button>
+
               <button
                 onClick={() => setActiveTab("transfer")}
-                className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-colors cursor-pointer flex items-center gap-2"
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === "transfer"
+                    ? "bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 border border-amber-500/30 font-bold shadow-sm"
+                    : "text-slate-400 hover:text-white hover:bg-slate-900/60"
+                }`}
               >
-                <ArrowRightLeft className="w-4 h-4" />
-                <span>{isAr ? "تحويل رصيد لعميل آخر" : "Transfer Funds"}</span>
+                <div className="flex items-center gap-2.5">
+                  <ArrowRightLeft className="w-4 h-4 text-amber-400" />
+                  <span>{isAr ? "التحويل بين العملاء" : "P2P Client Transfer"}</span>
+                </div>
+                <span className="text-[10px] font-mono text-emerald-400 font-bold">0% FEE</span>
               </button>
 
               <button
                 onClick={() => setActiveTab("kyc")}
-                className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-colors cursor-pointer flex items-center gap-2"
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === "kyc"
+                    ? "bg-slate-800 text-white font-bold shadow-sm"
+                    : "text-slate-400 hover:text-white hover:bg-slate-900/60"
+                }`}
               >
-                <FileCheck className="w-4 h-4 text-sky-400" />
-                <span>{isAr ? "بوابة توثيق الهوية KYC" : "KYC Verification"}</span>
+                <div className="flex items-center gap-2.5">
+                  <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                  <span>{isAr ? "التوثيق والامتثال" : "KYC Compliance"}</span>
+                </div>
+                {currentUser.kycStatus === "verified" ? (
+                  <BadgeCheck className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <span className="text-[10px] text-amber-400 font-mono">REQUIRED</span>
+                )}
               </button>
 
+              <button
+                onClick={() => setActiveTab("ledger")}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === "ledger"
+                    ? "bg-slate-800 text-white font-bold shadow-sm"
+                    : "text-slate-400 hover:text-white hover:bg-slate-900/60"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <FileText className="w-4 h-4 text-emerald-400" />
+                  <span>{isAr ? "كشف الحساب والعمليات" : "Financial Ledger"}</span>
+                </div>
+                <span className="text-[10px] font-mono text-slate-500">{userTransactions.length}</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("funding")}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === "funding"
+                    ? "bg-slate-800 text-white font-bold shadow-sm"
+                    : "text-slate-400 hover:text-white hover:bg-slate-900/60"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <CreditCard className="w-4 h-4 text-teal-400" />
+                  <span>{isAr ? "الإيداع والسحب المؤسسي" : "Funding Desk"}</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+              </button>
+
+              <button
+                onClick={() => setActiveTab("security")}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === "security"
+                    ? "bg-slate-800 text-white font-bold shadow-sm"
+                    : "text-slate-400 hover:text-white hover:bg-slate-900/60"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Key className="w-4 h-4 text-rose-400" />
+                  <span>{isAr ? "الأمان ومفاتيح البرمجة" : "Security & API"}</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+              </button>
+
+              <button
+                onClick={() => setActiveTab("specs")}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === "specs"
+                    ? "bg-slate-800 text-white font-bold shadow-sm"
+                    : "text-slate-400 hover:text-white hover:bg-slate-900/60"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Globe className="w-4 h-4 text-amber-400" />
+                  <span>{isAr ? "الشروط والمزايا المؤسسية" : "Institutional Specs"}</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+              </button>
+            </div>
+
+            {/* Quick Trading Terminal Launcher Box */}
+            <div className="bg-[#0b101d] border border-amber-500/20 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
+                <Zap className="w-4 h-4 text-amber-400" />
+                <span>{isAr ? "تداول فائق اللحظية" : "Ultra-Fast Execution"}</span>
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                {isAr
+                  ? "فروق أسعار خام تبدأ من 0.0 نقطة مع سيولة بنكية من المستوى الأول وتنفيذ أسرع من 15 مللي ثانية."
+                  : "Raw spreads from 0.0 pips with Tier-1 interbank liquidity and execution under 15ms."}
+              </p>
               <button
                 onClick={onNavigateToTrading}
-                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors cursor-pointer flex items-center gap-2"
+                className="w-full py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold border border-slate-700 transition-colors cursor-pointer flex items-center justify-center gap-2"
               >
-                <CandlestickChart className="w-4 h-4" />
-                <span>{isAr ? "بدء التداول الحي" : "Trade Now"}</span>
+                <CandlestickChart className="w-3.5 h-3.5 text-amber-400" />
+                <span>{isAr ? "فتح منصة التداول" : "Launch Terminal"}</span>
               </button>
             </div>
           </div>
 
-          {/* Right Col: Account Security & Status Summary */}
-          <div className="bg-[#0c1322] border border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xl space-y-5">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider text-slate-300">
-              {isAr ? "معلومات الأمان والتسجيل" : "Security & Regulatory Status"}
-            </h3>
+          {/* Main Workstation Canvas (lg:col-span-9) */}
+          <div className="lg:col-span-9 space-y-6">
+            {/* ============================================================== */}
+            {/* TAB 1: PORTFOLIO & BALANCES                                    */}
+            {/* ============================================================== */}
+            {activeTab === "portfolio" && (
+              <div className="space-y-6">
+                {/* Visual Asset Allocation & Health Breakdown */}
+                <div className="bg-[#0b101d] border border-slate-800/90 rounded-2xl p-5 sm:p-6 shadow-xl space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-base font-bold text-white flex items-center gap-2">
+                        <Wallet className="w-4 h-4 text-emerald-400" />
+                        <span>{isAr ? "توزيع السيولة والضمانات المالية" : "Liquidity & Margin Breakdown"}</span>
+                      </h2>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {isAr
+                          ? "رؤية شاملة للسيولة الحرة، رأس المال المحجوز في الصفقات، والرافعة المالية النشطة"
+                          : "Consolidated view of free liquidity, committed trade margins, and active leverage"}
+                      </p>
+                    </div>
 
-            <div className="space-y-3 text-xs font-mono">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800">
-                <span className="text-slate-400">{isAr ? "تاريخ التسجيل:" : "Registered At:"}</span>
-                <span className="text-white">
-                  {new Date(currentUser.createdAt).toLocaleDateString(isAr ? "ar-EG" : "en-US", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric"
-                  })}
-                </span>
-              </div>
+                    <div className="flex items-center gap-2 font-mono text-xs">
+                      <span className="text-slate-400">{isAr ? "العملة الأساسية:" : "Base Currency:"}</span>
+                      <span className="text-white font-bold bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">USD ($)</span>
+                    </div>
+                  </div>
 
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800">
-                <span className="text-slate-400">{isAr ? "التحقق بخطوتين (2FA):" : "2FA Protection:"}</span>
-                <span className={currentUser.twoFactorEnabled ? "text-emerald-400 font-bold" : "text-amber-400"}>
-                  {currentUser.twoFactorEnabled ? (isAr ? "مفعل ومحمي ✅" : "Enabled") : (isAr ? "غير مفعل ⚠️" : "Disabled")}
-                </span>
-              </div>
+                  {/* Visual Proportion Bar */}
+                  <div className="space-y-2">
+                    <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden flex border border-slate-800">
+                      <div
+                        style={{ width: `${Math.min(100, Math.max(15, (currentUser.balance / (currentUser.balance + 1000)) * 100))}%` }}
+                        className="bg-emerald-500 h-full transition-all"
+                        title="Available Cash Balance"
+                      />
+                      <div
+                        style={{ width: "10%" }}
+                        className="bg-sky-500 h-full transition-all"
+                        title="Forex Margin Requirement"
+                      />
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between text-[11px] font-mono text-slate-400 pt-1">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                        <span>{isAr ? "السيولة المتاحة للسحب والتداول (90%)" : "Available Cash (90%)"}</span>
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block" />
+                        <span>{isAr ? "الهامش المحجوز (10%)" : "Committed Margin (10%)"}</span>
+                      </span>
+                    </div>
+                  </div>
 
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800">
-                <span className="text-slate-400">{isAr ? "خادم الحساب الرئيسي:" : "Core Server:"}</span>
-                <span className="text-sky-400 font-bold">Equinix LD4 (London)</span>
-              </div>
+                  {/* 3 Detail KPI Mini-Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                    <div className="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800/80">
+                      <div className="text-[11px] text-slate-400">{isAr ? "الهامش الحر (Free Margin)" : "Free Margin"}</div>
+                      <div className="text-lg font-bold text-white font-mono tabular-nums mt-1">
+                        ${currentUser.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </div>
+                      <div className="text-[10px] text-emerald-400 font-mono mt-0.5">{isAr ? "100% متاح لفتح مراكز جديدة" : "100% Available to trade"}</div>
+                    </div>
 
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800">
-                <span className="text-slate-400">{isAr ? "نوع الترخيص:" : "Regulatory License:"}</span>
-                <span className="text-slate-200">FSA & FCA Compliant</span>
-              </div>
-            </div>
+                    <div className="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800/80">
+                      <div className="text-[11px] text-slate-400">{isAr ? "مستوى الهامش (Margin Level)" : "Margin Level"}</div>
+                      <div className="text-lg font-bold text-emerald-400 font-mono tabular-nums mt-1">
+                        &gt; 999.00%
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono mt-0.5">{isAr ? "وضع الأمان: فائق الاستقرار" : "Safety: Highly Secure"}</div>
+                    </div>
 
-            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300/90 leading-relaxed">
-              <div className="font-bold flex items-center gap-1.5 mb-1 text-amber-400">
-                <ShieldCheck className="w-4 h-4" />
-                <span>{isAr ? "ضمان أموال العملاء 100%" : "Client Fund Segregation"}</span>
-              </div>
-              {isAr
-                ? "يتم إيداع كافة أرصدة العملاء في حسابات بنكية بريطانية منفصلة من الفئة الأولى ولا يتم خلطها مع أصول الشركة التشغيلية."
-                : "All client funds are held in segregated Tier-1 British banking vaults, fully ring-fenced from operational capital."}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 5. Tab 2: Client-to-Client Instant Transfer (امكانية التحويل بين عميل وعميل) */}
-      {activeTab === "transfer" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Transfer Form (2 Cols) */}
-          <div className="lg:col-span-2 bg-[#0c1322] border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                <ArrowRightLeft className="w-6 h-6" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-white">
-                  {isAr ? "التحويل المالي المباشر بين العملاء (P2P Transfer)" : "Instant Client-to-Client Transfer"}
-                </h2>
-                <p className="text-xs text-slate-400">
-                  {isAr
-                    ? "تحويل فوري بدون عمولة (0.00%) وبدون حد أقصى للتحويلات الداخلية بين حسابات Fast FX"
-                    : "Zero-fee instant balance transfer between Fast FX client trading accounts"}
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handleExecuteTransfer} className="space-y-5 text-xs">
-              {/* Step 1: Select Recipient */}
-              <div>
-                <label className="block text-slate-300 font-medium mb-1.5">
-                  {isAr ? "العميل المستلم (ابحث بالاسم، البريد الإلكتروني، أو معرف الحساب):" : "Recipient (Search by Name, Email, or Account ID):"}
-                </label>
-
-                <div className="relative">
-                  <Search className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={transferRecipientQuery}
-                    onChange={(e) => {
-                      setTransferRecipientQuery(e.target.value);
-                      if (selectedRecipient && selectedRecipient.email !== e.target.value) {
-                        setSelectedRecipient(null);
-                      }
-                    }}
-                    placeholder={isAr ? "مثال: trader.alex@fastfx.com أو Alex Mercer..." : "e.g. trader.alex@fastfx.com..."}
-                    className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl pr-10 pl-3 py-2.5 text-xs focus:outline-none focus:border-amber-400 font-mono"
-                    required
-                  />
+                    <div className="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800/80">
+                      <div className="text-[11px] text-slate-400">{isAr ? "حماية الرصيد السلبي" : "Negative Balance Protection"}</div>
+                      <div className="text-lg font-bold text-amber-400 font-mono mt-1">
+                        100% {isAr ? "مضمون" : "Guaranteed"}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono mt-0.5">{isAr ? "لا يمكن أن يصبح رصيدك سالباً" : "Zero balance risk"}</div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Recipient Dropdown Auto-Suggestions */}
-                {searchResults.length > 0 && !selectedRecipient && (
-                  <div className="mt-2 bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-2xl max-h-48 overflow-y-auto z-10 space-y-0.5 p-1">
-                    {searchResults.map((user) => (
-                      <button
-                        key={user.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedRecipient(user);
-                          setTransferRecipientQuery(user.email);
-                        }}
-                        className="w-full text-right p-2.5 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-between cursor-pointer"
-                      >
-                        <div>
-                          <div className="font-bold text-white text-xs">{user.name}</div>
-                          <div className="text-slate-400 text-[11px] font-mono">{user.email}</div>
-                        </div>
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-mono">
-                          {isAr ? "عميل موثق" : "Verified Client"}
+                {/* Quick Shortcuts Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Quick Peer Transfer Banner */}
+                  <div className="bg-[#0b101d] border border-amber-500/30 rounded-2xl p-5 shadow-xl flex flex-col justify-between space-y-4">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono text-amber-400 font-bold uppercase tracking-wider">
+                          {isAr ? "التحويل بين العملاء P2P" : "Internal Client Transfer"}
                         </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Selected Recipient Card */}
-                {selectedRecipient && (
-                  <div className="mt-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between animate-in fade-in">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold font-mono">
-                        {selectedRecipient.name.slice(0, 1).toUpperCase()}
+                        <span className="text-[11px] font-mono text-emerald-400 font-bold">0% FEE</span>
                       </div>
-                      <div>
-                        <div className="font-bold text-white text-xs">{selectedRecipient.name}</div>
-                        <div className="text-[11px] text-amber-300/80 font-mono">{selectedRecipient.email}</div>
-                      </div>
+                      <h3 className="text-base font-bold text-white">
+                        {isAr ? "تحويل فوري بدون أي رسوم" : "Instant 0% Peer Transfer"}
+                      </h3>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        {isAr
+                          ? "حول رصيدك مباشرة إلى حساب متداول آخر داخل FAST FX برقم الحساب أو البريد الإلكتروني مع إيصال رقمي فوري."
+                          : "Transfer balance instantaneously to any registered FAST FX client via account ID or email with instant digital voucher."}
+                      </p>
                     </div>
+
                     <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedRecipient(null);
-                        setTransferRecipientQuery("");
-                      }}
-                      className="text-xs text-slate-400 hover:text-white cursor-pointer px-2 py-1"
+                      onClick={() => setActiveTab("transfer")}
+                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-xs font-bold transition-all shadow-md hover:opacity-95 cursor-pointer flex items-center justify-center gap-2"
                     >
-                      {isAr ? "تغيير" : "Change"}
+                      <ArrowRightLeft className="w-3.5 h-3.5" />
+                      <span>{isAr ? "بدء التحويل إلى عميل الآن" : "Transfer to Client"}</span>
                     </button>
                   </div>
-                )}
-              </div>
 
-              {/* Step 2: Amount with Quick Percentage Buttons */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-slate-300 font-medium">
-                    {isAr ? "مبلغ التحويل ($ USD):" : "Transfer Amount ($ USD):"}
-                  </label>
-                  <span className="text-slate-400 font-mono text-[11px]">
-                    {isAr ? "الرصيد المتاح: " : "Available Balance: "}
-                    <span className="text-emerald-400 font-bold">
-                      ${currentUser.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </span>
-                  </span>
+                  {/* KYC Compliance Status Card */}
+                  <div className="bg-[#0b101d] border border-slate-800/90 rounded-2xl p-5 shadow-xl flex flex-col justify-between space-y-4">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono text-indigo-400 font-bold uppercase tracking-wider">
+                          {isAr ? "الامتثال والتنظيم الدولي" : "AML / KYC Compliance"}
+                        </span>
+                        <span className="text-[11px] font-mono text-sky-400 font-bold">
+                          {currentUser.kycTier?.replace(/_/g, " ") || "TIER 1"}
+                        </span>
+                      </div>
+                      <h3 className="text-base font-bold text-white">
+                        {currentUser.kycStatus === "verified"
+                          ? (isAr ? "حسابك موثق ومعتمد رسمياً" : "Your Account is Fully Verified")
+                          : currentUser.kycStatus === "pending"
+                          ? (isAr ? "طلب التوثيق قيد المراجعة" : "KYC Review in Progress")
+                          : (isAr ? "وثّق حسابك لرفع سقف السحب" : "Verify Account for Full Access")}
+                      </h3>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        {currentUser.kycStatus === "verified"
+                          ? (isAr ? "تم اعتماد وثائقك بنجاح. تتمتع بكافة ميزات السحب غير المحدود وفروق الأسعار الخام." : "Institutional clearance active with unrestricted daily withdrawal limits.")
+                          : (isAr ? "قدم جواز السفر أو الهوية الوطنية لفتح السحب حتى 500,000$ يومياً." : "Submit official ID to unlock $500,000 daily limits.")}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => setActiveTab("kyc")}
+                      className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-all border border-slate-700 cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>{currentUser.kycStatus === "verified" ? (isAr ? "عرض شهادة التوثيق" : "View Certificate") : (isAr ? "إدارة وتحديث التوثيق" : "Manage KYC")}</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="relative">
-                  <DollarSign className="w-4 h-4 text-amber-400 absolute left-3 top-3 pointer-events-none" />
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="1"
-                    max={currentUser.balance}
-                    value={transferAmount}
-                    onChange={(e) => setTransferAmount(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-amber-400 font-mono tabular-nums font-bold"
-                    required
-                  />
-                </div>
+                {/* Recent Transactions Quick Peek */}
+                <div className="bg-[#0b101d] border border-slate-800/90 rounded-2xl p-5 shadow-xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-slate-400" />
+                      <span>{isAr ? "أحدث العمليات المالية" : "Recent Account Activity"}</span>
+                    </h3>
+                    <button
+                      onClick={() => setActiveTab("ledger")}
+                      className="text-xs text-sky-400 hover:text-sky-300 font-semibold cursor-pointer"
+                    >
+                      {isAr ? "عرض السجل الكامل ←" : "View All History →"}
+                    </button>
+                  </div>
 
-                {/* Quick percentage shortcuts */}
-                <div className="flex items-center gap-2 mt-2">
-                  {[0.25, 0.5, 0.75, 1.0].map((ratio) => {
-                    const calculated = (currentUser.balance * ratio).toFixed(2);
-                    return (
-                      <button
-                        key={ratio}
-                        type="button"
-                        onClick={() => setTransferAmount(calculated)}
-                        className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-[11px] font-mono transition-colors cursor-pointer"
-                      >
-                        {ratio * 100}%
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Step 3: Reference Note / Memo */}
-              <div>
-                <label className="block text-slate-300 font-medium mb-1.5">
-                  {isAr ? "ملاحظة أو بيان التحويل (اختياري):" : "Transfer Memo / Reference (Optional):"}
-                </label>
-                <input
-                  type="text"
-                  value={transferNote}
-                  onChange={(e) => setTransferNote(e.target.value)}
-                  placeholder={isAr ? "مثال: تسوية حساب، تمويل مشترك، أرباح تداول..." : "e.g. Shared portfolio settlement, trade profit..."}
-                  className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-amber-400 font-sans"
-                />
-              </div>
-
-              {/* Fee and Summary Box */}
-              <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2 text-xs font-mono">
-                <div className="flex items-center justify-between text-slate-400">
-                  <span>{isAr ? "رسوم التحويل الداخلي:" : "Internal Transfer Fee:"}</span>
-                  <span className="text-emerald-400 font-bold">$0.00 (مجاني وفوري)</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-400">
-                  <span>{isAr ? "طريقة التنفيذ:" : "Execution Route:"}</span>
-                  <span className="text-white">Fast FX Instant Internal Ledger</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-400 pt-1 border-t border-slate-800 font-bold">
-                  <span className="text-slate-300">{isAr ? "إجمالي المبلغ المخصوم:" : "Total Deducted:"}</span>
-                  <span className="text-amber-400 text-sm tabular-nums">
-                    ${(parseFloat(transferAmount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} USD
-                  </span>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isSubmittingTransfer || currentUser.status === "frozen" || currentUser.balance <= 0}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 font-bold text-sm transition-all cursor-pointer shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmittingTransfer ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-                <span>{isAr ? "تأكيد وتنفيذ التحويل المالي الفوري" : "Confirm Instant Transfer"}</span>
-              </button>
-            </form>
-          </div>
-
-          {/* Right Col: Instant Transfer Rules & Safeguards */}
-          <div className="bg-[#0c1322] border border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xl space-y-5">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-emerald-400" />
-              <span>{isAr ? "ضوابط الأمان والتحويل المؤسسي" : "Security & P2P Safeguards"}</span>
-            </h3>
-
-            <div className="space-y-3.5 text-xs text-slate-300 leading-relaxed font-sans">
-              <div className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <p>{isAr ? "التحويل بين عملاء Fast FX فوري ولا يحتاج إلى موافقة بنكية خارجية." : "Transfers between registered clients are instant with zero wait time."}</p>
-              </div>
-
-              <div className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <p>{isAr ? "يتم إصدار إشعار مالي وإيصال رسمي رقمي لكل عملية تحويل في حساب الطرفين." : "Both parties receive digital cryptographically hashed transaction receipts."}</p>
-              </div>
-
-              <div className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <p>{isAr ? "الحد الأدنى للتحويل هو 1.00 دولار أمريكي، ولا يوجد حد أقصى للحسابات الموثقة." : "Minimum transfer is $1.00 USD with unlimited capacity for verified accounts."}</p>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-xs font-mono space-y-1.5">
-              <div className="text-slate-400">{isAr ? "رقم حسابك للتحويلات الواردة:" : "Your Account ID for Receiving:"}</div>
-              <div className="text-amber-400 font-bold select-all">{currentUser.email}</div>
-              <div className="text-[11px] text-slate-500">ID: {currentUser.id}</div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 6. Tab 3: Official KYC Account Verification (امكانية طلب توثيق للحساب) */}
-      {activeTab === "kyc" && (
-        <div className="space-y-6">
-          {/* Status Stepper Card */}
-          <div className="bg-[#0c1322] border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
-              <div>
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <BadgeCheck className="w-5 h-5 text-indigo-400" />
-                  <span>{isAr ? "بوابة توثيق الهوية والامتثال المؤسسي (KYC & AML Compliance)" : "Official KYC Verification Portal"}</span>
-                </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {isAr
-                    ? "وفقاً للوائح هيئة السلوك المالي البريطانية (FCA) ولوائح FSA، يتيح توثيق الحساب سحب أرباح غير محدود ورافعة 1:500."
-                    : "Complies with British FCA & FSA compliance standards. Unlocks unlimited withdrawals and Tier-2 institutional routing."}
-                </p>
-              </div>
-
-              {/* Status Badge */}
-              <div>
-                {currentUser.kycStatus === "verified" && (
-                  <span className="px-3.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold text-xs font-mono flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>{isAr ? "الحساب موثق رسمياً (APPROVED)" : "VERIFIED & APPROVED"}</span>
-                  </span>
-                )}
-                {currentUser.kycStatus === "pending" && (
-                  <span className="px-3.5 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold text-xs font-mono flex items-center gap-1.5">
-                    <Clock className="w-4 h-4 animate-spin" />
-                    <span>{isAr ? "قيد المراجعة الفنية (IN REVIEW)" : "UNDER REVIEW"}</span>
-                  </span>
-                )}
-                {(currentUser.kycStatus === "unverified" || !currentUser.kycStatus) && (
-                  <span className="px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 font-bold text-xs font-mono">
-                    {isAr ? "غير موثق (UNVERIFIED)" : "UNVERIFIED"}
-                  </span>
-                )}
-                {currentUser.kycStatus === "rejected" && (
-                  <span className="px-3.5 py-1.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 font-bold text-xs font-mono flex items-center gap-1.5">
-                    <AlertTriangle className="w-4 h-4" />
-                    <span>{isAr ? "مرفوض - يرجى إعادة الإرسال" : "REJECTED"}</span>
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Stepper Visual Timeline */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs font-mono pt-2">
-              <div className={`p-3.5 rounded-xl border ${currentUser.kycStatus ? "bg-slate-900 border-emerald-500/40 text-emerald-300" : "bg-slate-900/40 border-slate-800 text-slate-500"}`}>
-                <div className="font-bold flex items-center gap-1.5 mb-1">
-                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px]">1</span>
-                  <span>{isAr ? "تقديم المستندات" : "Document Submit"}</span>
-                </div>
-                <p className="text-[10px] text-slate-400 font-sans">{isAr ? "رفع وثيقة الهوية وإثبات السكن" : "ID & proof of address"}</p>
-              </div>
-
-              <div className={`p-3.5 rounded-xl border ${currentUser.kycStatus === "pending" || currentUser.kycStatus === "verified" ? "bg-slate-900 border-amber-500/40 text-amber-300" : "bg-slate-900/40 border-slate-800 text-slate-500"}`}>
-                <div className="font-bold flex items-center gap-1.5 mb-1">
-                  <span className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center text-[10px]">2</span>
-                  <span>{isAr ? "الفحص الآلي AML" : "AML Screening"}</span>
-                </div>
-                <p className="text-[10px] text-slate-400 font-sans">{isAr ? "مطابقة القوائم والوثائق الرسمية" : "Sanctions & PEP checks"}</p>
-              </div>
-
-              <div className={`p-3.5 rounded-xl border ${currentUser.kycStatus === "pending" || currentUser.kycStatus === "verified" ? "bg-slate-900 border-sky-500/40 text-sky-300" : "bg-slate-900/40 border-slate-800 text-slate-500"}`}>
-                <div className="font-bold flex items-center gap-1.5 mb-1">
-                  <span className="w-5 h-5 rounded-full bg-sky-500/20 flex items-center justify-center text-[10px]">3</span>
-                  <span>{isAr ? "مراجعة إدارة الامتثال" : "Officer Review"}</span>
-                </div>
-                <p className="text-[10px] text-slate-400 font-sans">{isAr ? "فحص فريق Fast FX في لندن" : "London Compliance Desk"}</p>
-              </div>
-
-              <div className={`p-3.5 rounded-xl border ${currentUser.kycStatus === "verified" ? "bg-slate-900 border-emerald-500/60 text-emerald-300" : "bg-slate-900/40 border-slate-800 text-slate-500"}`}>
-                <div className="font-bold flex items-center gap-1.5 mb-1">
-                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px]">4</span>
-                  <span>{isAr ? "اعتماد الحساب المؤسسي" : "Tier 2 Activated"}</span>
-                </div>
-                <p className="text-[10px] text-slate-400 font-sans">{isAr ? "سحب غير محدود وفروق 0.0" : "Unlimited withdrawals"}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* If already Verified: Display Elite Certificate Badge */}
-          {currentUser.kycStatus === "verified" ? (
-            <div className="bg-[#0c1322] border border-emerald-500/40 rounded-3xl p-8 shadow-2xl text-center space-y-4 relative overflow-hidden">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-400">
-                <BadgeCheck className="w-8 h-8" />
-              </div>
-              <h3 className="text-xl font-bold text-white">
-                {isAr ? "حسابك موثق رسمياً بأعلى معايير الامتثال (Tier 2/3)" : "Officially Verified Institutional Client"}
-              </h3>
-              <p className="text-xs text-slate-300 max-w-xl mx-auto leading-relaxed">
-                {isAr
-                  ? `تم توثيق بيانات العميل ${currentUser.name} واعتماد مستندات الهوية الرسمية. حسابك الآن مؤهل لسحب فوري غير محدود ورافعة مالية تصل إلى 1:500 مع حماية رأس المال.`
-                  : `Account verification complete for ${currentUser.name}. Full institutional access and unlimited withdrawal clearance active.`}
-              </p>
-              <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 max-w-md mx-auto text-xs font-mono text-slate-400">
-                <div>FSA / FCA Reference: FX-VERIFIED-{currentUser.id.slice(-6).toUpperCase()}</div>
-                <div className="text-emerald-400 mt-1">{currentUser.kycNotes || "Root clearance active"}</div>
-              </div>
-            </div>
-          ) : (
-            /* KYC Submission Form */
-            <div className="bg-[#0c1322] border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-                  <FileCheck className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">
-                    {isAr ? "تقديم طلب توثيق الحساب (Submit KYC Documents)" : "Submit Verification Documents"}
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    {isAr
-                      ? "يرجى إدخال بيانات وثيقة الهوية الرسمية وإثبات السكن لتفعيل السحب غير المحدود."
-                      : "Please provide official government ID information to unlock institutional tier limits."}
-                  </p>
-                </div>
-              </div>
-
-              <form onSubmit={handleSubmitKycForm} className="space-y-5 text-xs">
-                {/* Document Type Selection */}
-                <div>
-                  <label className="block text-slate-300 font-medium mb-2">
-                    {isAr ? "نوع وثيقة إثبات الهوية الرسمية:" : "Government ID Type:"}
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {[
-                      { id: "PASSPORT", labelAr: "جواز سفر دولي", labelEn: "International Passport", icon: Globe },
-                      { id: "NATIONAL_ID", labelAr: "بطاقة الهوية الوطنية", labelEn: "National ID Card", icon: UserIcon },
-                      { id: "DRIVERS_LICENSE", labelAr: "رخصة قيادة معتمدة", labelEn: "Driver's License", icon: Award }
-                    ].map((doc) => {
-                      const Icon = doc.icon;
-                      const isSelected = kycDocType === doc.id;
-                      return (
-                        <button
-                          key={doc.id}
-                          type="button"
-                          onClick={() => setKycDocType(doc.id as any)}
-                          className={`p-3.5 rounded-2xl border text-right transition-all cursor-pointer flex items-center gap-3 ${
-                            isSelected
-                              ? "bg-indigo-500/20 border-indigo-500/50 text-white shadow-md shadow-indigo-500/10 font-bold"
-                              : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
-                          }`}
-                        >
-                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${isSelected ? "bg-indigo-500 text-white" : "bg-slate-800 text-slate-400"}`}>
-                            <Icon className="w-4 h-4" />
+                  {userTransactions.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-slate-500 font-mono">
+                      {isAr ? "لا توجد معاملات سابقة مسجلة حتى الآن." : "No transactions recorded yet."}
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-800/80">
+                      {userTransactions.slice(0, 4).map((tx) => (
+                        <div key={tx.id} className="py-3 flex items-center justify-between text-xs font-mono">
+                          <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
+                              {tx.type.includes("TRANSFER") ? (
+                                <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
+                              ) : tx.type === "DEPOSIT" || tx.type === "ADMIN_CREDIT" ? (
+                                <ArrowDownRight className="w-3.5 h-3.5 text-emerald-400" />
+                              ) : (
+                                <ArrowUpRight className="w-3.5 h-3.5 text-rose-400" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="text-white font-medium font-sans">{tx.note}</div>
+                              <div className="text-[10px] text-slate-500">{new Date(tx.timestamp).toLocaleString()}</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="text-xs">{isAr ? doc.labelAr : doc.labelEn}</div>
-                            <div className="text-[10px] text-slate-400 font-mono">Tier-1 Validated</div>
+
+                          <div className="text-right">
+                            <div className={`font-bold tabular-nums ${tx.type === "TRANSFER_OUT" || tx.type === "WITHDRAWAL" ? "text-rose-400" : "text-emerald-400"}`}>
+                              {tx.type === "TRANSFER_OUT" || tx.type === "WITHDRAWAL" ? "-" : "+"}${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </div>
+                            <button
+                              onClick={() => setSelectedReceiptTx(tx)}
+                              className="text-[10px] text-sky-400 hover:text-sky-300 cursor-pointer underline font-sans"
+                            >
+                              {isAr ? "الإيصال" : "Receipt"}
+                            </button>
                           </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
+              </div>
+            )}
 
-                {/* Document ID Number & Issuing Country */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-slate-300 font-medium mb-1.5">
-                      {isAr ? "رقم الوثيقة الرسمية:" : "Document ID Number:"}
-                    </label>
-                    <input
-                      type="text"
-                      value={kycDocNumber}
-                      onChange={(e) => setKycDocNumber(e.target.value)}
-                      placeholder="e.g. N94820194 or 1084920194"
-                      className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-amber-400 font-mono"
-                      required
-                    />
+            {/* ============================================================== */}
+            {/* TAB 2: P2P CLIENT-TO-CLIENT TRANSFER                           */}
+            {/* ============================================================== */}
+            {activeTab === "transfer" && (
+              <div className="space-y-6">
+                <div className="bg-[#0b101d] border border-slate-800/90 rounded-2xl p-5 sm:p-6 shadow-xl space-y-6">
+                  {/* Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
+                    <div>
+                      <h2 className="text-base font-bold text-white flex items-center gap-2">
+                        <ArrowRightLeft className="w-4 h-4 text-amber-400" />
+                        <span>{isAr ? "التحويل المالي المباشر بين العملاء (P2P Transfer)" : "Internal Client-to-Client Transfer"}</span>
+                      </h2>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {isAr
+                          ? "تحويل فوري فائق السرعة بدون عمولات (0% Fee) بين متداولي FAST FX مع توثيق إلكتروني معتمد"
+                          : "Instant internal ledger transfer with zero fees and certified cryptographic receipt"}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs font-mono">
+                      <span className="text-slate-400">{isAr ? "رصيدك المتاح:" : "Available:"}</span>
+                      <span className="text-emerald-400 font-bold bg-slate-900 px-3 py-1 rounded-lg border border-slate-800">
+                        ${currentUser.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-slate-300 font-medium mb-1.5">
-                      {isAr ? "بلد إصدار الوثيقة والجنسية:" : "Issuing Country & Nationality:"}
-                    </label>
-                    <input
-                      type="text"
-                      value={kycCountry}
-                      onChange={(e) => setKycCountry(e.target.value)}
-                      placeholder="e.g. المملكة العربية السعودية، الإمارات، الكويت، مصر..."
-                      className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-amber-400 font-sans"
-                      required
-                    />
-                  </div>
-                </div>
+                  {/* Transfer Form */}
+                  <form onSubmit={handleExecuteTransfer} className="space-y-5">
+                    {/* Step 1: Select Recipient */}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-slate-300">
+                        1. {isAr ? "تحديد المستلم (بالبريد الإلكتروني، الاسم، أو كود الحساب)" : "Recipient Lookup"}
+                      </label>
 
-                {/* Proof of Address Selection */}
-                <div>
-                  <label className="block text-slate-300 font-medium mb-1.5">
-                    {isAr ? "وثيقة إثبات العنوان والسكن (Proof of Address):" : "Proof of Address Document Type:"}
-                  </label>
-                  <select
-                    value={kycAddressType}
-                    onChange={(e) => setKycAddressType(e.target.value as any)}
-                    className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-amber-400 font-mono"
-                  >
-                    <option value="BANK_STATEMENT">{isAr ? "كشف حساب بنكي رسمي حديث (آخر 3 أشهر)" : "Recent Official Bank Statement (< 3 months)"}</option>
-                    <option value="UTILITY_BILL">{isAr ? "فاتورة خدمات سكنية (كهرباء أو مياه أو هاتف)" : "Utility Bill (Electricity, Water, or Telecom)"}</option>
-                    <option value="GOV_TAX_LETTER">{isAr ? "شهادة إقامة ضريبية أو خطاب حكومي موثق" : "Government Tax Residency Certificate"}</option>
-                  </select>
-                </div>
+                      {!selectedRecipient ? (
+                        <div className="space-y-2">
+                          <div className="relative">
+                            <Search className="w-4 h-4 text-slate-400 absolute right-3 top-3.5" />
+                            <input
+                              type="text"
+                              value={transferRecipientQuery}
+                              onChange={(e) => setTransferRecipientQuery(e.target.value)}
+                              placeholder={isAr ? "اكتب اسم العميل، بريده، أو رقم حسابه للبحث..." : "Search trader by name, email, or account ID..."}
+                              className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-3 pl-10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 font-sans"
+                            />
+                          </div>
 
-                {/* Simulated Document Upload Dropzone */}
-                <div>
-                  <label className="block text-slate-300 font-medium mb-1.5">
-                    {isAr ? "نسخة ممسوحة ضوئياً أو صورة عالية الدقة للوثيقة:" : "Scanned Copy or High-Resolution Photo:"}
-                  </label>
-                  <div
-                    onClick={() => {
-                      const sampleName = `${kycDocType.toLowerCase()}_${currentUser.name.replace(/\s+/g, "_")}_doc.pdf`;
-                      setKycSimulatedFileName(sampleName);
-                    }}
-                    className="border-2 border-dashed border-slate-700 hover:border-amber-400/60 rounded-2xl p-6 text-center transition-colors cursor-pointer bg-slate-900/40 group"
-                  >
-                    <UploadCloud className="w-8 h-8 text-slate-400 group-hover:text-amber-400 mx-auto mb-2 transition-colors" />
-                    <div className="text-xs font-semibold text-white">
-                      {kycSimulatedFileName ? (
-                        <span className="text-emerald-400 font-mono">✅ تم تجهيز الملف: {kycSimulatedFileName}</span>
+                          {/* Live Search Suggestions Dropdown */}
+                          {transferRecipientQuery.trim() && (
+                            <div className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-2xl divide-y divide-slate-800 max-h-56 overflow-y-auto">
+                              {searchResults.length === 0 ? (
+                                <div className="p-3 text-xs text-slate-500 text-center font-mono">
+                                  {isAr ? "لم يتم العثور على أي متداول مطابق للبحث" : "No matching clients found"}
+                                </div>
+                              ) : (
+                                searchResults.map((u) => (
+                                  <div
+                                    key={u.id}
+                                    onClick={() => {
+                                      setSelectedRecipient(u);
+                                      setTransferRecipientQuery("");
+                                    }}
+                                    className="p-3 flex items-center justify-between hover:bg-slate-800/70 cursor-pointer transition-colors"
+                                  >
+                                    <div className="flex items-center gap-2.5">
+                                      <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center justify-center font-mono font-bold text-xs">
+                                        {u.name.slice(0, 2).toUpperCase()}
+                                      </div>
+                                      <div>
+                                        <div className="text-white text-xs font-semibold">{u.name}</div>
+                                        <div className="text-slate-400 text-[10px] font-mono">{u.email}</div>
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="text-[11px] font-mono text-amber-400 font-bold">
+                                        #{u.id.slice(-6).toUpperCase()}
+                                      </div>
+                                      <div className="text-[10px] text-slate-400 capitalize">{u.kycStatus}</div>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          )}
+                        </div>
                       ) : (
-                        <span>{isAr ? "انقر هنا لاختيار المستند (PDF, PNG, JPG)" : "Click here to upload document (PDF, PNG, JPG)"}</span>
+                        /* Selected Recipient Card */
+                        <div className="p-3.5 rounded-xl bg-slate-900 border border-amber-500/40 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-mono font-bold text-sm">
+                              {selectedRecipient.name.slice(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="text-white font-bold text-xs flex items-center gap-1.5">
+                                <span>{selectedRecipient.name}</span>
+                                <BadgeCheck className="w-3.5 h-3.5 text-emerald-400" />
+                              </div>
+                              <div className="text-slate-400 text-[11px] font-mono">{selectedRecipient.email}</div>
+                              <div className="text-[10px] font-mono text-amber-400">
+                                #{selectedRecipient.id.slice(-8).toUpperCase()}
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedRecipient(null)}
+                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+                          >
+                            {isAr ? "تغيير المستلم" : "Change"}
+                          </button>
+                        </div>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-1 font-mono">
-                      {isAr ? "حجم الملف الأقصى: 15MB · تشفير آمن End-to-End" : "Max size 15MB · 256-bit AES encryption"}
+
+                    {/* Step 2: Transfer Amount */}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-slate-300">
+                        2. {isAr ? "المبلغ المراد تحويله (USD)" : "Transfer Amount (USD)"}
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-3.5 text-sm font-bold text-slate-400">$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="1"
+                          max={currentUser.balance}
+                          value={transferAmount}
+                          onChange={(e) => setTransferAmount(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-3 pl-8 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 font-mono font-bold"
+                        />
+                      </div>
+
+                      {/* Percentage Shortcuts */}
+                      <div className="flex items-center gap-2 pt-1">
+                        {[0.25, 0.5, 0.75, 1].map((pct) => (
+                          <button
+                            type="button"
+                            key={pct}
+                            onClick={() => setTransferAmount((currentUser.balance * pct).toFixed(2))}
+                            className="px-3 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-[11px] font-mono font-bold transition-colors cursor-pointer"
+                          >
+                            {pct * 100}%
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Step 3: Optional Reference Note */}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-slate-300">
+                        3. {isAr ? "ملاحظة أو سبب التحويل (اختياري)" : "Transfer Reference Note (Optional)"}
+                      </label>
+                      <input
+                        type="text"
+                        value={transferNote}
+                        onChange={(e) => setTransferNote(e.target.value)}
+                        placeholder={isAr ? "مثال: تسوية صفقات مشتركة، دعم حساب، إلخ..." : "e.g., Shared trade settlement, internal allocation..."}
+                        className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 font-sans"
+                      />
+                    </div>
+
+                    {/* Fee Summary */}
+                    <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1.5 text-xs font-mono">
+                      <div className="flex items-center justify-between text-slate-400">
+                        <span>{isAr ? "عمولة التحويل الداخلي:" : "Internal Network Fee:"}</span>
+                        <span className="text-emerald-400 font-bold">$0.00 (مجاناً 100%)</span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-400">
+                        <span>{isAr ? "وقت التسوية والتنفيذ:" : "Execution Latency:"}</span>
+                        <span className="text-amber-400 font-bold">{isAr ? "لحظي (< 1 ثانية)" : "Instant (<1 sec)"}</span>
+                      </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      disabled={isSubmittingTransfer || !selectedRecipient || !transferAmount}
+                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 font-black text-xs hover:opacity-95 shadow-xl shadow-amber-500/20 disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      {isSubmittingTransfer ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>{isAr ? "جاري تنفيذ التحويل الفوري..." : "Executing Ledger Transfer..."}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          <span>{isAr ? "تأكيد وتنفيذ التحويل الآن" : "Confirm & Execute Transfer"}</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
+
+                {/* Transfer Benefits Guarantee Strip */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-4 rounded-xl bg-[#0b101d] border border-slate-800/80 text-xs space-y-1">
+                    <div className="font-bold text-white flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                      <span>{isAr ? "أمان مصرفي مشفر" : "Cryptographic Security"}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      {isAr ? "كل معاملة مسجلة في دفتر الأستاذ المشفر مع كود تدقيق رسمي." : "Every transfer is immutably logged with an official SHA-256 audit hash."}
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-[#0b101d] border border-slate-800/80 text-xs space-y-1">
+                    <div className="font-bold text-white flex items-center gap-1.5">
+                      <Zap className="w-4 h-4 text-amber-400" />
+                      <span>{isAr ? "تنفيذ لحظي 100%" : "Zero Latency"}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      {isAr ? "ينتقل الرصيد إلى محفظة المستلم فوراً دون انتظار فترات تسوية." : "Funds clear into recipient balance instantly without settlement delay."}
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-[#0b101d] border border-slate-800/80 text-xs space-y-1">
+                    <div className="font-bold text-white flex items-center gap-1.5">
+                      <Printer className="w-4 h-4 text-sky-400" />
+                      <span>{isAr ? "إيصالات رقمية قابلة للطباعة" : "Digital Receipts"}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      {isAr ? "احصل على سند قبض إلكتروني فوري جاهز للتصدير والطباعة." : "Download or print institutional payment vouchers anytime."}
                     </p>
                   </div>
                 </div>
+              </div>
+            )}
 
-                {/* Notes & Declaration */}
-                <div>
-                  <label className="block text-slate-300 font-medium mb-1.5">
-                    {isAr ? "ملاحظات إضافية لفريق الامتثال (اختياري):" : "Additional Notes for Compliance (Optional):"}
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={kycNotes}
-                    onChange={(e) => setKycNotes(e.target.value)}
-                    placeholder={isAr ? "أي معلومات إضافية ترغب في إرفاقها لمسؤول الامتثال..." : "Any additional notes or account references..."}
-                    className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-amber-400 font-sans"
-                  />
+            {/* ============================================================== */}
+            {/* TAB 3: KYC COMPLIANCE & VERIFICATION                           */}
+            {/* ============================================================== */}
+            {activeTab === "kyc" && (
+              <div className="space-y-6">
+                <div className="bg-[#0b101d] border border-slate-800/90 rounded-2xl p-5 sm:p-6 shadow-xl space-y-6">
+                  {/* Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
+                    <div>
+                      <h2 className="text-base font-bold text-white flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                        <span>{isAr ? "بوابة الامتثال وتوثيق الحساب الرسمي (KYC & AML)" : "Official KYC & Regulatory Compliance Center"}</span>
+                      </h2>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {isAr
+                          ? "توثيق الهوية الرسمية ومكافحة غسيل الأموال لفتح سقف السحب غير المحدود والحماية القانونية الكاملة"
+                          : "Government-grade identity verification to unlock institutional limits and statutory asset protection"}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-xs font-mono font-bold px-3 py-1 rounded-lg border ${
+                          currentUser.kycStatus === "verified"
+                            ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                            : currentUser.kycStatus === "pending"
+                            ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                            : "bg-slate-800 text-slate-300 border-slate-700"
+                        }`}
+                      >
+                        {currentUser.kycStatus === "verified"
+                          ? (isAr ? "حساب موثق رسمي" : "VERIFIED INSTITUTIONAL")
+                          : currentUser.kycStatus === "pending"
+                          ? (isAr ? "قيد التدقيق والمراجعة" : "PENDING COMPLIANCE REVIEW")
+                          : (isAr ? "غير موثق - يلزم تقديم البيانات" : "UNVERIFIED")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 4-Step Institutional Progress Stepper */}
+                  <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>1. {isAr ? "فتح الحساب" : "Registered"}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-500">{isAr ? "مكتمل بنجاح" : "Completed"}</div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className={`flex items-center gap-1.5 font-bold ${currentUser.kycStatus !== "unverified" ? "text-emerald-400" : "text-slate-400"}`}>
+                          {currentUser.kycStatus !== "unverified" ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+                          <span>2. {isAr ? "إرسال الوثائق" : "Submit Docs"}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          {currentUser.kycStatus !== "unverified" ? (isAr ? "تم الاستلام" : "Received") : (isAr ? "بانتظار الإرسال" : "Pending")}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className={`flex items-center gap-1.5 font-bold ${currentUser.kycStatus === "verified" ? "text-emerald-400" : currentUser.kycStatus === "pending" ? "text-amber-400 animate-pulse" : "text-slate-500"}`}>
+                          <Activity className="w-3.5 h-3.5" />
+                          <span>3. {isAr ? "فحص AML" : "AML Check"}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          {currentUser.kycStatus === "verified" ? (isAr ? "تم الاجتياز" : "Passed") : currentUser.kycStatus === "pending" ? (isAr ? "جاري الفحص" : "Active") : "-"}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className={`flex items-center gap-1.5 font-bold ${currentUser.kycStatus === "verified" ? "text-emerald-400" : "text-slate-500"}`}>
+                          <BadgeCheck className="w-3.5 h-3.5" />
+                          <span>4. {isAr ? "الاعتماد المؤسسي" : "Verified Tier-2"}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          {currentUser.kycStatus === "verified" ? (isAr ? "معتمد رسمياً" : "Tier-2 Active") : (isAr ? "قيد الانتظار" : "Awaiting")}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Form or Verified Stamp Display */}
+                  {currentUser.kycStatus === "verified" ? (
+                    /* Official Verification Certificate */
+                    <div className="p-6 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-slate-900 to-indigo-500/10 border border-emerald-500/40 text-center space-y-4 shadow-xl">
+                      <div className="w-16 h-16 mx-auto rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center shadow-lg">
+                        <BadgeCheck className="w-10 h-10" />
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="text-lg font-bold text-white">
+                          {isAr ? "شهادة الاعتماد والتوثيق المؤسسي المالي" : "Official Financial Compliance Verification Certificate"}
+                        </h3>
+                        <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+                          {isAr
+                            ? `تم التحقق من بيانات المستثمر ${currentUser.name} بالكامل وفق معايير هيئات الأوراق المالية وهيئة مكافحة غسيل الأموال الدولية.`
+                            : `Identity credentials for investor ${currentUser.name} have been fully verified under statutory AML & KYC standards.`}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl mx-auto text-xs font-mono pt-2">
+                        <div className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800">
+                          <span className="text-slate-500 block text-[10px]">{isAr ? "المستوى المعتمد:" : "Clearance Tier:"}</span>
+                          <span className="text-emerald-400 font-bold">{currentUser.kycTier?.replace(/_/g, " ") || "TIER 2"}</span>
+                        </div>
+                        <div className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800">
+                          <span className="text-slate-500 block text-[10px]">{isAr ? "سقف السحب اليومي:" : "Daily Limit:"}</span>
+                          <span className="text-white font-bold">$500,000</span>
+                        </div>
+                        <div className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800">
+                          <span className="text-slate-500 block text-[10px]">{isAr ? "نوع الوثيقة:" : "Document:"}</span>
+                          <span className="text-white font-bold">{currentUser.kycDocumentType || "Passport"}</span>
+                        </div>
+                        <div className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800">
+                          <span className="text-slate-500 block text-[10px]">{isAr ? "تاريخ التدقيق:" : "Audit Date:"}</span>
+                          <span className="text-slate-300">
+                            {currentUser.kycReviewedAt ? new Date(currentUser.kycReviewedAt).toLocaleDateString() : new Date().toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Submission Form */
+                    <form onSubmit={handleSubmitKycForm} className="space-y-4 text-xs font-sans">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-slate-300 mb-1.5 font-bold">
+                            {isAr ? "نوع وثيقة إثبات الهوية الرسمية" : "Official ID Document Type"}
+                          </label>
+                          <select
+                            value={kycDocType}
+                            onChange={(e) => setKycDocType(e.target.value as any)}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-400 font-mono"
+                          >
+                            <option value="PASSPORT">{isAr ? "جواز سفر دولي مميكن (Passport)" : "International Passport"}</option>
+                            <option value="NATIONAL_ID">{isAr ? "بطاقة الهوية الوطنية الذكية (National ID)" : "National Identity Card"}</option>
+                            <option value="DRIVERS_LICENSE">{isAr ? "رخصة قيادة سارية (Driver's License)" : "Valid Driver's License"}</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 mb-1.5 font-bold">
+                            {isAr ? "رقم الوثيقة الوطنية / الجواز" : "Document Number / ID No."}
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={kycDocNumber}
+                            onChange={(e) => setKycDocNumber(e.target.value)}
+                            placeholder={isAr ? "مثال: A12345678 أو 1089234812" : "e.g., A12345678 or 1089234812"}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-400 font-mono font-bold placeholder-slate-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-slate-300 mb-1.5 font-bold">
+                            {isAr ? "دولة إصدار الوثيقة" : "Issuing Country / Jurisdiction"}
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={kycCountry}
+                            onChange={(e) => setKycCountry(e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-400 font-sans"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 mb-1.5 font-bold">
+                            {isAr ? "مستند إثبات محل الإقامة" : "Proof of Address Document"}
+                          </label>
+                          <select
+                            value={kycAddressType}
+                            onChange={(e) => setKycAddressType(e.target.value as any)}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-400 font-mono"
+                          >
+                            <option value="BANK_STATEMENT">{isAr ? "كشف حساب بنكي حديث (Bank Statement)" : "Certified Bank Statement (<3 months)"}</option>
+                            <option value="UTILITY_BILL">{isAr ? "فاتورة خدمات كهرباء / ماء (Utility Bill)" : "Utility Bill (Water / Electricity)"}</option>
+                            <option value="GOV_TAX_LETTER">{isAr ? "إشعار ضريبي أو صك سكني حكومي" : "Government Residence Registration"}</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Simulated Drag & Drop Secure Upload Box */}
+                      <div className="p-6 rounded-2xl bg-slate-900/60 border-2 border-dashed border-slate-700 hover:border-amber-400/60 transition-colors text-center space-y-2 cursor-pointer">
+                        <UploadCloud className="w-8 h-8 text-amber-400 mx-auto" />
+                        <div className="text-white font-bold">
+                          {kycSimulatedFileName || (isAr ? "اضغط لرفع صور الوثيقة (الوجهين) أو اسحب الملفات هنا" : "Upload High-Resolution ID Scan (Front & Back)")}
+                        </div>
+                        <p className="text-[11px] text-slate-400 font-mono">
+                          {isAr ? "صيغ مقبولة: PDF, PNG, JPG (تشفير AES-256 بت آمن)" : "Accepted: PDF, PNG, JPG (Bank-grade AES-256 Encryption)"}
+                        </p>
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          className="hidden"
+                          id="kyc-upload-input"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              setKycSimulatedFileName(e.target.files[0].name);
+                              showAlert(
+                                isAr ? `تم تحديد الملف: ${e.target.files[0].name}` : `Selected file: ${e.target.files[0].name}`,
+                                "success"
+                              );
+                            }
+                          }}
+                        />
+                        <label
+                          htmlFor="kyc-upload-input"
+                          className="inline-block mt-2 px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer border border-slate-700"
+                        >
+                          {isAr ? "اختيار الملف من الجهاز" : "Browse Files"}
+                        </label>
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 mb-1.5 font-bold">
+                          {isAr ? "ملاحظات إضافية لمسؤولي الامتثال (اختياري)" : "Additional Compliance Remarks (Optional)"}
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={kycNotes}
+                          onChange={(e) => setKycNotes(e.target.value)}
+                          placeholder={isAr ? "أضف أي تفاصيل خاصة بالحساب أو جهة العمل..." : "Any relevant occupational or residency disclosures..."}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-400 font-sans"
+                        />
+                      </div>
+
+                      {/* Legal Acknowledgment Checkbox */}
+                      <div className="flex items-start gap-2.5 pt-2">
+                        <input
+                          type="checkbox"
+                          required
+                          id="kyc-ack"
+                          className="mt-1 rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-0 cursor-pointer"
+                        />
+                        <label htmlFor="kyc-ack" className="text-slate-400 text-[11px] leading-relaxed cursor-pointer">
+                          {isAr
+                            ? "أقر بصحة الوثائق والمستندات المقدمة وأن الأموال المودعة ناتجة عن مصادر مشروعة ومتوافقة مع المعايير الدولية لمكافحة غسيل الأموال (AML)."
+                            : "I certify that all submitted credentials are valid and that source of funds is lawful and compliant with statutory AML guidelines."}
+                        </label>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isSubmittingKyc}
+                        className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-500 text-white font-bold text-xs hover:opacity-95 shadow-xl shadow-indigo-600/20 disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        {isSubmittingKyc ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                            <span>{isAr ? "جاري تدقيق وإرسال البيانات..." : "Submitting Credentials..."}</span>
+                          </>
+                        ) : (
+                          <>
+                            <ShieldCheck className="w-4 h-4" />
+                            <span>{isAr ? "إرسال طلب التوثيق للاعتماد الرسمي" : "Submit KYC for Formal Clearance"}</span>
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* TAB 4: FINANCIAL LEDGER & TRANSACTION HISTORY                  */}
+            {/* ============================================================== */}
+            {activeTab === "ledger" && (
+              <div className="space-y-6">
+                <div className="bg-[#0b101d] border border-slate-800/90 rounded-2xl p-5 sm:p-6 shadow-xl space-y-5">
+                  {/* Header & Filter Controls */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-base font-bold text-white flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-emerald-400" />
+                        <span>{isAr ? "كشف الحساب وسجل العمليات المالية المعتمد" : "Official Financial Ledger & Account Statement"}</span>
+                      </h2>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {isAr
+                          ? "سجل محاسبي رقمي شامل لكافة حركات الإيداع، السحب، التحويلات بين العملاء، وعوائد التداول"
+                          : "Immutable accounting ledger of all deposits, withdrawals, peer transfers, and trading settlements"}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 font-mono text-xs">
+                      <span className="text-slate-500">{isAr ? "عدد المعاملات:" : "Records:"}</span>
+                      <span className="text-white font-bold bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
+                        {filteredTransactions.length}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Filter Bar & Search */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+                    {/* Type Filter Buttons */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+                      {[
+                        { id: "ALL", label: isAr ? "الكل" : "All" },
+                        { id: "TRANSFER_OUT", label: isAr ? "تحويل صادر" : "Transfers Out" },
+                        { id: "TRANSFER_IN", label: isAr ? "تحويل وارد" : "Transfers In" },
+                        { id: "DEPOSIT", label: isAr ? "إيداعات" : "Deposits" },
+                        { id: "WITHDRAWAL", label: isAr ? "سحوبات" : "Withdrawals" }
+                      ].map((f) => (
+                        <button
+                          key={f.id}
+                          onClick={() => setLedgerTypeFilter(f.id)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                            ledgerTypeFilter === f.id
+                              ? "bg-slate-800 text-white font-bold border border-slate-700 shadow-sm"
+                              : "text-slate-400 hover:text-white hover:bg-slate-900"
+                          }`}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Search Input */}
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-2.5" />
+                      <input
+                        type="text"
+                        value={ledgerSearch}
+                        onChange={(e) => setLedgerSearch(e.target.value)}
+                        placeholder={isAr ? "بحث برقم المعاملة أو الوصف..." : "Search tx ID or note..."}
+                        className="bg-slate-900 border border-slate-700/80 rounded-lg px-3 py-1.5 pl-8 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 font-sans w-full sm:w-60"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Ledger Table */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs font-mono">
+                      <thead>
+                        <tr className="text-slate-400 border-b border-slate-800/80 text-[11px]">
+                          <th className="pb-3">{isAr ? "رقم المرجع" : "TX Ref"}</th>
+                          <th className="pb-3">{isAr ? "نوع المعاملة والوصف" : "Type & Description"}</th>
+                          <th className="pb-3">{isAr ? "التوقيت" : "Timestamp"}</th>
+                          <th className="pb-3 text-right">{isAr ? "المبلغ" : "Amount"}</th>
+                          <th className="pb-3 text-right">{isAr ? "الرصيد بعد العملية" : "Balance After"}</th>
+                          <th className="pb-3 text-right">{isAr ? "الإجراء" : "Action"}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        {filteredTransactions.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="py-8 text-center text-slate-500 font-mono">
+                              {isAr ? "لا توجد معاملات مطابقة للفلتر المحدد" : "No transactions matching filter"}
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredTransactions.map((tx) => (
+                            <tr key={tx.id} className="hover:bg-slate-800/30 transition-colors">
+                              <td className="py-3 text-slate-400 font-bold font-mono">
+                                #{tx.id.slice(-8).toUpperCase()}
+                              </td>
+
+                              <td className="py-3 font-sans">
+                                <div className="text-white font-medium">{tx.note}</div>
+                                <div className="text-[10px] text-slate-500 font-mono">{tx.type}</div>
+                              </td>
+
+                              <td className="py-3 text-slate-400 text-[11px] whitespace-nowrap">
+                                {new Date(tx.timestamp).toLocaleString()}
+                              </td>
+
+                              <td className="py-3 text-right font-bold tabular-nums">
+                                <span
+                                  className={
+                                    tx.type === "TRANSFER_OUT" || tx.type === "WITHDRAWAL"
+                                      ? "text-rose-400"
+                                      : "text-emerald-400"
+                                  }
+                                >
+                                  {tx.type === "TRANSFER_OUT" || tx.type === "WITHDRAWAL" ? "-" : "+"}
+                                  ${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              </td>
+
+                              <td className="py-3 text-right text-slate-300 font-mono tabular-nums">
+                                ${tx.balanceAfter.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              </td>
+
+                              <td className="py-3 text-right">
+                                <button
+                                  onClick={() => setSelectedReceiptTx(tx)}
+                                  className="px-2.5 py-1 text-[11px] rounded bg-sky-500/15 text-sky-400 hover:bg-sky-500/25 border border-sky-500/30 font-sans transition-colors cursor-pointer"
+                                >
+                                  {isAr ? "الإيصال" : "Voucher"}
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* TAB 5: FUNDING & WITHDRAWAL DESK                               */}
+            {/* ============================================================== */}
+            {activeTab === "funding" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Deposit Card */}
+                  <div className="bg-[#0b101d] border border-slate-800/90 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                      <div className="flex items-center gap-2 font-bold text-white text-base">
+                        <PlusCircle className="w-5 h-5 text-emerald-400" />
+                        <span>{isAr ? "إيداع فوري في المحفظة" : "Instant Deposit"}</span>
+                      </div>
+                      <span className="text-[11px] font-mono text-emerald-400 font-bold">0% FEE</span>
+                    </div>
+
+                    <form onSubmit={handleExecuteDeposit} className="space-y-4 text-xs font-sans">
+                      <div>
+                        <label className="block text-slate-300 mb-1.5 font-bold">{isAr ? "طريقة الإيداع" : "Deposit Method"}</label>
+                        <select
+                          value={depositMethod}
+                          onChange={(e) => setDepositMethod(e.target.value as any)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-400 font-mono"
+                        >
+                          <option value="USDT_TRC20">USDT (TRC-20 Network - فوري)</option>
+                          <option value="VISA_MASTERCARD">Visa / Mastercard (دفع بطاقة بنكية)</option>
+                          <option value="BANK_WIRE">International Wire Transfer (حوالة مصرفية)</option>
+                          <option value="APPLE_PAY">Apple Pay (دفع سريع)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 mb-1.5 font-bold">{isAr ? "المبلغ (USD)" : "Amount (USD)"}</label>
+                        <input
+                          type="number"
+                          step="10"
+                          min="10"
+                          value={depositAmount}
+                          onChange={(e) => setDepositAmount(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-400 font-mono font-bold text-sm"
+                        />
+
+                        {/* Presets */}
+                        <div className="flex items-center gap-2 pt-2">
+                          {["250", "500", "1000", "5000", "10000"].map((preset) => (
+                            <button
+                              type="button"
+                              key={preset}
+                              onClick={() => setDepositAmount(preset)}
+                              className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-mono text-[11px] font-bold cursor-pointer transition-colors"
+                            >
+                              ${parseInt(preset).toLocaleString()}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isDepositing}
+                        className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold text-xs hover:opacity-95 shadow-lg shadow-emerald-500/20 disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        {isDepositing ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                            <span>{isAr ? "جاري معالجة الإيداع..." : "Processing Deposit..."}</span>
+                          </>
+                        ) : (
+                          <>
+                            <PlusCircle className="w-4 h-4" />
+                            <span>{isAr ? "تأكيد الإيداع الآن" : "Confirm Deposit"}</span>
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Withdrawal Card */}
+                  <div className="bg-[#0b101d] border border-slate-800/90 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                      <div className="flex items-center gap-2 font-bold text-white text-base">
+                        <ArrowUpRight className="w-5 h-5 text-rose-400" />
+                        <span>{isAr ? "طلب سحب الأرباح" : "Withdrawal Request"}</span>
+                      </div>
+                      <span className="text-[11px] font-mono text-slate-400">
+                        {isAr ? "المتاح:" : "Available:"} <strong className="text-emerald-400">${currentUser.balance.toLocaleString()}</strong>
+                      </span>
+                    </div>
+
+                    <form onSubmit={handleExecuteWithdrawal} className="space-y-4 text-xs font-sans">
+                      <div>
+                        <label className="block text-slate-300 mb-1.5 font-bold">{isAr ? "طريقة استلام الأموال" : "Payout Method"}</label>
+                        <select
+                          value={withdrawMethod}
+                          onChange={(e) => setWithdrawMethod(e.target.value as any)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-rose-400 font-mono"
+                        >
+                          <option value="CRYPTO">USDT TRC20 / Crypto Wallet (محفظة رقمية)</option>
+                          <option value="BANK_WIRE">Bank Wire Transfer (حساب بنكي دولي IBAN)</option>
+                          <option value="CARD">Original Credit Card Refund (إرجاع للبطاقة)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 mb-1.5 font-bold">{isAr ? "المبلغ المراد سحبه (USD)" : "Amount (USD)"}</label>
+                        <input
+                          type="number"
+                          step="1"
+                          min="10"
+                          max={currentUser.balance}
+                          value={withdrawAmount}
+                          onChange={(e) => setWithdrawAmount(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-rose-400 font-mono font-bold text-sm placeholder-slate-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 mb-1.5 font-bold">
+                          {isAr ? "عنوان المحفظة أو رقم الحساب البنكي (IBAN)" : "Wallet Address or IBAN"}
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={withdrawAddress}
+                          onChange={(e) => setWithdrawAddress(e.target.value)}
+                          placeholder={isAr ? "اكتب عنوان المحفظة أو IBAN..." : "Enter TRC20 address or IBAN..."}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-rose-400 font-mono"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isSubmittingWithdrawal || !withdrawAmount || !withdrawAddress}
+                        className="w-full py-3 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 text-white font-bold text-xs hover:opacity-95 shadow-lg shadow-rose-500/20 disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        {isSubmittingWithdrawal ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                            <span>{isAr ? "جاري تسجيل طلب السحب..." : "Submitting Withdrawal..."}</span>
+                          </>
+                        ) : (
+                          <>
+                            <ArrowUpRight className="w-4 h-4" />
+                            <span>{isAr ? "تقديم طلب السحب" : "Submit Withdrawal"}</span>
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  </div>
                 </div>
 
-                <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-xs text-indigo-300 flex items-start gap-2">
-                  <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 text-indigo-400" />
-                  <span>
+                {/* Active Payout Requests */}
+                {userFundRequests.length > 0 && (
+                  <div className="bg-[#0b101d] border border-slate-800/90 rounded-2xl p-5 shadow-xl space-y-3">
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-slate-400" />
+                      <span>{isAr ? "سجل طلبات السحب الخاصة بك" : "Your Withdrawal Requests"}</span>
+                    </h3>
+                    <div className="divide-y divide-slate-800/80">
+                      {userFundRequests.map((req) => (
+                        <div key={req.id} className="py-3 flex items-center justify-between text-xs font-mono">
+                          <div>
+                            <div className="text-white font-bold">${req.amount.toLocaleString()} via {req.paymentMethod}</div>
+                            <div className="text-[10px] text-slate-500">{new Date(req.createdAt).toLocaleString()} · Ref: {req.txReference}</div>
+                          </div>
+                          <div>
+                            <span
+                              className={`px-2.5 py-1 rounded text-[11px] font-bold ${
+                                req.status === "APPROVED"
+                                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                                  : req.status === "PENDING"
+                                  ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                                  : "bg-rose-500/15 text-rose-400 border border-rose-500/30"
+                              }`}
+                            >
+                              {req.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* TAB 6: SECURITY & ALGORITHMIC API                              */}
+            {/* ============================================================== */}
+            {activeTab === "security" && (
+              <div className="space-y-6">
+                {/* 2FA Section */}
+                <div className="bg-[#0b101d] border border-slate-800/90 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                    <div>
+                      <h2 className="text-base font-bold text-white flex items-center gap-2">
+                        <Lock className="w-4 h-4 text-indigo-400" />
+                        <span>{isAr ? "المصادقة الثنائية (Two-Factor Authentication - 2FA)" : "Two-Factor Authentication (2FA)"}</span>
+                      </h2>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {isAr
+                          ? "حماية فائقة للحساب عند تسجيل الدخول وإجراء التحويلات عبر Google Authenticator أو SMS"
+                          : "Enhanced security requiring an OTP verification code for logins and balance withdrawals"}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleToggle2FA}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        currentUser.twoFactorEnabled
+                          ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/25"
+                          : "bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20"
+                      }`}
+                    >
+                      {currentUser.twoFactorEnabled
+                        ? (isAr ? "المصادقة الثنائية مفعلة (انقر للتعطيل)" : "2FA Active (Click to Disable)")
+                        : (isAr ? "تفعيل المصادقة الثنائية الآن" : "Enable 2FA Protection")}
+                    </button>
+                  </div>
+
+                  <div className="text-xs font-mono text-slate-400">
                     {isAr
-                      ? "إقرار: أقر بأن كافة البيانات والوثائق المقدمة صحيحة ومطابقة للواقع وتخصني شخصياً وفق لوائح مكافحة غسيل الأموال الدولية."
-                      : "Declaration: I hereby affirm that all provided identity documentation is authentic and accurate under international AML laws."}
-                  </span>
+                      ? "المصادقة الثنائية تضيف طبقة حماية بنكية لأصولك تمنع أي وصول غير مصرح به حتى في حالة تسريب كلمة المرور."
+                      : "2FA enforces hardware-backed TOTP verification ensuring complete custody defense."}
+                  </div>
                 </div>
 
-                {/* Submit KYC Button */}
+                {/* Algorithmic Trading API Section */}
+                <div className="bg-[#0b101d] border border-slate-800/90 rounded-2xl p-5 sm:p-6 shadow-xl space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                    <div>
+                      <h2 className="text-base font-bold text-white flex items-center gap-2">
+                        <Key className="w-4 h-4 text-amber-400" />
+                        <span>{isAr ? "مفاتيح التداول الآلي (FIX 4.4 & REST Institutional API)" : "Algorithmic FIX 4.4 & REST API"}</span>
+                      </h2>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {isAr
+                          ? "ربط برامج التداول الخوارزمي، روبوتات MetaTrader، ومنصات Python لتنفيذ الصفقات بسرعة فائقة"
+                          : "Connect automated algorithmic bots, MetaTrader bridges, and Python strategies"}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleRegenerateApi}
+                      className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-mono font-bold transition-colors cursor-pointer border border-slate-700 flex items-center gap-1.5"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>{isAr ? "إعادة توليد المفاتيح" : "Regenerate Keys"}</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-4 text-xs font-mono">
+                    {/* API Key */}
+                    <div className="space-y-1.5">
+                      <label className="text-slate-400 block font-bold">API KEY (Public Client Identifier)</label>
+                      <div className="p-3 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-between">
+                        <span className="text-amber-400 select-all font-bold">
+                          {currentUser.apiKey || "ffx_live_9a8bc76d4e2f103984"}
+                        </span>
+                        <button
+                          onClick={() => handleCopy(currentUser.apiKey || "ffx_live_9a8bc76d4e2f103984", "api_key")}
+                          className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+                        >
+                          {copiedKey === "api_key" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* API Secret */}
+                    <div className="space-y-1.5">
+                      <label className="text-slate-400 block font-bold">API SECRET (Private Signing Key)</label>
+                      <div className="p-3 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-between">
+                        <span className="text-slate-300 font-bold">
+                          {showApiSecret
+                            ? currentUser.apiSecret || "sec_e8b74c0a1f9e8d7c6b5a4321fedcba09"
+                            : "••••••••••••••••••••••••••••••••••••••••"}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowApiSecret(!showApiSecret)}
+                            className="text-slate-400 hover:text-white cursor-pointer"
+                          >
+                            {showApiSecret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(currentUser.apiSecret || "sec_e8b74c0a1f9e8d7c6b5a4321fedcba09", "api_secret")}
+                            className="text-slate-400 hover:text-white cursor-pointer"
+                          >
+                            {copiedKey === "api_secret" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Endpoints */}
+                    <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1 text-[11px] text-slate-400">
+                      <div>REST Gateway: <strong className="text-white">https://api.fastfx.com/v1</strong></div>
+                      <div>FIX 4.4 Engine: <strong className="text-white">fix.ld4.fastfx.com:9800</strong></div>
+                      <div>Rate Limit: <strong className="text-emerald-400">10,000 req/min (Sub-millisecond)</strong></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* TAB 7: INSTITUTIONAL ACCOUNT SPECIFICATIONS                    */}
+            {/* ============================================================== */}
+            {activeTab === "specs" && (
+              <div className="space-y-6">
+                <div className="bg-[#0b101d] border border-slate-800/90 rounded-2xl p-5 sm:p-6 shadow-xl space-y-6">
+                  <div className="pb-4 border-b border-slate-800/80">
+                    <h2 className="text-base font-bold text-white flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-amber-400" />
+                      <span>{isAr ? "شروط التداول والمزايا المؤسسية المعتمدة" : "Institutional Specifications & Trading Conditions"}</span>
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {isAr
+                        ? "المواصفات الفنية المعتمدة لحسابك، معايير التنفيذ، والشهادات الشرعية والتنظيمية"
+                        : "Official execution parameters, regulatory certifications, and Sharia compliance"}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
+                    <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                      <span className="text-slate-500 block text-[11px]">{isAr ? "نوع الحساب والتنفيذ:" : "Account Execution Type:"}</span>
+                      <span className="text-white font-bold text-sm">ECN Raw Direct Market Access (DMA)</span>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                      <span className="text-slate-500 block text-[11px]">{isAr ? "فروق الأسعار (Spreads):" : "Spreads Model:"}</span>
+                      <span className="text-emerald-400 font-bold text-sm">Raw Spreads from 0.0 Pips</span>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                      <span className="text-slate-500 block text-[11px]">{isAr ? "الحساب الإسلامي الخالي من الفوائد:" : "Islamic Sharia Swap-Free:"}</span>
+                      <span className="text-amber-400 font-bold text-sm">100% Certified Swap-Free</span>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                      <span className="text-slate-500 block text-[11px]">{isAr ? "موقع الخوادم وسرعة الربط:" : "Infrastructure Datacenter:"}</span>
+                      <span className="text-sky-400 font-bold text-sm">Equinix London LD4 Fiber (&lt;12ms)</span>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                      <span className="text-slate-500 block text-[11px]">{isAr ? "حماية الرصيد السلبي:" : "Negative Balance Policy:"}</span>
+                      <span className="text-white font-bold text-sm">Full Institutional Statutory Protection</span>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                      <span className="text-slate-500 block text-[11px]">{isAr ? "فصل أموال العملاء (Segregated):" : "Custody Segregation:"}</span>
+                      <span className="text-emerald-400 font-bold text-sm">Tier-1 European & UK Custody Banks</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ==================================================================== */}
+      {/* MODAL 1: DIGITAL PRINTABLE RECEIPT MODAL                             */}
+      {/* ==================================================================== */}
+      {(completedTransferReceipt || selectedReceiptTx) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          {(() => {
+            const tx = completedTransferReceipt || selectedReceiptTx!;
+            return (
+              <div className="w-full max-w-md bg-[#0a0f1d] border border-amber-500/40 rounded-3xl p-6 sm:p-7 shadow-2xl relative text-xs font-mono space-y-5">
+                {/* Close Button */}
+                <button
+                  onClick={() => {
+                    setCompletedTransferReceipt(null);
+                    setSelectedReceiptTx(null);
+                  }}
+                  className="absolute top-4 right-4 text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                {/* Receipt Header with Fast FX Logo */}
+                <div className="text-center space-y-1.5 pb-4 border-b border-slate-800">
+                  <div className="w-12 h-12 mx-auto rounded-xl bg-[#070b14] p-1 border border-amber-500/40 shadow-md">
+                    <img
+                      src="/assets/brand/fast_fx_lightning_logo.jpg"
+                      alt="FAST FX"
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                  </div>
+                  <div className="text-amber-400 font-black text-sm tracking-wider">FAST FX INSTITUTIONAL</div>
+                  <div className="text-[11px] text-slate-400 uppercase tracking-widest">
+                    {isAr ? "سند تحويل رقمي معتمد" : "Official Transfer Voucher"}
+                  </div>
+                </div>
+
+                {/* Amount Stamp */}
+                <div className="text-center py-2 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-1">
+                  <div className="text-[11px] text-slate-400">{isAr ? "المبلغ المحول" : "Total Executed Amount"}</div>
+                  <div className="text-2xl font-black text-emerald-400 tabular-nums">
+                    ${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                  </div>
+                  <div className="text-[10px] text-slate-500">{tx.note}</div>
+                </div>
+
+                {/* Voucher Meta Grid */}
+                <div className="space-y-2 text-[11px]">
+                  <div className="flex justify-between py-1 border-b border-slate-800/60">
+                    <span className="text-slate-400">{isAr ? "الرقم المرجعي (Ref ID):" : "Reference Hash:"}</span>
+                    <span className="text-amber-400 font-bold">{tx.id.toUpperCase()}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-800/60">
+                    <span className="text-slate-400">{isAr ? "التوقيت الزمني:" : "Timestamp:"}</span>
+                    <span className="text-slate-300">{new Date(tx.timestamp).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-800/60">
+                    <span className="text-slate-400">{isAr ? "المرسل:" : "Origin Account:"}</span>
+                    <span className="text-slate-300">#{currentUser.id.slice(-8).toUpperCase()} ({currentUser.name})</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-800/60">
+                    <span className="text-slate-400">{isAr ? "العمولة المحصلة:" : "Network Fee:"}</span>
+                    <span className="text-emerald-400 font-bold">$0.00 (0% Free)</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-400">{isAr ? "حالة المعاملة:" : "Ledger Status:"}</span>
+                    <span className="text-emerald-400 font-bold">100% EXECUTED</span>
+                  </div>
+                </div>
+
+                {/* Printable Action Buttons */}
+                <div className="flex items-center gap-2 pt-2">
+                  <button
+                    onClick={() => window.print()}
+                    className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{isAr ? "طباعة السند" : "Print Voucher"}</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setCompletedTransferReceipt(null);
+                      setSelectedReceiptTx(null);
+                    }}
+                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    {isAr ? "إغلاق" : "Done"}
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* ==================================================================== */}
+      {/* MODAL 2: INSTANT DEPOSIT MODAL                                       */}
+      {/* ==================================================================== */}
+      {showDepositModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-md bg-[#0b101d] border border-emerald-500/40 rounded-3xl p-6 sm:p-7 shadow-2xl relative space-y-4">
+            <button
+              onClick={() => setShowDepositModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <PlusCircle className="w-4 h-4 text-emerald-400" />
+                <span>{isAr ? "إيداع فوري في المحفظة" : "Instant Deposit"}</span>
+              </h3>
+              <p className="text-xs text-slate-400">
+                {isAr ? "اختر طريقة الدفع والمبلغ للإيداع المباشر في حسابك" : "Select payment method and amount to credit your account"}
+              </p>
+            </div>
+
+            <form onSubmit={handleExecuteDeposit} className="space-y-4 text-xs font-sans">
+              <div>
+                <label className="block text-slate-300 mb-1 font-bold">{isAr ? "طريقة الإيداع" : "Method"}</label>
+                <select
+                  value={depositMethod}
+                  onChange={(e) => setDepositMethod(e.target.value as any)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono"
+                >
+                  <option value="USDT_TRC20">USDT TRC-20 (Crypto)</option>
+                  <option value="VISA_MASTERCARD">Visa / Mastercard</option>
+                  <option value="BANK_WIRE">Bank Wire</option>
+                  <option value="APPLE_PAY">Apple Pay</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 mb-1 font-bold">{isAr ? "المبلغ ($ USD)" : "Amount ($ USD)"}</label>
+                <input
+                  type="number"
+                  step="10"
+                  min="10"
+                  value={depositAmount}
+                  onChange={(e) => setDepositAmount(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono font-bold text-sm"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDepositModal(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-semibold cursor-pointer"
+                >
+                  {isAr ? "إلغاء" : "Cancel"}
+                </button>
                 <button
                   type="submit"
-                  disabled={isSubmittingKyc || currentUser.status === "frozen"}
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-sky-600 text-white font-bold text-sm transition-all cursor-pointer shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                  disabled={isDepositing}
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold cursor-pointer shadow-md"
                 >
-                  {isSubmittingKyc ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <FileCheck className="w-4 h-4" />
-                  )}
-                  <span>{isAr ? "إرسال طلب التوثيق الرسمي للإدارة" : "Submit Official KYC Verification Request"}</span>
+                  {isDepositing ? (isAr ? "جاري الإيداع..." : "Depositing...") : (isAr ? "إيداع الآن" : "Deposit Now")}
                 </button>
-              </form>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 7. Tab 4: Financial Ledger & Transfer History */}
-      {activeTab === "ledger" && (
-        <div className="bg-[#0c1322] border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-            <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <FileText className="w-5 h-5 text-emerald-400" />
-                <span>{isAr ? "سجل المعاملات والتحويلات المالية" : "Financial Transactions & Transfers Ledger"}</span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {isAr
-                  ? "سجل حساب موحد يسجل كافة التحويلات الصادرة والواردة، الإيداعات والسحوبات مع ختم رقمي."
-                  : "Complete ledger tracking deposits, withdrawals, and peer-to-peer client transfers."}
-              </p>
-            </div>
-
-            {/* Filter buttons */}
-            <div className="flex items-center gap-1.5 flex-wrap text-xs">
-              {[
-                { id: "ALL", labelAr: "الكل", labelEn: "All" },
-                { id: "TRANSFER_OUT", labelAr: "تحويلات صادرة", labelEn: "Transfers Out" },
-                { id: "TRANSFER_IN", labelAr: "تحويلات واردة", labelEn: "Transfers In" },
-                { id: "DEPOSIT", labelAr: "إيداعات", labelEn: "Deposits" },
-                { id: "WITHDRAWAL", labelAr: "سحوبات", labelEn: "Withdrawals" }
-              ].map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => setLedgerTypeFilter(f.id)}
-                  className={`px-3 py-1.5 rounded-lg font-mono text-xs transition-colors cursor-pointer ${
-                    ledgerTypeFilter === f.id
-                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold"
-                      : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
-                  }`}
-                >
-                  {isAr ? f.labelAr : f.labelEn}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Search bar */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
-            <input
-              type="text"
-              placeholder={isAr ? "بحث في سجل المعاملات بالبيان أو رقم العملية..." : "Filter transactions by memo or ID..."}
-              value={ledgerSearch}
-              onChange={(e) => setLedgerSearch(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl pr-10 pl-3 py-2 text-xs focus:outline-none focus:border-amber-400 font-sans"
-            />
-          </div>
-
-          {/* Table */}
-          <div className="overflow-x-auto rounded-2xl border border-slate-800">
-            <table className="w-full text-right text-xs">
-              <thead className="bg-slate-900 text-slate-400 uppercase text-[10px] font-mono border-b border-slate-800">
-                <tr>
-                  <th className="py-3 px-4">{isAr ? "رقم العملية والوقت" : "Tx ID & Time"}</th>
-                  <th className="py-3 px-4">{isAr ? "نوع المعاملة" : "Type"}</th>
-                  <th className="py-3 px-4">{isAr ? "البيان والتفاصيل" : "Description / Memo"}</th>
-                  <th className="py-3 px-4">{isAr ? "المبلغ" : "Amount"}</th>
-                  <th className="py-3 px-4">{isAr ? "الرصيد بعدها" : "Balance After"}</th>
-                  <th className="py-3 px-4 text-center">{isAr ? "الإيصال" : "Receipt"}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/80 font-mono text-[11px]">
-                {filteredTransactions.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-500 font-sans">
-                      {isAr ? "لا توجد معاملات مسجلة تطابق التصفية الحالية." : "No transactions match the selected filter."}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredTransactions.map((tx) => {
-                    const isCredit =
-                      tx.type === "DEPOSIT" ||
-                      tx.type === "ADMIN_CREDIT" ||
-                      tx.type === "TRANSFER_IN" ||
-                      tx.type === "TRADE_PROFIT";
-
-                    return (
-                      <tr key={tx.id} className="hover:bg-slate-900/50 transition-colors">
-                        <td className="py-3 px-4">
-                          <div className="text-white font-bold">{tx.id}</div>
-                          <div className="text-[10px] text-slate-500">
-                            {new Date(tx.timestamp).toLocaleString(isAr ? "ar-EG" : "en-US", {
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit"
-                            })}
-                          </div>
-                        </td>
-
-                        <td className="py-3 px-4">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              tx.type === "TRANSFER_OUT"
-                                ? "bg-amber-500/15 text-amber-300 border border-amber-500/30"
-                                : tx.type === "TRANSFER_IN"
-                                ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
-                                : tx.type === "DEPOSIT"
-                                ? "bg-sky-500/15 text-sky-300 border border-sky-500/30"
-                                : "bg-rose-500/15 text-rose-300 border border-rose-500/30"
-                            }`}
-                          >
-                            {tx.type.replace(/_/g, " ")}
-                          </span>
-                        </td>
-
-                        <td className="py-3 px-4 font-sans text-slate-300 max-w-xs truncate">
-                          {tx.note}
-                        </td>
-
-                        <td className={`py-3 px-4 font-bold tabular-nums text-sm ${isCredit ? "text-emerald-400" : "text-rose-400"}`}>
-                          {isCredit ? "+" : "-"}${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </td>
-
-                        <td className="py-3 px-4 text-slate-300 tabular-nums">
-                          ${tx.balanceAfter.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </td>
-
-                        <td className="py-3 px-4 text-center">
-                          <button
-                            onClick={() => setCompletedTransferReceipt(tx)}
-                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer text-[10px] font-sans"
-                            title={isAr ? "عرض وطباعة الإيصال الرقمي" : "View Receipt"}
-                          >
-                            {isAr ? "عرض الإيصال" : "Receipt"}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
-      {/* 8. Tab 5: Security & Institutional API Keys */}
-      {activeTab === "security" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Two-Factor Authentication */}
-          <div className="bg-[#0c1322] border border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xl space-y-5">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
-                <Smartphone className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white">
-                  {isAr ? "التحقق بخطوتين (2-Factor Authentication)" : "Two-Factor Authentication (2FA)"}
-                </h3>
-                <p className="text-xs text-slate-400">
-                  {isAr ? "حماية إضافية لحسابك وسحوباتك عبر تطبيق Google Authenticator" : "Extra protection using TOTP authenticator"}
-                </p>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between">
-              <div>
-                <div className="font-bold text-white text-xs">
-                  {currentUser.twoFactorEnabled ? (isAr ? "الحماية بخطوتين مفعلة" : "2FA Active") : (isAr ? "الحماية غير مفعلة" : "2FA Inactive")}
-                </div>
-                <div className="text-[11px] text-slate-400 mt-0.5">
-                  {currentUser.twoFactorEnabled
-                    ? (isAr ? "يطلب رمز OTP عند كل تسجيل دخول أو سحب مالي" : "OTP required for login and withdrawals")
-                    : (isAr ? "يوصى بتفعيلها لرفع تصنيف أمان الحساب" : "Recommended for maximum account security")}
-                </div>
-              </div>
-
-              <button
-                onClick={handleToggle2FA}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  currentUser.twoFactorEnabled
-                    ? "bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30"
-                    : "bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20"
-                }`}
-              >
-                {currentUser.twoFactorEnabled ? (isAr ? "تعطيل 2FA" : "Disable 2FA") : (isAr ? "تفعيل الآن" : "Enable 2FA")}
-              </button>
-            </div>
-          </div>
-
-          {/* Institutional Algorithmic API Credentials */}
-          <div className="bg-[#0c1322] border border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xl space-y-5">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400">
-                <Key className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white">
-                  {isAr ? "مفاتيح التداول الخوارزمي المؤسسي (FIX 4.4 / REST)" : "Institutional Algorithmic API Keys"}
-                </h3>
-                <p className="text-xs text-slate-400">
-                  {isAr ? "ربط برامج التداول الآلي وExpert Advisors ومحركات Python" : "Connect MT4/MT5 bridges, Python algorithms, or FIX engines"}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3 font-mono text-xs">
-              <div>
-                <label className="block text-slate-400 text-[11px] mb-1">API Key:</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    readOnly
-                    value={currentUser.apiKey || "fastfx_live_institutional_uninitialized"}
-                    className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded-xl px-3 py-2 text-xs"
-                  />
-                  <button
-                    onClick={() => handleCopy(currentUser.apiKey || "fastfx_live_institutional_demo", "apiKey")}
-                    className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer shrink-0"
-                    title="Copy API Key"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-slate-400 text-[11px] mb-1">API Secret:</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type={showApiSecret ? "text" : "password"}
-                    readOnly
-                    value={currentUser.apiSecret || "sec_e8472910482019482019482"}
-                    className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded-xl px-3 py-2 text-xs"
-                  />
-                  <button
-                    onClick={() => setShowApiSecret(!showApiSecret)}
-                    className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer shrink-0"
-                    title={showApiSecret ? "Hide" : "Show"}
-                  >
-                    {showApiSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  onClick={handleGenerateApiKeys}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 text-xs font-sans font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>{isAr ? "إعادة توليد مفاتيح جديدة" : "Regenerate Keys"}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 9. Digital Cryptographic Receipt Modal */}
-      {completedTransferReceipt && (
+      {/* ==================================================================== */}
+      {/* MODAL 3: WITHDRAWAL REQUEST MODAL                                    */}
+      {/* ==================================================================== */}
+      {showWithdrawModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-md bg-[#0c1322] border border-amber-500/40 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 text-center relative">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-400">
-              <CheckCircle2 className="w-8 h-8" />
-            </div>
+          <div className="w-full max-w-md bg-[#0b101d] border border-rose-500/40 rounded-3xl p-6 sm:p-7 shadow-2xl relative space-y-4">
+            <button
+              onClick={() => setShowWithdrawModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
 
-            <div>
-              <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/15 px-2.5 py-0.5 rounded uppercase">
-                FAST FX OFFICIAL LEDGER RECEIPT
-              </span>
-              <h3 className="text-xl font-black text-white mt-2">
-                {isAr ? "إيصال تحويل مالي معتمد" : "Official Transfer Receipt"}
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <ArrowUpRight className="w-4 h-4 text-rose-400" />
+                <span>{isAr ? "طلب سحب الأرباح" : "Request Withdrawal"}</span>
               </h3>
-              <p className="text-xs text-slate-400 font-mono mt-0.5">
-                TX: {completedTransferReceipt.id}
+              <p className="text-xs text-slate-400">
+                {isAr ? "رصيدك المتاح للسحب:" : "Available:"} <strong className="text-emerald-400">${currentUser.balance.toLocaleString()}</strong>
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2 text-xs font-mono text-right">
-              <div className="flex items-center justify-between text-slate-400">
-                <span>{isAr ? "المبلغ المحول:" : "Amount:"}</span>
-                <span className="text-emerald-400 font-bold text-base tabular-nums">
-                  ${completedTransferReceipt.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} USD
-                </span>
+            <form onSubmit={handleExecuteWithdrawal} className="space-y-4 text-xs font-sans">
+              <div>
+                <label className="block text-slate-300 mb-1 font-bold">{isAr ? "المبلغ ($ USD)" : "Amount"}</label>
+                <input
+                  type="number"
+                  step="1"
+                  min="10"
+                  max={currentUser.balance}
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono font-bold text-sm"
+                />
               </div>
-              <div className="flex items-center justify-between text-slate-400">
-                <span>{isAr ? "التاريخ والوقت:" : "Timestamp:"}</span>
-                <span className="text-slate-200">
-                  {new Date(completedTransferReceipt.timestamp).toLocaleString(isAr ? "ar-EG" : "en-US")}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-slate-400">
-                <span>{isAr ? "نوع المعاملة:" : "Type:"}</span>
-                <span className="text-white">{completedTransferReceipt.type}</span>
-              </div>
-              <div className="pt-2 border-t border-slate-800 text-[11px] text-slate-300 font-sans">
-                {completedTransferReceipt.note}
-              </div>
-            </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="flex-1 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-              >
-                <Printer className="w-4 h-4 text-sky-400" />
-                <span>{isAr ? "طباعة الإيصال" : "Print"}</span>
-              </button>
+              <div>
+                <label className="block text-slate-300 mb-1 font-bold">{isAr ? "عنوان المحفظة أو IBAN" : "Address / IBAN"}</label>
+                <input
+                  type="text"
+                  required
+                  value={withdrawAddress}
+                  onChange={(e) => setWithdrawAddress(e.target.value)}
+                  placeholder={isAr ? "اكتب عنوان المحفظة أو الحساب..." : "Enter wallet address or IBAN..."}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono"
+                />
+              </div>
 
-              <button
-                type="button"
-                onClick={() => setCompletedTransferReceipt(null)}
-                className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-colors cursor-pointer"
-              >
-                {isAr ? "إغلاق" : "Close"}
-              </button>
-            </div>
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowWithdrawModal(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-semibold cursor-pointer"
+                >
+                  {isAr ? "إلغاء" : "Cancel"}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingWithdrawal || !withdrawAmount || !withdrawAddress}
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 text-white font-bold cursor-pointer shadow-md disabled:opacity-50"
+                >
+                  {isSubmittingWithdrawal ? (isAr ? "جاري الإرسال..." : "Submitting...") : (isAr ? "تأكيد السحب" : "Confirm")}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -1203,6 +1203,44 @@ class SqlDatabaseEngine {
     return { success: true, newBalance: newBal };
   }
 
+  // --- Client Direct Deposit ---
+  public depositFunds(
+    userId: string,
+    amount: number,
+    paymentMethod: string,
+    txRef?: string
+  ): { success: boolean; error?: string; newBalance?: number } {
+    const user = this.state.users.find((u) => u.id === userId);
+    if (!user) return { success: false, error: "المستخدم غير موجود" };
+    if (user.status === "frozen") return { success: false, error: "الحساب مجمد حالياً، يرجى مراجعة إدارة الامتثال" };
+    if (amount <= 0 || isNaN(amount)) return { success: false, error: "مبلغ الإيداع يجب أن يكون أكبر من الصفر" };
+
+    const cleanAmount = Number(amount.toFixed(2));
+    user.balance = Number((user.balance + cleanAmount).toFixed(2));
+    user.equity = user.balance;
+
+    const ref = txRef || `DEP-${Date.now().toString(36).toUpperCase()}`;
+
+    this.state.transactions.unshift({
+      id: `tx_${Date.now().toString(36)}`,
+      userId: user.id,
+      userEmail: user.email,
+      type: "DEPOSIT",
+      amount: cleanAmount,
+      balanceAfter: user.balance,
+      note: `إيداع فوري عبر ${paymentMethod} (${ref})`,
+      timestamp: new Date().toISOString()
+    });
+
+    this.addAuditLog(
+      user.email,
+      "USER_DEPOSIT",
+      `Client deposited $${cleanAmount} via ${paymentMethod}. New balance: $${user.balance}`
+    );
+    this.saveToStorage();
+    return { success: true, newBalance: user.balance };
+  }
+
   // --- 2. Freeze / Unfreeze Client Account ---
   public freezeUser(userId: string, reason?: string): { success: boolean; error?: string } {
     const user = this.state.users.find((u) => u.id === userId);
