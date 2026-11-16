@@ -25,6 +25,31 @@ export interface User {
   apiKey?: string;
   apiSecret?: string;
   vipRank?: "STANDARD" | "GOLD" | "PLATINUM" | "BLACK_DIAMOND";
+  subscriptionTier?: SubscriptionTierId;
+  subscriptionUpdatedAt?: string;
+}
+
+export type SubscriptionTierId = "bronze" | "silver" | "gold";
+
+export interface SubscriptionPlan {
+  id: SubscriptionTierId;
+  nameAr: string;
+  nameEn: string;
+  badgeColor: string;
+  minDeposit: number;
+  priceMonthly: number;
+  spreadFromPips: number;
+  maxLeverage: number;
+  executionSpeedMs: number;
+  swapFreeIslamic: boolean;
+  dedicatedManager: boolean;
+  tradingSignals: boolean;
+  apiAccess: boolean;
+  descriptionAr: string;
+  descriptionEn: string;
+  customPerks: string[];
+  active: boolean;
+  recommended?: boolean;
 }
 
 export interface KycSubmissionPayload {

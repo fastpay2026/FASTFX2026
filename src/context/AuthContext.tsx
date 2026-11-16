@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { User } from "../types";
+import { User, SubscriptionTierId } from "../types";
 import { sqlDb, SUPER_ADMIN_EMAIL } from "../db/sqlEngine";
 
 export interface LoginResult {
@@ -17,7 +17,7 @@ interface AuthContextType {
   activeAuthTab: "login" | "register";
   openAuthModal: (tab?: "login" | "register") => void;
   closeAuthModal: () => void;
-  login: (identifier: string, password?: string, name?: string) => LoginResult;
+  login: (identifier: string, password?: string, name?: string, subscriptionTier?: SubscriptionTierId) => LoginResult;
   loginAsAdmin: (password?: string) => LoginResult;
   loginAsTrader: () => LoginResult;
   logout: () => void;
@@ -63,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return unsubscribe;
   }, [refreshUser]);
 
-  const login = (identifier: string, password?: string, name?: string): LoginResult => {
+  const login = (identifier: string, password?: string, name?: string, subscriptionTier?: SubscriptionTierId): LoginResult => {
     const cleanId = (identifier || "").trim();
     const cleanPass = (password || "").trim();
 
@@ -118,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const email = cleanId.includes("@") ? cleanId : `${cleanId.toLowerCase()}@trader.fastfx.com`;
-    const user = sqlDb.registerUser(email, name || cleanId);
+    const user = sqlDb.registerUser(email, name || cleanId, subscriptionTier);
     setCurrentUser(user);
     try {
       localStorage.setItem(SESSION_KEY, user.email);

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { sqlDb, SUPER_ADMIN_EMAIL } from "../db/sqlEngine";
 import { translations, Language } from "../translations";
-import { User, Transaction, KycSubmissionPayload, FundRequest } from "../types";
+import { User, Transaction, KycSubmissionPayload, FundRequest, SubscriptionPlan, SubscriptionTierId } from "../types";
 import {
   User as UserIcon,
   ShieldCheck,
@@ -41,6 +41,7 @@ import {
   ArrowUpRight,
   FileCheck,
   Award,
+  Crown,
   UploadCloud,
   ChevronRight,
   CreditCard,
@@ -62,6 +63,7 @@ interface UserProfilePortalProps {
 
 type TabType =
   | "portfolio"
+  | "subscription"
   | "transfer"
   | "kyc"
   | "ledger"
@@ -232,6 +234,21 @@ export const UserProfilePortal: React.FC<UserProfilePortalProps> = ({
       glow: ""
     };
   }, [currentUser, isAr]);
+
+  // Subscription Plans & Live Realtime Sync
+  const [plans, setPlans] = useState<SubscriptionPlan[]>(() => sqlDb.getSubscriptionPlans());
+
+  useEffect(() => {
+    const unsub = sqlDb.subscribe(() => {
+      setPlans(sqlDb.getSubscriptionPlans());
+    });
+    return unsub;
+  }, []);
+
+  const currentPlan = useMemo(() => {
+    const tier = currentUser?.subscriptionTier || "bronze";
+    return plans.find((p) => p.id === tier) || plans[0] || null;
+  }, [currentUser?.subscriptionTier, plans]);
 
   // Handle Demo Refill
   const handleRefillDemo = () => {
@@ -679,11 +696,38 @@ export const UserProfilePortal: React.FC<UserProfilePortalProps> = ({
                   <div className="text-[11px] font-mono text-amber-400 font-semibold mt-0.5">
                     {vipRankBadge.label}
                   </div>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <button
+                      onClick={() => setActiveTab("subscription")}
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold border transition-all cursor-pointer ${
+                        currentUser.subscriptionTier === "gold"
+                          ? "border-amber-500/50 bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 shadow-sm shadow-amber-500/20"
+                          : currentUser.subscriptionTier === "silver"
+                          ? "border-slate-400/50 bg-slate-400/15 text-slate-200 hover:bg-slate-400/25"
+                          : "border-amber-700/50 bg-amber-700/15 text-amber-500 hover:bg-amber-700/25"
+                      }`}
+                      title={isAr ? "عرض تفاصيل باقة الاشتراك" : "View subscription details"}
+                    >
+                      <Crown className="w-3 h-3 text-amber-400" />
+                      <span>{currentPlan ? (isAr ? currentPlan.nameAr : currentPlan.nameEn) : (isAr ? "الاشتراك البرونزي" : "Bronze Tier")}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Zero-Pill Account Specs Metadata */}
               <div className="pt-3 border-t border-slate-800/80 space-y-2 text-xs font-mono">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span>{isAr ? "باقة الاشتراك:" : "Subscription Plan:"}</span>
+                  <button
+                    onClick={() => setActiveTab("subscription")}
+                    className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <span>{currentPlan ? (isAr ? currentPlan.nameAr : currentPlan.nameEn) : (isAr ? "برونزي" : "Bronze")}</span>
+                    <ChevronRight className="w-3 h-3 text-slate-500" />
+                  </button>
+                </div>
+
                 <div className="flex items-center justify-between text-slate-400">
                   <span>{isAr ? "معرّف الحساب:" : "Account ID:"}</span>
                   <button
@@ -738,6 +782,29 @@ export const UserProfilePortal: React.FC<UserProfilePortalProps> = ({
                   <span>{isAr ? "المحفظة والسيولة" : "Portfolio & Balances"}</span>
                 </div>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+              </button>
+
+              <button
+                onClick={() => setActiveTab("subscription")}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === "subscription"
+                    ? "bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 border border-amber-500/40 font-bold shadow-sm"
+                    : "text-slate-400 hover:text-white hover:bg-slate-900/60"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Crown className="w-4 h-4 text-amber-400" />
+                  <span>{isAr ? "باقة الاشتراك والخصائص" : "Subscription & Perks"}</span>
+                </div>
+                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border uppercase font-bold ${
+                  currentUser.subscriptionTier === "gold"
+                    ? "border-amber-500/40 text-amber-400 bg-amber-500/10"
+                    : currentUser.subscriptionTier === "silver"
+                    ? "border-slate-500/40 text-slate-300 bg-slate-500/10"
+                    : "border-amber-700/40 text-amber-500 bg-amber-700/10"
+                }`}>
+                  {currentUser.subscriptionTier === "gold" ? "GOLD" : currentUser.subscriptionTier === "silver" ? "SILVER" : "BRONZE"}
+                </span>
               </button>
 
               <button
@@ -1057,6 +1124,361 @@ export const UserProfilePortal: React.FC<UserProfilePortalProps> = ({
                       ))}
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* TAB: SUBSCRIPTION PLANS & DYNAMIC PERKS                        */}
+            {/* ============================================================== */}
+            {activeTab === "subscription" && (
+              <div className="space-y-6">
+                {/* Active Plan Hero Header */}
+                <div className={`p-6 sm:p-7 rounded-2xl border relative overflow-hidden shadow-2xl transition-all ${
+                  currentUser.subscriptionTier === "gold"
+                    ? "bg-gradient-to-br from-amber-950/30 via-[#0b101d] to-[#070b14] border-amber-500/50 shadow-amber-500/10"
+                    : currentUser.subscriptionTier === "silver"
+                    ? "bg-gradient-to-br from-slate-800/30 via-[#0b101d] to-[#070b14] border-slate-500/50 shadow-slate-500/10"
+                    : "bg-gradient-to-br from-amber-900/20 via-[#0b101d] to-[#070b14] border-amber-700/50 shadow-amber-900/10"
+                }`}>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-800/80">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">
+                          {isAr ? "باقة العضوية الحالية المعتمدة" : "Active Subscription Membership"}
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          <span>{isAr ? "نشطة ومفعّلة" : "ACTIVE"}</span>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Crown className={`w-7 h-7 shrink-0 ${
+                          currentUser.subscriptionTier === "gold"
+                            ? "text-amber-400 animate-pulse"
+                            : currentUser.subscriptionTier === "silver"
+                            ? "text-slate-300"
+                            : "text-amber-600"
+                        }`} />
+                        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                          {currentPlan ? (isAr ? currentPlan.nameAr : currentPlan.nameEn) : (isAr ? "الاشتراك البرونزي" : "Bronze Plan")}
+                        </h1>
+                      </div>
+                      <p className="text-xs text-slate-400 max-w-xl leading-relaxed">
+                        {currentPlan ? (isAr ? currentPlan.descriptionAr : currentPlan.descriptionEn) : ""}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col items-start md:items-end gap-1 shrink-0 font-mono">
+                      <div className="text-[11px] text-slate-500">{isAr ? "الحد الأدنى المطلوب للإيداع" : "Min Deposit Required"}</div>
+                      <div className="text-2xl font-black text-white tabular-nums">
+                        ${(currentPlan?.minDeposit ?? 250).toLocaleString()} USD
+                      </div>
+                      <div className="text-[11px] text-emerald-400 font-semibold">
+                        {isAr ? "تفعيل تلقائي مع كل إيداع" : "Auto-Qualified on Deposit"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* High-Impact Technical Parameters Strip */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-5">
+                    <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                      <div className="text-[11px] font-mono text-slate-400 mb-1">{isAr ? "فروق الأسعار (Spreads)" : "Raw Spreads"}</div>
+                      <div className="text-lg font-black text-emerald-400 font-mono tabular-nums">
+                        {currentPlan?.spreadFromPips === 0 ? "0.0 RAW" : `${currentPlan?.spreadFromPips ?? 1.4} Pips`}
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-mono mt-0.5">{isAr ? "بدون زيادة سعرية" : "Zero Markup"}</div>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                      <div className="text-[11px] font-mono text-slate-400 mb-1">{isAr ? "الرافعة المالية القصوى" : "Max Leverage"}</div>
+                      <div className="text-lg font-black text-white font-mono tabular-nums">
+                        1:{currentPlan?.maxLeverage ?? 100}
+                      </div>
+                      <div className="text-[10px] text-sky-400 font-mono mt-0.5">{isAr ? "تحكم مرن في الهامش" : "Dynamic Margin"}</div>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                      <div className="text-[11px] font-mono text-slate-400 mb-1">{isAr ? "سرعة تنفيذ الأوامر" : "Latency / Speed"}</div>
+                      <div className="text-lg font-black text-amber-400 font-mono tabular-nums">
+                        &lt;{currentPlan?.executionSpeedMs ?? 45}ms
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-mono mt-0.5">Equinix LD4 Fiber</div>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                      <div className="text-[11px] font-mono text-slate-400 mb-1">{isAr ? "رسوم الصيانة الشهرية" : "Monthly Pricing"}</div>
+                      <div className="text-lg font-black text-emerald-400 font-mono tabular-nums">
+                        $0 / {isAr ? "مجاني" : "Free"}
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-mono mt-0.5">{isAr ? "للمتداولين النشطين" : "Active Traders"}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Core Privileges Status Grid */}
+                <div className="bg-[#0b101d] border border-slate-800/90 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+                  <div className="pb-3 border-b border-slate-800 flex items-center justify-between">
+                    <h2 className="text-base font-bold text-white flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-amber-400" />
+                      <span>{isAr ? "المزايا الأساسية المضمونة في باقتك" : "Guaranteed Core Privileges"}</span>
+                    </h2>
+                    <span className="text-xs font-mono text-slate-400">FAST FX INSTITUTIONAL</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className={`p-3.5 rounded-xl border flex items-center justify-between ${
+                      currentPlan?.swapFreeIslamic ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300" : "bg-slate-900 border-slate-800 text-slate-500"
+                    }`}>
+                      <div className="flex items-center gap-2.5 font-medium">
+                        <CheckCheck className="w-4 h-4 shrink-0 text-emerald-400" />
+                        <span>{isAr ? "حساب إسلامي شرعي 100% خالٍ من فوائد التبييت (Swap-Free)" : "100% Certified Islamic Swap-Free"}</span>
+                      </div>
+                      <span className="font-mono text-[10px] font-bold text-emerald-400">{isAr ? "مفعّل" : "ACTIVE"}</span>
+                    </div>
+
+                    <div className={`p-3.5 rounded-xl border flex items-center justify-between ${
+                      currentPlan?.dedicatedManager ? "bg-amber-500/10 border-amber-500/30 text-amber-300" : "bg-slate-900 border-slate-800 text-slate-500"
+                    }`}>
+                      <div className="flex items-center gap-2.5 font-medium">
+                        {currentPlan?.dedicatedManager ? (
+                          <CheckCheck className="w-4 h-4 shrink-0 text-amber-400" />
+                        ) : (
+                          <X className="w-4 h-4 shrink-0 text-slate-600" />
+                        )}
+                        <span>{isAr ? "مدير حساب مؤسسي شخصي متاح 24/7" : "Dedicated Senior Account Manager"}</span>
+                      </div>
+                      <span className={`font-mono text-[10px] font-bold ${currentPlan?.dedicatedManager ? "text-amber-400" : "text-slate-600"}`}>
+                        {currentPlan?.dedicatedManager ? (isAr ? "مشمول" : "INCLUDED") : (isAr ? "غير مشمول" : "N/A")}
+                      </span>
+                    </div>
+
+                    <div className={`p-3.5 rounded-xl border flex items-center justify-between ${
+                      currentPlan?.tradingSignals ? "bg-sky-500/10 border-sky-500/30 text-sky-300" : "bg-slate-900 border-slate-800 text-slate-500"
+                    }`}>
+                      <div className="flex items-center gap-2.5 font-medium">
+                        {currentPlan?.tradingSignals ? (
+                          <CheckCheck className="w-4 h-4 shrink-0 text-sky-400" />
+                        ) : (
+                          <X className="w-4 h-4 shrink-0 text-slate-600" />
+                        )}
+                        <span>{isAr ? "توصيات تداول حية وتحديثات التحليل الفني اليومية" : "Live Trading Signals & Market Intelligence"}</span>
+                      </div>
+                      <span className={`font-mono text-[10px] font-bold ${currentPlan?.tradingSignals ? "text-sky-400" : "text-slate-600"}`}>
+                        {currentPlan?.tradingSignals ? (isAr ? "مشمول" : "INCLUDED") : (isAr ? "غير مشمول" : "N/A")}
+                      </span>
+                    </div>
+
+                    <div className={`p-3.5 rounded-xl border flex items-center justify-between ${
+                      currentPlan?.apiAccess ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-300" : "bg-slate-900 border-slate-800 text-slate-500"
+                    }`}>
+                      <div className="flex items-center gap-2.5 font-medium">
+                        {currentPlan?.apiAccess ? (
+                          <CheckCheck className="w-4 h-4 shrink-0 text-indigo-400" />
+                        ) : (
+                          <X className="w-4 h-4 shrink-0 text-slate-600" />
+                        )}
+                        <span>{isAr ? "واجهات برمجة روبوتات التداول FIX 4.4 & REST Institutional API" : "FIX 4.4 & REST Algorithmic API"}</span>
+                      </div>
+                      <span className={`font-mono text-[10px] font-bold ${currentPlan?.apiAccess ? "text-indigo-400" : "text-slate-600"}`}>
+                        {currentPlan?.apiAccess ? (isAr ? "مشمول" : "INCLUDED") : (isAr ? "غير مشمول" : "N/A")}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dynamic Custom Perks Configured Exclusively by Admin */}
+                <div className="bg-[#0b101d] border border-amber-500/30 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+                  <div className="pb-3 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <h2 className="text-base font-bold text-white flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-amber-400" />
+                        <span>{isAr ? "الخصائص والمزايا الحصرية المحددة من الإدارة" : "Custom Perks Configured by Administration"}</span>
+                      </h2>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {isAr
+                          ? "خصائص ديناميكية تُخصصها وتُحدثها إدارة FAST FX حصرياً لكل باقة اشتراك."
+                          : "Dynamic properties exclusively curated and maintained by broker leadership."}
+                      </p>
+                    </div>
+
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-mono shrink-0">
+                      <Lock className="w-3 h-3 text-amber-400" />
+                      <span>{isAr ? "تحكم الإدارة فقط" : "Admin Managed"}</span>
+                    </div>
+                  </div>
+
+                  {currentPlan && currentPlan.customPerks && currentPlan.customPerks.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {currentPlan.customPerks.map((perk, idx) => (
+                        <div
+                          key={idx}
+                          className="p-3.5 rounded-xl bg-slate-900/90 border border-amber-500/20 hover:border-amber-500/40 transition-colors flex items-start gap-3"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400 font-mono text-xs font-bold">
+                            {idx + 1}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-slate-200 text-xs font-semibold leading-snug">{perk}</div>
+                            <div className="text-[10px] font-mono text-slate-500 mt-1 flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                              <span>{isAr ? "ميزة نشطة في حسابك" : "Active on your account"}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center text-xs text-slate-500 font-mono bg-slate-900/50 rounded-xl border border-slate-800">
+                      {isAr ? "لا توجد خصائص إضافية مخصصة حالياً لهذه الباقة" : "No custom perks configured for this tier yet"}
+                    </div>
+                  )}
+                </div>
+
+                {/* All 3 Tiers Comparison Matrix */}
+                <div className="bg-[#0b101d] border border-slate-800/90 rounded-2xl p-5 sm:p-6 shadow-xl space-y-5">
+                  <div className="pb-3 border-b border-slate-800">
+                    <h2 className="text-base font-bold text-white flex items-center gap-2">
+                      <Award className="w-4 h-4 text-amber-400" />
+                      <span>{isAr ? "مقارنة باقات الاشتراكات الثلاث المعتمدة" : "All 3 Subscription Tiers Comparison"}</span>
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {isAr
+                        ? "استعرض الفروقات بين باقات الحساب البرونزي، الفضي، والذهبي VIP."
+                        : "Compare features, execution models, and spreads across Bronze, Silver, and Gold VIP tiers."}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {plans.map((p) => {
+                      const isCurrent = (currentUser.subscriptionTier || "bronze") === p.id;
+                      const isGold = p.id === "gold";
+                      const isSilver = p.id === "silver";
+
+                      return (
+                        <div
+                          key={p.id}
+                          className={`rounded-2xl p-5 border relative flex flex-col justify-between transition-all ${
+                            isCurrent
+                              ? isGold
+                                ? "bg-amber-950/20 border-amber-500 ring-2 ring-amber-500/30"
+                                : isSilver
+                                ? "bg-slate-900/90 border-slate-400 ring-2 ring-slate-400/30"
+                                : "bg-amber-950/10 border-amber-700 ring-2 ring-amber-700/30"
+                              : "bg-slate-900/50 border-slate-800 hover:border-slate-700"
+                          }`}
+                        >
+                          {/* Active Plan Tag */}
+                          {isCurrent && (
+                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-md">
+                              {isAr ? "باقتك الحالية" : "YOUR ACTIVE TIER"}
+                            </div>
+                          )}
+
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                                isGold
+                                  ? "border-amber-500/40 text-amber-400 bg-amber-500/10"
+                                  : isSilver
+                                  ? "border-slate-500/40 text-slate-300 bg-slate-500/10"
+                                  : "border-amber-700/40 text-amber-500 bg-amber-700/10"
+                              }`}>
+                                {p.id.toUpperCase()}
+                              </span>
+                              <div className="text-right">
+                                <div className="text-xs text-slate-500 font-mono">{isAr ? "إيداع من" : "From"}</div>
+                                <div className="text-sm font-black text-white font-mono">${p.minDeposit.toLocaleString()}</div>
+                              </div>
+                            </div>
+
+                            <div>
+                              <h3 className="text-base font-bold text-white">
+                                {isAr ? p.nameAr : p.nameEn}
+                              </h3>
+                              <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                                {isAr ? p.descriptionAr : p.descriptionEn}
+                              </p>
+                            </div>
+
+                            {/* Core Specs */}
+                            <div className="space-y-1.5 text-xs font-mono pt-3 border-t border-slate-800">
+                              <div className="flex justify-between text-slate-400">
+                                <span>{isAr ? "فروق الأسعار:" : "Spreads:"}</span>
+                                <span className="text-white font-bold">{p.spreadFromPips === 0 ? "0.0 Raw" : `${p.spreadFromPips} Pips`}</span>
+                              </div>
+                              <div className="flex justify-between text-slate-400">
+                                <span>{isAr ? "الرافعة:" : "Leverage:"}</span>
+                                <span className="text-white font-bold">1:{p.maxLeverage}</span>
+                              </div>
+                              <div className="flex justify-between text-slate-400">
+                                <span>{isAr ? "زمن التنفيذ:" : "Speed:"}</span>
+                                <span className="text-amber-400 font-bold">&lt;{p.executionSpeedMs}ms</span>
+                              </div>
+                              <div className="flex justify-between text-slate-400">
+                                <span>{isAr ? "حساب إسلامي:" : "Islamic:"}</span>
+                                <span className="text-emerald-400 font-bold">{isAr ? "متاح" : "Yes"}</span>
+                              </div>
+                              <div className="flex justify-between text-slate-400">
+                                <span>{isAr ? "مدير حساب خاص:" : "Manager:"}</span>
+                                <span className={p.dedicatedManager ? "text-emerald-400 font-bold" : "text-slate-600"}>
+                                  {p.dedicatedManager ? (isAr ? "نعم" : "Yes") : (isAr ? "لا" : "No")}
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-slate-400">
+                                <span>{isAr ? "ربط FIX API:" : "API:"}</span>
+                                <span className={p.apiAccess ? "text-emerald-400 font-bold" : "text-slate-600"}>
+                                  {p.apiAccess ? (isAr ? "متاح" : "Yes") : (isAr ? "لا" : "No")}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Custom Perks for this Plan */}
+                            {p.customPerks && p.customPerks.length > 0 && (
+                              <div className="pt-2 border-t border-slate-800 space-y-1">
+                                <div className="text-[10px] text-slate-500 font-mono font-bold uppercase">
+                                  {isAr ? "الخصائص الإضافية المخصصة:" : "Configured Perks:"}
+                                </div>
+                                {p.customPerks.map((perk, i) => (
+                                  <div key={i} className="text-[11px] text-slate-300 flex items-center gap-1.5">
+                                    <Check className="w-3 h-3 text-amber-400 shrink-0" />
+                                    <span className="truncate">{perk}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="pt-4 mt-3 border-t border-slate-800">
+                            {isCurrent ? (
+                              <div className="py-2 rounded-xl bg-slate-800 text-center text-xs font-bold text-emerald-400 font-mono">
+                                {isAr ? "✓ باقتك الحالية المعتمدة" : "✓ Current Active Plan"}
+                              </div>
+                            ) : (
+                              <div className="py-2 rounded-xl bg-slate-900 text-center text-xs text-slate-400 font-mono">
+                                {isAr ? "تُمنح عبر إدارة المنصة" : "Assigned by Admin"}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Admin Authority Policy Notice */}
+                  <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex items-start gap-3 text-xs text-slate-400 font-sans">
+                    <ShieldCheck className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold text-white">
+                        {isAr ? "سياسة إدارة وترقية الاشتراكات المؤسسية" : "Institutional Subscription Upgrade Policy"}
+                      </div>
+                      <div className="mt-1 leading-relaxed">
+                        {isAr
+                          ? "وفقاً لسياسة الامتثال في FAST FX، يستطيع المدير فقط من خلال لوحة التحكم الخاصة به التحكم في هذه الاشتراكات، تعديل خصائصها، وترقية حسابات العملاء بعد استيفاء شروط الإيداع والتداول."
+                          : "In accordance with FAST FX compliance policies, only administrators in the Admin Control Panel have the authority to configure subscription tier parameters, add custom perks, and upgrade client accounts."}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

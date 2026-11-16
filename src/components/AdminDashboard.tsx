@@ -15,7 +15,9 @@ import {
   ServerNode,
   ServerStatus,
   SystemLogLevel,
-  SystemLogEntry
+  SystemLogEntry,
+  SubscriptionPlan,
+  SubscriptionTierId
 } from "../types";
 import {
   ShieldAlert,
@@ -74,7 +76,10 @@ import {
   Power,
   Filter,
   Layers,
-  Globe
+  Globe,
+  Award,
+  Zap,
+  Crown
 } from "lucide-react";
 
 interface AdminDashboardProps {
@@ -88,7 +93,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
 
   // Navigation Tab inside Admin Dashboard
   const [activeTab, setActiveTab] = useState<
-    "users" | "funds" | "kyc" | "markets" | "risk" | "servers" | "sql" | "audit" | "subscribers"
+    "users" | "funds" | "subscriptions" | "kyc" | "markets" | "risk" | "servers" | "sql" | "audit" | "subscribers"
   >("users");
 
   // State loaded from SQL DB
@@ -102,6 +107,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
   const [settings, setSettings] = useState<PlatformSettings>(sqlDb.getSettings());
   const [serverNodes, setServerNodes] = useState<ServerNode[]>(sqlDb.getServerNodes());
   const [systemLogs, setSystemLogs] = useState<SystemLogEntry[]>(sqlDb.getSystemLogs());
+  const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>(sqlDb.getSubscriptionPlans());
+  const [newPerkInputs, setNewPerkInputs] = useState<{ [key in SubscriptionTierId]?: string }>({});
 
   // Server CRM & Fleet States
   const [activeServerSubTab, setActiveServerSubTab] = useState<"cluster" | "logs">("cluster");
@@ -201,6 +208,66 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
     setSettings(sqlDb.getSettings());
     setServerNodes(sqlDb.getServerNodes());
     setSystemLogs(sqlDb.getSystemLogs());
+    setSubscriptionPlans(sqlDb.getSubscriptionPlans());
+  };
+
+  // --- Subscription Management Handlers ---
+  const handleUpdatePlanField = (
+    tierId: SubscriptionTierId,
+    field: keyof SubscriptionPlan,
+    value: any
+  ) => {
+    const plan = subscriptionPlans.find((p) => p.id === tierId);
+    if (!plan) return;
+    const updated = { ...plan, [field]: value };
+    const res = sqlDb.updateSubscriptionPlan(updated);
+    if (res.success) {
+      setSubscriptionPlans(sqlDb.getSubscriptionPlans());
+      setStatusFeedback({
+        text: isAr ? `تم تحديث بيانات ${plan.nameAr} بنجاح` : `Updated ${plan.nameEn} successfully`,
+        type: "success"
+      });
+      setTimeout(() => setStatusFeedback(null), 3000);
+    }
+  };
+
+  const handleAddPerkToTier = (tierId: SubscriptionTierId) => {
+    const perkText = (newPerkInputs[tierId] || "").trim();
+    if (!perkText) return;
+    const res = sqlDb.addCustomPerkToPlan(tierId, perkText);
+    if (res.success) {
+      setSubscriptionPlans(sqlDb.getSubscriptionPlans());
+      setNewPerkInputs((prev) => ({ ...prev, [tierId]: "" }));
+      setStatusFeedback({
+        text: isAr ? "تمت إضافة الميزة بنجاح إلى الباقة" : "Added custom perk to tier",
+        type: "success"
+      });
+      setTimeout(() => setStatusFeedback(null), 3000);
+    }
+  };
+
+  const handleRemovePerkFromTier = (tierId: SubscriptionTierId, index: number) => {
+    const res = sqlDb.removeCustomPerkFromPlan(tierId, index);
+    if (res.success) {
+      setSubscriptionPlans(sqlDb.getSubscriptionPlans());
+      setStatusFeedback({
+        text: isAr ? "تم حذف الميزة بنجاح" : "Removed perk",
+        type: "success"
+      });
+      setTimeout(() => setStatusFeedback(null), 3000);
+    }
+  };
+
+  const handleUserTierChange = (userId: string, tier: SubscriptionTierId) => {
+    const res = sqlDb.setUserSubscriptionTier(userId, tier);
+    if (res.success) {
+      setUsers(sqlDb.getUsers());
+      setStatusFeedback({
+        text: isAr ? `تم تعيين باقة اشتراك العميل إلى [${tier.toUpperCase()}] بنجاح` : `User subscription set to [${tier.toUpperCase()}]`,
+        type: "success"
+      });
+      setTimeout(() => setStatusFeedback(null), 3000);
+    }
   };
 
   useEffect(() => {
@@ -895,6 +962,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
         </button>
 
         <button
+          onClick={() => setActiveTab("subscriptions")}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+            activeTab === "subscriptions"
+              ? "bg-gradient-to-r from-amber-500/25 to-yellow-500/25 border border-amber-500/40 text-amber-300 font-bold shadow-sm"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <Award className="w-4 h-4 text-amber-400" />
+          <span>{isAr ? "باقات الاشتراكات (برونزي / فضي / ذهبي)" : "Subscription Tiers"}</span>
+          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 font-bold">
+            {subscriptionPlans.length}
+          </span>
+        </button>
+
+        <button
           onClick={() => setActiveTab("kyc")}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
             activeTab === "kyc" ? "bg-slate-800 text-white font-bold shadow-sm" : "text-slate-400 hover:text-white"
@@ -1040,6 +1122,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
                   <th className="pb-3">{isAr ? "الرصيد المتاح" : "Balance"}</th>
                   <th className="pb-3">{isAr ? "حقوق الملكية" : "Equity"}</th>
                   <th className="pb-3">{isAr ? "حالة KYC" : "KYC Tier"}</th>
+                  <th className="pb-3">{isAr ? "باقة الاشتراك" : "Tier"}</th>
                   <th className="pb-3">{isAr ? "الدور" : "Role"}</th>
                   <th className="pb-3">{isAr ? "الحالة" : "Status"}</th>
                   <th className="pb-3 text-right">{t.actions}</th>
@@ -1096,6 +1179,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
                         >
                           {u.kycStatus.toUpperCase()} {u.kycTier ? `(${u.kycTier.replace("TIER_", "T")})` : ""}
                         </span>
+                      </td>
+
+                      <td className="py-3">
+                        <select
+                          value={u.subscriptionTier || "bronze"}
+                          onChange={(e) => handleUserTierChange(u.id, e.target.value as SubscriptionTierId)}
+                          className={`bg-slate-900 border rounded-lg px-2 py-0.5 text-[11px] font-bold focus:outline-none cursor-pointer font-sans transition-colors ${
+                            u.subscriptionTier === "gold"
+                              ? "text-amber-400 border-amber-500/50 bg-amber-500/10"
+                              : u.subscriptionTier === "silver"
+                              ? "text-slate-200 border-slate-400/50 bg-slate-400/10"
+                              : "text-amber-600 border-amber-700/50 bg-amber-700/10"
+                          }`}
+                        >
+                          <option value="bronze">{isAr ? "برونزي" : "Bronze"}</option>
+                          <option value="silver">{isAr ? "فضي" : "Silver"}</option>
+                          <option value="gold">{isAr ? "ذهبي VIP" : "Gold VIP"}</option>
+                        </select>
                       </td>
 
                       <td className="py-3">
@@ -1464,7 +1565,461 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
         </div>
       )}
 
-      {/* --- TAB 3: KYC & COMPLIANCE --- */}
+      {/* --- TAB: SUBSCRIPTION TIERS MANAGEMENT (ADMIN ONLY) --- */}
+      {activeTab === "subscriptions" && (
+        <div className="space-y-6">
+          {/* Header Banner */}
+          <div className="bg-[#0c1322] border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+              <div>
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Award className="w-5 h-5 text-amber-400" />
+                  <span>{isAr ? "إدارة باقات الاشتراكات (برونزي / فضي / ذهبي)" : "Subscription Tiers Management"}</span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {isAr
+                    ? "صلاحية المدير الحصرية للتحكم في باقات التسجيل للمستخدم الجديد، تعديل الفوارق السعرية، وإضافة خصائص ومزايا مخصصة لكل باقة."
+                    : "Exclusive admin authority to configure registration subscription tiers, raw spreads, leverage ceilings, and dynamic custom perks."}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>{isAr ? "تحكم المدير الحصري" : "Admin Authorized"}</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Subscribers Breakdown Stats (3 Tiers) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Bronze Card */}
+              <div className="p-4 rounded-xl bg-slate-900/90 border border-amber-800/40 relative overflow-hidden">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-500 font-sans">
+                    {isAr ? "الاشتراك البرونزي" : "Bronze Tier"}
+                  </span>
+                  <Award className="w-4 h-4 text-amber-600" />
+                </div>
+                <div className="text-2xl font-black text-white font-mono tabular-nums mt-1">
+                  {users.filter((u) => (u.subscriptionTier || "bronze") === "bronze").length}
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                  {isAr ? "متداول مسجل بالباقة البرونزية" : "Subscribed Traders"}
+                </div>
+              </div>
+
+              {/* Silver Card */}
+              <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-700/60 relative overflow-hidden">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-200 font-sans">
+                    {isAr ? "الاشتراك الفضي" : "Silver Tier"}
+                  </span>
+                  <Award className="w-4 h-4 text-slate-300" />
+                </div>
+                <div className="text-2xl font-black text-white font-mono tabular-nums mt-1">
+                  {users.filter((u) => u.subscriptionTier === "silver").length}
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                  {isAr ? "متداول مسجل بالباقة الفضية" : "Subscribed Traders"}
+                </div>
+              </div>
+
+              {/* Gold Card */}
+              <div className="p-4 rounded-xl bg-slate-900/90 border border-amber-500/50 relative overflow-hidden shadow-lg shadow-amber-500/5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-400 font-sans">
+                    {isAr ? "الاشتراك الذهبي (VIP)" : "Gold VIP Tier"}
+                  </span>
+                  <Crown className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="text-2xl font-black text-amber-300 font-mono tabular-nums mt-1">
+                  {users.filter((u) => u.subscriptionTier === "gold").length}
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                  {isAr ? "متداول مؤسسي بالباقة الذهبية" : "Institutional VIP Traders"}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3 Tier Interactive Editors Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {subscriptionPlans.map((plan) => {
+              const isGold = plan.id === "gold";
+              const isSilver = plan.id === "silver";
+              const isBronze = plan.id === "bronze";
+
+              return (
+                <div
+                  key={plan.id}
+                  className={`bg-[#0c1322] border rounded-2xl p-5 shadow-xl flex flex-col justify-between space-y-5 transition-all ${
+                    isGold
+                      ? "border-amber-500/40 shadow-amber-500/10 ring-1 ring-amber-500/30"
+                      : isSilver
+                      ? "border-slate-500/40 shadow-slate-500/5"
+                      : "border-amber-800/40"
+                  }`}
+                >
+                  {/* Tier Card Header */}
+                  <div className="space-y-2 pb-3 border-b border-slate-800">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {isGold ? (
+                          <Crown className="w-5 h-5 text-amber-400" />
+                        ) : (
+                          <Award className={`w-5 h-5 ${isSilver ? "text-slate-300" : "text-amber-600"}`} />
+                        )}
+                        <span
+                          className={`font-black text-sm ${
+                            isGold
+                              ? "text-amber-400"
+                              : isSilver
+                              ? "text-slate-200"
+                              : "text-amber-500"
+                          }`}
+                        >
+                          {isAr ? plan.nameAr : plan.nameEn}
+                        </span>
+                      </div>
+
+                      {/* Active Status Badge */}
+                      <span
+                        className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
+                          plan.active
+                            ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                            : "bg-rose-500/15 text-rose-400 border border-rose-500/30"
+                        }`}
+                      >
+                        {plan.active ? (isAr ? "نشطة" : "ACTIVE") : (isAr ? "معطلة" : "DISABLED")}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 leading-relaxed font-sans">
+                      {isAr ? plan.descriptionAr : plan.descriptionEn}
+                    </p>
+                  </div>
+
+                  {/* Editable Financial & Trading Parameters */}
+                  <div className="space-y-3 text-xs font-sans">
+                    <div className="text-[11px] font-mono text-slate-400 font-bold uppercase tracking-wider">
+                      {isAr ? "معايير التداول والرسوم:" : "Financial Parameters:"}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <label className="block text-slate-400 text-[10px] font-mono mb-1">
+                          {isAr ? "الحد الأدنى للإيداع ($)" : "Min Deposit ($)"}
+                        </label>
+                        <input
+                          type="number"
+                          step="10"
+                          value={plan.minDeposit}
+                          onChange={(e) =>
+                            handleUpdatePlanField(plan.id, "minDeposit", parseFloat(e.target.value) || 0)
+                          }
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono font-bold text-xs focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-400 text-[10px] font-mono mb-1">
+                          {isAr ? "الاشتراك الشهري ($)" : "Monthly Fee ($)"}
+                        </label>
+                        <input
+                          type="number"
+                          step="1"
+                          value={plan.priceMonthly}
+                          onChange={(e) =>
+                            handleUpdatePlanField(plan.id, "priceMonthly", parseFloat(e.target.value) || 0)
+                          }
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono font-bold text-xs focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <label className="block text-slate-400 text-[10px] font-mono mb-1">
+                          {isAr ? "الفارق السعري الأدنى (Pips)" : "Raw Spread (Pips)"}
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={plan.spreadFromPips}
+                          onChange={(e) =>
+                            handleUpdatePlanField(plan.id, "spreadFromPips", parseFloat(e.target.value) || 0)
+                          }
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono font-bold text-xs focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-400 text-[10px] font-mono mb-1">
+                          {isAr ? "أقصى رافعة مالية (1:X)" : "Max Leverage (1:X)"}
+                        </label>
+                        <input
+                          type="number"
+                          step="50"
+                          value={plan.maxLeverage}
+                          onChange={(e) =>
+                            handleUpdatePlanField(plan.id, "maxLeverage", parseInt(e.target.value) || 100)
+                          }
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono font-bold text-xs focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 text-[10px] font-mono mb-1">
+                        {isAr ? "زمن التنفيذ المقدر (مللي ثانية ms)" : "Execution Latency (ms)"}
+                      </label>
+                      <input
+                        type="number"
+                        step="1"
+                        value={plan.executionSpeedMs}
+                        onChange={(e) =>
+                          handleUpdatePlanField(plan.id, "executionSpeedMs", parseInt(e.target.value) || 10)
+                        }
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono font-bold text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    {/* Toggles Strip */}
+                    <div className="pt-2 border-t border-slate-800 space-y-2">
+                      <label className="flex items-center justify-between text-[11px] text-slate-300 cursor-pointer">
+                        <span>{isAr ? "حساب إسلامي بدون فوائد (Swap-Free)" : "Sharia Swap-Free"}</span>
+                        <input
+                          type="checkbox"
+                          checked={plan.swapFreeIslamic}
+                          onChange={(e) => handleUpdatePlanField(plan.id, "swapFreeIslamic", e.target.checked)}
+                          className="rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-0"
+                        />
+                      </label>
+
+                      <label className="flex items-center justify-between text-[11px] text-slate-300 cursor-pointer">
+                        <span>{isAr ? "مدير حساب شخصي مخصص" : "Dedicated VIP Manager"}</span>
+                        <input
+                          type="checkbox"
+                          checked={plan.dedicatedManager}
+                          onChange={(e) => handleUpdatePlanField(plan.id, "dedicatedManager", e.target.checked)}
+                          className="rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-0"
+                        />
+                      </label>
+
+                      <label className="flex items-center justify-between text-[11px] text-slate-300 cursor-pointer">
+                        <span>{isAr ? "توصيات وتحليلات فنية يومية" : "Live Signals & Analytics"}</span>
+                        <input
+                          type="checkbox"
+                          checked={plan.tradingSignals}
+                          onChange={(e) => handleUpdatePlanField(plan.id, "tradingSignals", e.target.checked)}
+                          className="rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-0"
+                        />
+                      </label>
+
+                      <label className="flex items-center justify-between text-[11px] text-slate-300 cursor-pointer">
+                        <span>{isAr ? "ربط برمجي FIX 4.4 / REST API" : "Algorithmic FIX/REST API"}</span>
+                        <input
+                          type="checkbox"
+                          checked={plan.apiAccess}
+                          onChange={(e) => handleUpdatePlanField(plan.id, "apiAccess", e.target.checked)}
+                          className="rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-0"
+                        />
+                      </label>
+
+                      <label className="flex items-center justify-between text-[11px] text-slate-300 cursor-pointer">
+                        <span>{isAr ? "تمييز الباقة بأنها الأكثر طلباً" : "Mark as Recommended"}</span>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(plan.recommended)}
+                          onChange={(e) => handleUpdatePlanField(plan.id, "recommended", e.target.checked)}
+                          className="rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-0"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* DYNAMIC CUSTOM PERKS MANAGER (SPECIAL PROPERTIES) */}
+                  <div className="pt-3 border-t border-slate-800 space-y-2.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-white flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <span>{isAr ? "الخصائص والمميزات الخاصة بالباقة:" : "Custom Perks & Features:"}</span>
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        {plan.customPerks?.length || 0} {isAr ? "ميزة" : "Perks"}
+                      </span>
+                    </div>
+
+                    {/* Active Perks List */}
+                    <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                      {plan.customPerks && plan.customPerks.length > 0 ? (
+                        plan.customPerks.map((perk, pIdx) => (
+                          <div
+                            key={pIdx}
+                            className="p-2 rounded-lg bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-2 text-[11px] text-slate-300 hover:border-slate-700 transition-colors"
+                          >
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                              <span className="truncate">{perk}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemovePerkFromTier(plan.id, pIdx)}
+                              className="text-slate-500 hover:text-rose-400 transition-colors cursor-pointer shrink-0 p-1"
+                              title={isAr ? "حذف هذه الميزة" : "Delete perk"}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-2 text-slate-500 text-[10px] font-mono">
+                          {isAr ? "لا توجد مميزات مخصصة مضافة حالياً" : "No custom perks added yet"}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Add New Custom Perk Input */}
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <input
+                        type="text"
+                        value={newPerkInputs[plan.id] || ""}
+                        onChange={(e) =>
+                          setNewPerkInputs((prev) => ({ ...prev, [plan.id]: e.target.value }))
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddPerkToTier(plan.id);
+                          }
+                        }}
+                        placeholder={
+                          isAr
+                            ? "أضف ميزة جديدة خاصة بالباقة..."
+                            : "Add special custom perk..."
+                        }
+                        className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 font-sans"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleAddPerkToTier(plan.id)}
+                        className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-colors cursor-pointer shrink-0"
+                      >
+                        + {isAr ? "إضافة" : "Add"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Quick Client Tier Management Table */}
+          <div className="bg-[#0c1322] border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Users className="w-4 h-4 text-sky-400" />
+                  <span>{isAr ? "توزيع باقات الاشتراكات على المتداولين" : "Traders Subscription Allocation"}</span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  {isAr
+                    ? "يمكنك ترقية أو تغيير باقة أي متداول فوراً من خلال القائمة المنسدلة"
+                    : "Instantly upgrade or assign subscription tiers to any registered investor"}
+                </p>
+              </div>
+
+              <div className="text-xs font-mono text-slate-400">
+                <span>{users.length} {isAr ? "متداول مسجل" : "Registered Accounts"}</span>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-mono">
+                <thead>
+                  <tr className="text-slate-400 border-b border-slate-800 text-[11px]">
+                    <th className="pb-3">{isAr ? "المتداول" : "Trader"}</th>
+                    <th className="pb-3">{isAr ? "الرصيد المتاح" : "Balance"}</th>
+                    <th className="pb-3">{isAr ? "حالة التوثيق" : "KYC"}</th>
+                    <th className="pb-3">{isAr ? "الباقة الحالية" : "Current Plan"}</th>
+                    <th className="pb-3 text-right">{isAr ? "تغيير الباقة بواسطة المدير" : "Assign Tier"}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {users.map((u) => {
+                    const currentPlanId = u.subscriptionTier || "bronze";
+                    return (
+                      <tr key={u.id} className="hover:bg-slate-800/40 transition-colors">
+                        <td className="py-3 font-sans">
+                          <div className="text-white font-bold">{u.name}</div>
+                          <div className="text-slate-400 text-[11px] font-mono">{u.email}</div>
+                        </td>
+
+                        <td className="py-3 font-bold text-amber-400 tabular-nums">
+                          ${u.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+
+                        <td className="py-3">
+                          <span
+                            className={`font-semibold ${
+                              u.kycStatus === "verified" ? "text-emerald-400" : "text-amber-400"
+                            }`}
+                          >
+                            {u.kycStatus.toUpperCase()}
+                          </span>
+                        </td>
+
+                        <td className="py-3">
+                          <span
+                            className={`font-bold font-sans ${
+                              currentPlanId === "gold"
+                                ? "text-amber-400"
+                                : currentPlanId === "silver"
+                                ? "text-slate-200"
+                                : "text-amber-600"
+                            }`}
+                          >
+                            {currentPlanId === "gold"
+                              ? isAr
+                                ? "الاشتراك الذهبي VIP"
+                                : "Gold VIP"
+                              : currentPlanId === "silver"
+                              ? isAr
+                                ? "الاشتراك الفضي"
+                                : "Silver Tier"
+                              : isAr
+                              ? "الاشتراك البرونزي"
+                              : "Bronze Tier"}
+                          </span>
+                        </td>
+
+                        <td className="py-3 text-right">
+                          <select
+                            value={currentPlanId}
+                            onChange={(e) => handleUserTierChange(u.id, e.target.value as SubscriptionTierId)}
+                            className={`bg-slate-900 border rounded-lg px-2.5 py-1 text-xs font-bold focus:outline-none cursor-pointer font-sans transition-colors ${
+                              currentPlanId === "gold"
+                                ? "text-amber-400 border-amber-500/50 bg-amber-500/10"
+                                : currentPlanId === "silver"
+                                ? "text-slate-200 border-slate-400/50 bg-slate-400/10"
+                                : "text-amber-600 border-amber-700/50 bg-amber-700/10"
+                            }`}
+                          >
+                            <option value="bronze">{isAr ? "الاشتراك البرونزي" : "Bronze"}</option>
+                            <option value="silver">{isAr ? "الاشتراك الفضي" : "Silver"}</option>
+                            <option value="gold">{isAr ? "الاشتراك الذهبي VIP" : "Gold VIP"}</option>
+                          </select>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
       {activeTab === "kyc" && (
         <div className="bg-[#0c1322] border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

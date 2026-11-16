@@ -13,7 +13,9 @@ import {
   ServerStatus,
   SystemLogLevel,
   SystemLogEntry,
-  KycSubmissionPayload
+  KycSubmissionPayload,
+  SubscriptionPlan,
+  SubscriptionTierId
 } from "../types";
 
 export const SUPER_ADMIN_EMAIL = "admin@fast-fx.uk";
@@ -31,6 +33,7 @@ interface DatabaseState {
   broadcasts: PlatformBroadcast[];
   server_nodes: ServerNode[];
   system_logs: SystemLogEntry[];
+  subscription_plans: SubscriptionPlan[];
 }
 
 const initialMarketInstruments: ManagedMarketPair[] = [
@@ -446,6 +449,90 @@ const initialSystemLogs: SystemLogEntry[] = [
   }
 ];
 
+export const initialSubscriptionPlans: SubscriptionPlan[] = [
+  {
+    id: "bronze",
+    nameAr: "الاشتراك البرونزي (Bronze)",
+    nameEn: "Bronze Tier",
+    badgeColor: "amber",
+    minDeposit: 250,
+    priceMonthly: 0,
+    spreadFromPips: 1.4,
+    maxLeverage: 100,
+    executionSpeedMs: 65,
+    swapFreeIslamic: true,
+    dedicatedManager: false,
+    tradingSignals: false,
+    apiAccess: false,
+    descriptionAr: "باقة الدخول للمتداول المبتدئ مع فروق أسعار تنافسية وحماية الرصيد السلبي ودعم فني متواصل",
+    descriptionEn: "Essential entry tier for retail traders with negative balance protection",
+    customPerks: [
+      "تنفيذ أوامر قياسي عبر شبكة STP",
+      "حساب إسلامي 100% بدون فوائد تبييت (Swap-Free)",
+      "حماية كاملة من الرصيد السلبي",
+      "دعم فني عبر الدردشة والبريد 24/5",
+      "إمكانية التحويل الداخلي بين العملاء مجاناً"
+    ],
+    active: true,
+    recommended: false
+  },
+  {
+    id: "silver",
+    nameAr: "الاشتراك الفضي (Silver)",
+    nameEn: "Silver Tier",
+    badgeColor: "slate",
+    minDeposit: 1000,
+    priceMonthly: 49,
+    spreadFromPips: 0.6,
+    maxLeverage: 300,
+    executionSpeedMs: 25,
+    swapFreeIslamic: true,
+    dedicatedManager: true,
+    tradingSignals: true,
+    apiAccess: false,
+    descriptionAr: "الباقة الأكثر طلباً وشعبية للمتداولين النشطين مع فوارق سعرية مخفضة وتوصيات حية ومدير حساب",
+    descriptionEn: "Most popular choice for active traders with reduced spreads and live signals",
+    customPerks: [
+      "فروق أسعار مخفضة تبدأ من 0.6 نقطة",
+      "توصيات وتحليلات فنية يومية حية",
+      "مدير حساب شخصي مخصص",
+      "معالجة سريعة لطلبات السحب خلال 4 ساعات",
+      "رافعة مالية مرنة تصل إلى 1:300",
+      "خصم 20% على عمولات الصفقات الكبيرة"
+    ],
+    active: true,
+    recommended: true
+  },
+  {
+    id: "gold",
+    nameAr: "الاشتراك الذهبي المؤسسي (Gold VIP)",
+    nameEn: "Gold VIP Tier",
+    badgeColor: "yellow",
+    minDeposit: 5000,
+    priceMonthly: 149,
+    spreadFromPips: 0.0,
+    maxLeverage: 500,
+    executionSpeedMs: 8,
+    swapFreeIslamic: true,
+    dedicatedManager: true,
+    tradingSignals: true,
+    apiAccess: true,
+    descriptionAr: "الباقة المؤسسية الفاخرة لكبار المتداولين والمؤسسات مع فروق خام وأولوية ربط Equinix LD4 وسحب فوري",
+    descriptionEn: "Institutional VIP tier with raw spreads, sub-10ms fiber latency, and FIX API",
+    customPerks: [
+      "فروق أسعار خام صفرية 0.0 Pips (Raw Spreads)",
+      "أولوية ربط بألياف Equinix London LD4 (<8ms)",
+      "محلل مالي خاص وكبير استشاريين مخصص",
+      "سحب فوري للأموال بدون حد أقصى (Instant Cashout)",
+      "مفاتيح ربط برمجي كاملة FIX 4.4 & REST API",
+      "دخول غرف التداول الخاصة بكبار المستثمرين",
+      "استرداد نقدي (Cashback) شهري على أحجام التداول"
+    ],
+    active: true,
+    recommended: false
+  }
+];
+
 const defaultInitialState: DatabaseState = {
   users: [
     {
@@ -462,7 +549,8 @@ const defaultInitialState: DatabaseState = {
       country: "United Kingdom",
       phone: "+44 20 7946 0912",
       status: "active",
-      createdAt: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
+      createdAt: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString(),
+      subscriptionTier: "gold"
     },
     {
       id: "usr_trader_002",
@@ -478,7 +566,8 @@ const defaultInitialState: DatabaseState = {
       country: "Germany",
       phone: "+49 30 2312 8841",
       status: "active",
-      createdAt: new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString()
+      createdAt: new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString(),
+      subscriptionTier: "silver"
     },
     {
       id: "usr_trader_003",
@@ -494,7 +583,8 @@ const defaultInitialState: DatabaseState = {
       country: "United Arab Emirates",
       phone: "+971 4 391 2200",
       status: "active",
-      createdAt: new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString()
+      createdAt: new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString(),
+      subscriptionTier: "bronze"
     },
     {
       id: "usr_trader_004",
@@ -510,7 +600,8 @@ const defaultInitialState: DatabaseState = {
       country: "Saudi Arabia",
       phone: "+966 11 482 1900",
       status: "active",
-      createdAt: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString()
+      createdAt: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
+      subscriptionTier: "gold"
     }
   ],
   trades: [
@@ -691,7 +782,8 @@ const defaultInitialState: DatabaseState = {
   market_instruments: initialMarketInstruments,
   broadcasts: initialBroadcasts,
   server_nodes: initialServerNodes,
-  system_logs: initialSystemLogs
+  system_logs: initialSystemLogs,
+  subscription_plans: initialSubscriptionPlans
 };
 
 type DbChangeListener = () => void;
@@ -721,8 +813,13 @@ class SqlDatabaseEngine {
           parsed.users = [...(parsed.users || []), defaultInitialState.users[0]];
         }
 
+        const loadedUsers: User[] = (parsed.users || defaultInitialState.users).map((u: User) => ({
+          ...u,
+          subscriptionTier: u.subscriptionTier || (u.role === "admin" || u.balance >= 100000 ? "gold" : u.balance >= 20000 ? "silver" : "bronze")
+        }));
+
         return {
-          users: parsed.users || defaultInitialState.users,
+          users: loadedUsers,
           trades: parsed.trades || defaultInitialState.trades,
           transactions: parsed.transactions || defaultInitialState.transactions,
           subscribers: parsed.subscribers || defaultInitialState.subscribers,
@@ -741,7 +838,11 @@ class SqlDatabaseEngine {
           system_logs:
             parsed.system_logs && parsed.system_logs.length > 0
               ? parsed.system_logs
-              : defaultInitialState.system_logs
+              : defaultInitialState.system_logs,
+          subscription_plans:
+            parsed.subscription_plans && parsed.subscription_plans.length > 0
+              ? parsed.subscription_plans
+              : defaultInitialState.subscription_plans
         };
       }
     } catch (e) {
@@ -1118,11 +1219,12 @@ class SqlDatabaseEngine {
     return this.state.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
   }
 
-  public registerUser(email: string, name: string): User {
+  public registerUser(email: string, name: string, subscriptionTier?: SubscriptionTierId): User {
     const existing = this.getUserByEmail(email);
     if (existing) return existing;
 
     const isSuperAdmin = email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+    const chosenTier: SubscriptionTierId = isSuperAdmin ? "gold" : (subscriptionTier || "bronze");
 
     const newUser: User = {
       id: `usr_${Date.now().toString(36)}`,
@@ -1136,11 +1238,17 @@ class SqlDatabaseEngine {
       kycTier: isSuperAdmin ? "TIER_3_UNLIMITED" : "TIER_1_STANDARD",
       kycNotes: isSuperAdmin ? "Root clearance" : "New registrant, pending document review",
       status: "active",
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      subscriptionTier: chosenTier,
+      subscriptionUpdatedAt: new Date().toISOString()
     };
 
     this.state.users.unshift(newUser);
-    this.addAuditLog(email, "USER_REGISTER", `User registered with initial balance $${newUser.balance}`);
+    this.addAuditLog(
+      email,
+      "USER_REGISTER",
+      `User registered with initial balance $${newUser.balance} on [${chosenTier.toUpperCase()}] tier`
+    );
     this.saveToStorage();
     return newUser;
   }
@@ -1499,6 +1607,90 @@ class SqlDatabaseEngine {
       this.addAuditLog(SUPER_ADMIN_EMAIL, "ROLE_CHANGE", `User ${user.email} role changed to ${user.role}`);
       this.saveToStorage();
     }
+  }
+
+  // --- Subscription Management (Admin Only & Public Queries) ---
+  public getSubscriptionPlans(): SubscriptionPlan[] {
+    return [...(this.state.subscription_plans || initialSubscriptionPlans)];
+  }
+
+  public getSubscriptionPlan(id: SubscriptionTierId): SubscriptionPlan | undefined {
+    return (this.state.subscription_plans || initialSubscriptionPlans).find((p) => p.id === id);
+  }
+
+  public updateSubscriptionPlan(updatedPlan: SubscriptionPlan): { success: boolean; error?: string } {
+    if (!this.state.subscription_plans) {
+      this.state.subscription_plans = [...initialSubscriptionPlans];
+    }
+    const idx = this.state.subscription_plans.findIndex((p) => p.id === updatedPlan.id);
+    if (idx === -1) {
+      return { success: false, error: "باقة الاشتراك غير موجودة" };
+    }
+
+    this.state.subscription_plans[idx] = { ...updatedPlan };
+    this.addAuditLog(
+      SUPER_ADMIN_EMAIL,
+      "SUBSCRIPTION_PLAN_UPDATE",
+      `Admin updated plan [${updatedPlan.id.toUpperCase()}]: minDeposit=$${updatedPlan.minDeposit}, spread=${updatedPlan.spreadFromPips} pips, leverage=1:${updatedPlan.maxLeverage}, perksCount=${updatedPlan.customPerks?.length || 0}`
+    );
+    this.saveToStorage();
+    return { success: true };
+  }
+
+  public addCustomPerkToPlan(tierId: SubscriptionTierId, perk: string): { success: boolean; error?: string } {
+    if (!perk || !perk.trim()) {
+      return { success: false, error: "يرجى كتابة نص الميزة" };
+    }
+    const plan = (this.state.subscription_plans || initialSubscriptionPlans).find((p) => p.id === tierId);
+    if (!plan) {
+      return { success: false, error: "الباقة غير موجودة" };
+    }
+    if (!plan.customPerks) plan.customPerks = [];
+    plan.customPerks.push(perk.trim());
+    this.addAuditLog(
+      SUPER_ADMIN_EMAIL,
+      "PLAN_PERK_ADDED",
+      `Admin added custom feature to [${tierId.toUpperCase()}]: "${perk.trim()}"`
+    );
+    this.saveToStorage();
+    return { success: true };
+  }
+
+  public removeCustomPerkFromPlan(tierId: SubscriptionTierId, perkIndex: number): { success: boolean; error?: string } {
+    const plan = (this.state.subscription_plans || initialSubscriptionPlans).find((p) => p.id === tierId);
+    if (!plan || !plan.customPerks || perkIndex < 0 || perkIndex >= plan.customPerks.length) {
+      return { success: false, error: "الميزة غير موجودة" };
+    }
+    const removed = plan.customPerks.splice(perkIndex, 1)[0];
+    this.addAuditLog(
+      SUPER_ADMIN_EMAIL,
+      "PLAN_PERK_REMOVED",
+      `Admin removed feature from [${tierId.toUpperCase()}]: "${removed}"`
+    );
+    this.saveToStorage();
+    return { success: true };
+  }
+
+  public setUserSubscriptionTier(userId: string, tier: SubscriptionTierId): { success: boolean; error?: string } {
+    const user = this.state.users.find((u) => u.id === userId);
+    if (!user) {
+      return { success: false, error: "المستخدم غير موجود" };
+    }
+    const previous = user.subscriptionTier || "bronze";
+    user.subscriptionTier = tier;
+    user.subscriptionUpdatedAt = new Date().toISOString();
+
+    // Also align VIP rank if applicable
+    if (tier === "gold") user.vipRank = "GOLD";
+    else if (tier === "silver") user.vipRank = "STANDARD";
+
+    this.addAuditLog(
+      SUPER_ADMIN_EMAIL,
+      "USER_SUBSCRIPTION_CHANGED",
+      `Admin changed user ${user.email} subscription tier from [${previous.toUpperCase()}] to [${tier.toUpperCase()}]`
+    );
+    this.saveToStorage();
+    return { success: true };
   }
 
   // --- Fund Requests (Deposits & 4. Withdrawals Workflow) ---
